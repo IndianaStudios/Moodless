@@ -1,0 +1,147 @@
+
+import React from 'react';
+import { MoodEntry } from '../types';
+import { EMOTIONAL_PALETTE, MOOD_ICONS } from '../constants';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
+import { Calendar, Zap, FileText, TrendingUp, Sparkles } from 'lucide-react';
+
+interface StatsViewProps {
+  entries: MoodEntry[];
+}
+
+const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
+  const stats = EMOTIONAL_PALETTE.map(p => ({
+    name: p.label,
+    count: entries.filter(e => e.category === p.category).length,
+    color: p.hex
+  }));
+
+  console.log("StatsView entries:", entries);
+  console.log("StatsView stats:", stats);
+
+  const lastEntry = [...entries].reverse().find(e => e);
+  const Icon = lastEntry ? MOOD_ICONS.find(i => i.name === lastEntry.iconName)?.Icon : null;
+
+  const calculateStreak = () => {
+    if (entries.length === 0) return 0;
+    const uniqueDays = new Set(entries.map(e => e.date)).size;
+    return uniqueDays;
+  };
+
+  const getReportData = (reportStr?: string) => {
+    if (!reportStr) return null;
+    try {
+      return JSON.parse(reportStr);
+    } catch {
+      return { title: "Estado Actual", explanation: reportStr };
+    }
+  };
+
+  const reportData = getReportData(lastEntry?.report);
+
+  return (
+    <div className="px-6 pt-24 pb-40 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
+      <header className="mb-6">
+        <h2 className="text-3xl font-black">Estado</h2>
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Balance emocional vivo</p>
+      </header>
+
+      {/* Main Status Report Card */}
+      <div
+        className="relative glass p-6 rounded-[2.5rem] border-white/10 shadow-2xl transition-all duration-700 mb-6"
+        style={lastEntry ? { borderLeft: `8px solid ${lastEntry.color}` } : {}}
+      >
+        {lastEntry && (
+          <div
+            className="absolute top-0 right-0 w-32 h-32 blur-[80px] opacity-10 pointer-events-none"
+            style={{ backgroundColor: lastEntry.color }}
+          />
+        )}
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-white/5">
+              <FileText size={18} className="text-slate-400" />
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Aura Global</h3>
+              <p className="text-xs font-bold text-slate-400">Dimensión SAM</p>
+            </div>
+          </div>
+          {lastEntry && (
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shrink-0"
+              style={{ backgroundColor: lastEntry.color }}
+            >
+              {Icon && <Icon size={20} className="text-white" />}
+            </div>
+          )}
+        </div>
+
+        {reportData ? (
+          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <div className="space-y-2">
+              <h4 className="text-2xl font-black text-white leading-tight">
+                {reportData.title}
+              </h4>
+              <div className="max-h-24 overflow-y-auto pr-2 custom-scrollbar">
+                <p className="text-sm leading-relaxed text-slate-400 font-medium">
+                  {reportData.explanation}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[9px] font-black text-slate-600 uppercase tracking-widest pt-4 border-t border-white/5">
+              <Sparkles size={10} className="text-purple-500" />
+              Vibe Engine Sincronizado
+            </div>
+          </div>
+        ) : (
+          <div className="py-4 text-center">
+            <p className="text-slate-500 text-sm italic">Pendiente de registro.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="glass p-5 rounded-[2rem] flex flex-col items-center border-white/5">
+          <Zap className="text-yellow-400 mb-1" size={18} />
+          <span className="text-2xl font-black">{calculateStreak()}</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Racha Días</span>
+        </div>
+        <div className="glass p-5 rounded-[2rem] flex flex-col items-center border-white/5">
+          <Calendar className="text-blue-400 mb-1" size={18} />
+          <span className="text-2xl font-black">{entries.length}</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Capturas</span>
+        </div>
+      </div>
+
+      {/* Trends Chart */}
+      <div className="glass p-6 rounded-[2.5rem] border-white/5 overflow-hidden mb-10">
+        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <TrendingUp size={12} /> Frecuencia Emocional
+        </h3>
+
+        <div className="flex justify-center w-full overflow-hidden">
+          {entries.length > 0 ? (
+            <BarChart width={300} height={160} data={stats}>
+              <XAxis dataKey="name" hide />
+              <Tooltip
+                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '10px', color: '#fff' }}
+              />
+              <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={20}>
+                {stats.map((entry, index) => <Cell key={`c-${index}`} fill={entry.color} />)}
+              </Bar>
+            </BarChart>
+          ) : (
+            <div className="flex items-center justify-center h-40 w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StatsView;

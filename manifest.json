@@ -1,0 +1,19 @@
+
+{
+  "name": "Moodless - Diario Visual",
+  "short_name": "Moodless",
+  "description": "Tu diario de emociones visual sin texto.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/599/599305.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
