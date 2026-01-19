@@ -1,4 +1,3 @@
-
 {
   "name": "Moodless - Diario Visual",
   "short_name": "Moodless",
@@ -10,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/599/599305.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]

@@ -105,11 +105,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
 
       <div className="z-10 w-full max-sm px-4">
         <header className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/5 border border-white/10 mb-6 shadow-2xl">
-            <Sparkles size={40} className="text-purple-400" />
+          <div className="inline-block relative group">
+            <div className="absolute inset-0 bg-purple-500/20 blur-3xl group-hover:bg-purple-500/40 transition-all duration-700" />
+            <img
+              src="/logo.jpg"
+              alt="Moodless Logo"
+              className="relative w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-3xl animate-in fade-in zoom-in-95 duration-1000"
+            />
           </div>
-          <h1 className="text-4xl font-black tracking-tight mb-2 italic">Moodless</h1>
-          <p className="text-slate-400 text-sm">Tu diario emocional visual.</p>
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-4">
