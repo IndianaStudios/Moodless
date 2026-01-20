@@ -84,7 +84,7 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
     } catch (err: any) {
       console.error("Error sending support ticket", err);
       // Mostrar el mensaje real de error para depuración
-      setError(`Error: ${err.message || 'Hubo un error al enviar tu mensaje.'}`);
+      setError(`No se pudo guardar el ticket: ${err.message || 'Error desconocido'}. Revisa tu conexión.`);
     } finally {
       setLoading(false);
     }
