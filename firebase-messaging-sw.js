@@ -18,8 +18,13 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/favicon.ico'
+    icon: '/logo.jpg'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Requerido para que el navegador lo detecte como PWA instalable
+self.addEventListener('fetch', () => {
+  // Permite que la app sea instalable
 });

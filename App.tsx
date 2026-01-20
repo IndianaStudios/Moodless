@@ -14,6 +14,7 @@ import { authService, User } from './services/authService';
 import { generateMoodReport } from './services/geminiService';
 import { notificationService } from './services/notificationService';
 import AdminView from './components/AdminView';
+import InstallPrompt from './components/InstallPrompt';
 import { db } from './services/firebase';
 import { collection, query, getDocs, setDoc, doc, orderBy } from 'firebase/firestore';
 
@@ -68,6 +69,16 @@ const App: React.FC = () => {
       setUser(currentUser);
       setIsLoaded(true);
     });
+
+    // Registrar Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(reg => console.log('SW registrado para PWA:', reg.scope))
+          .catch(err => console.log('Error registrando SW:', err));
+      });
+    }
+
     return () => unsubscribe();
   }, []);
 
@@ -204,6 +215,7 @@ const App: React.FC = () => {
           <button onClick={() => changeTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
         </nav>
       )}
+      <InstallPrompt />
     </div>
   );
 };
