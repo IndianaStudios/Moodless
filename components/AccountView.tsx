@@ -41,7 +41,9 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
   }, [user.id]);
 
   const handleToggleNotifs = async () => {
+    const previousState = notifsEnabled;
     setIsSyncing(true);
+
     try {
       if (notifsEnabled) {
         setNotifsEnabled(false);
@@ -51,9 +53,18 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
         if (permission === 'granted') {
           setNotifsEnabled(true);
           await notificationService.savePreference(user.id, true);
+        } else {
+          alert("Necesitas dar permiso en el navegador para activar los recordatorios.");
         }
       }
-    } catch (error) { console.error(error); } finally { setIsSyncing(false); }
+    } catch (error) {
+      console.error("Error saving preference:", error);
+      // Revertir estado si falla
+      setNotifsEnabled(previousState);
+      alert("No se pudo guardar la preferencia. Revisa tu conexión.");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleDeleteAccount = async () => {

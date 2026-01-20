@@ -16,11 +16,11 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
 
   if (type === 'valence') {
     // 1 (Triste) a 5 (Feliz)
-    const mouthPath = value === 1 ? "M 8 22 Q 16 15 24 22" : 
-                      value === 2 ? "M 10 20 L 22 20" :
-                      value === 3 ? "M 10 20 Q 16 20 22 20" :
-                      value === 4 ? "M 10 18 Q 16 22 22 18" :
-                      "M 8 18 Q 16 26 24 18";
+    const mouthPath = value === 1 ? "M 8 22 Q 16 15 24 22" :
+      value === 2 ? "M 10 20 L 22 20" :
+        value === 3 ? "M 10 20 Q 16 20 22 20" :
+          value === 4 ? "M 10 18 Q 16 22 22 18" :
+            "M 8 18 Q 16 26 24 18";
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" style={{ opacity, transform: `scale(${scale})`, transition: 'all 0.3s' }}>
         <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -38,9 +38,9 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
       <svg width={size} height={size} viewBox="0 0 32 32" style={{ opacity, transform: `scale(${scale})`, transition: 'all 0.3s' }}>
         <path d="M 16 4 L 10 28 L 22 28 Z" fill="none" stroke="currentColor" strokeWidth="2" />
         {value > 1 && (
-          <path 
-            d={`M 16 ${16-energySize} L ${16-energySize} 16 L 16 ${16+energySize} L ${16+energySize} 16 Z`} 
-            fill="currentColor" 
+          <path
+            d={`M 16 ${16 - energySize} L ${16 - energySize} 16 L 16 ${16 + energySize} L ${16 + energySize} 16 Z`}
+            fill="currentColor"
             className="animate-pulse"
           />
         )}
@@ -123,13 +123,13 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-slate-950 overflow-hidden">
-      <div 
+    <div className="relative flex flex-col h-full bg-slate-950 overflow-y-auto no-scrollbar">
+      <div
         className="absolute inset-0 opacity-20 blur-[120px] transition-all duration-1000 pointer-events-none"
         style={{ backgroundColor: color }}
       />
 
-      <div className="relative z-10 flex flex-col h-full px-8 pt-20 pb-32">
+      <div className="relative z-10 flex flex-col min-h-full px-8 pt-20 pb-32">
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">Modelo SAM</h1>
           <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Self-Assessment Manikin</p>
@@ -146,8 +146,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
             </div>
             <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
               {[1, 2, 3, 4, 5].map(v => (
-                <button 
-                  key={v} 
+                <button
+                  key={v}
                   onClick={() => setValence(v)}
                   className={`p-2 transition-all ${valence === v ? 'text-white' : 'text-slate-600'}`}
                 >
@@ -167,8 +167,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
             </div>
             <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
               {[1, 2, 3, 4, 5].map(v => (
-                <button 
-                  key={v} 
+                <button
+                  key={v}
                   onClick={() => setArousal(v)}
                   className={`p-2 transition-all ${arousal === v ? 'text-white' : 'text-slate-600'}`}
                 >
@@ -188,8 +188,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
             </div>
             <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
               {[1, 2, 3, 4, 5].map(v => (
-                <button 
-                  key={v} 
+                <button
+                  key={v}
                   onClick={() => setDominance(v)}
                   className={`p-2 transition-all ${dominance === v ? 'text-white' : 'text-slate-600'}`}
                 >
