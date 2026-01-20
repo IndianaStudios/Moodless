@@ -38,6 +38,31 @@ const App: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isFetchingData, setIsFetchingData] = useState(false);
 
+  // Sync state with URL Hash for back button support
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').toUpperCase();
+      if (Object.values(Tab).includes(hash as Tab)) {
+        setActiveTab(hash as Tab);
+      } else {
+        // Default to LOG if hash is empty or invalid
+        setActiveTab(Tab.LOG);
+      }
+    };
+
+    window.addEventListener('popstate', handleHashChange);
+    // Initial check
+    handleHashChange();
+
+    return () => window.removeEventListener('popstate', handleHashChange);
+  }, []);
+
+  const changeTab = (tab: Tab) => {
+    if (activeTab === tab) return;
+    window.history.pushState(null, '', `#${tab.toLowerCase()}`);
+    setActiveTab(tab);
+  };
+
   useEffect(() => {
     const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser);
@@ -85,7 +110,7 @@ const App: React.FC = () => {
     const newId = crypto.randomUUID();
     const entry: MoodEntry = { ...newMood, id: newId, date: today };
     setEntries(prev => [...prev.filter(e => e.date !== today), entry]);
-    setActiveTab(Tab.STATS);
+    changeTab(Tab.STATS);
     try {
       await setDoc(doc(db, 'users', user.id, 'entries', newId), entry);
       const report = await generateMoodReport(entry, entries);
@@ -99,7 +124,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await authService.logout();
-    setActiveTab(Tab.LOG);
+    changeTab(Tab.LOG);
   };
 
   if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="text-white animate-spin" size={40} /></div>;
@@ -128,7 +153,7 @@ const App: React.FC = () => {
           )}
           {activeTab === Tab.HISTORY && (
             <div className="flex-1 flex flex-col">
-              <HistoryView entries={entries} onNavigateToLog={() => setActiveTab(Tab.LOG)} />
+              <HistoryView entries={entries} onNavigateToLog={() => changeTab(Tab.LOG)} />
             </div>
           )}
           {activeTab === Tab.STATS && (
@@ -147,36 +172,36 @@ const App: React.FC = () => {
                 user={user}
                 entries={entries}
                 onLogout={handleLogout}
-                onEditProfile={() => setActiveTab(Tab.PROFILE_EDIT)}
-                onSupport={() => setActiveTab(Tab.SUPPORT)}
-                onAdmin={isAdmin ? () => setActiveTab(Tab.ADMIN) : undefined}
+                onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
+                onSupport={() => changeTab(Tab.SUPPORT)}
+                onAdmin={isAdmin ? () => changeTab(Tab.ADMIN) : undefined}
               />
             </div>
           )}
           {activeTab === Tab.PROFILE_EDIT && (
             <div className="flex-1 flex flex-col">
-              <ProfileEditView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} onUserUpdate={setUser} />
+              <ProfileEditView user={user} onBack={() => changeTab(Tab.ACCOUNT)} onUserUpdate={setUser} />
             </div>
           )}
           {activeTab === Tab.SUPPORT && (
             <div className="flex-1 flex flex-col">
-              <SupportView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} />
+              <SupportView user={user} onBack={() => changeTab(Tab.ACCOUNT)} />
             </div>
           )}
           {activeTab === Tab.ADMIN && isAdmin && (
             <div className="flex-1 flex flex-col">
-              <AdminView onBack={() => setActiveTab(Tab.ACCOUNT)} />
+              <AdminView onBack={() => changeTab(Tab.ACCOUNT)} />
             </div>
           )}
         </div>
       </main>
       {!hideNav && (
         <nav className="glass absolute bottom-6 left-4 right-4 h-20 rounded-[2.5rem] flex items-center justify-between px-2 z-50 border border-white/10 shadow-2xl">
-          <button onClick={() => setActiveTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
-          <button onClick={() => setActiveTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
-          <button onClick={() => setActiveTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
-          <button onClick={() => setActiveTab(Tab.STATS)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.STATS ? 'text-white' : 'text-slate-500'}`}><BarChart2 size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
-          <button onClick={() => setActiveTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
+          <button onClick={() => changeTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
+          <button onClick={() => changeTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
+          <button onClick={() => changeTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
+          <button onClick={() => changeTab(Tab.STATS)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.STATS ? 'text-white' : 'text-slate-500'}`}><BarChart2 size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
+          <button onClick={() => changeTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
         </nav>
       )}
     </div>
