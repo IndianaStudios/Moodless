@@ -105,7 +105,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
 
   if (alreadyLogged && !isEditing) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-950">
+      <div className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-slate-950">
         <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
           <Check className="text-green-500 w-12 h-12" />
         </div>
@@ -123,13 +123,13 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-slate-950 overflow-y-auto no-scrollbar">
+    <div className="relative flex-1 flex flex-col bg-slate-950">
       <div
         className="absolute inset-0 opacity-20 blur-[120px] transition-all duration-1000 pointer-events-none"
         style={{ backgroundColor: color }}
       />
 
-      <div className="relative z-10 flex flex-col min-h-full px-8 pt-20 pb-32">
+      <div className="relative z-10 flex flex-col px-8 pt-20 pb-32 flex-1">
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">Modelo SAM</h1>
           <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Self-Assessment Manikin</p>

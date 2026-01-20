@@ -92,7 +92,7 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
 
   if (success) {
     return (
-      <div className="px-6 h-full flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
+      <div className="px-6 flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
         <div className="w-24 h-24 rounded-[2.5rem] bg-green-500/10 flex items-center justify-center mb-6 shadow-2xl">
           <CheckCircle2 size={48} className="text-green-500" />
         </div>
@@ -119,7 +119,7 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
   }
 
   return (
-    <div className="px-6 pt-20 pb-40 h-full overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-500">
       <header className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}

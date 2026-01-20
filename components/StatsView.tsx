@@ -40,7 +40,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
   const reportData = getReportData(lastEntry?.report);
 
   return (
-    <div className="px-6 pt-24 pb-40 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
+    <div className="px-6 pt-24 pb-40 w-full flex-1 flex flex-col">
       <header className="mb-6">
         <h2 className="text-3xl font-black">Estado</h2>
         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Balance emocional vivo</p>

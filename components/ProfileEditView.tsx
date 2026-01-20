@@ -54,9 +54,9 @@ const ProfileEditView: React.FC<ProfileEditViewProps> = ({ user, onBack, onUserU
   };
 
   return (
-    <div className="px-6 pt-20 pb-40 h-full overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-500">
       <header className="flex items-center gap-4 mb-10">
-        <button 
+        <button
           onClick={onBack}
           className="p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-colors"
         >

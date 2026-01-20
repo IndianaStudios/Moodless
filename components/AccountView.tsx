@@ -80,7 +80,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
   };
 
   return (
-    <div className="px-6 pt-20 pb-40 h-full overflow-y-auto no-scrollbar scroll-smooth">
+    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col">
       <header className="mb-8 flex flex-col items-center text-center">
         <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-purple-600 to-blue-500 p-1 mb-4 shadow-2xl">
           <div className="w-full h-full rounded-[2.3rem] bg-slate-950 flex items-center justify-center">

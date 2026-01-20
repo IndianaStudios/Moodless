@@ -119,24 +119,56 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 relative overflow-hidden">
-        {activeTab === Tab.LOG && <MoodCanvas onSave={handleSaveMood} alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} />}
-        {activeTab === Tab.HISTORY && <HistoryView entries={entries} onNavigateToLog={() => setActiveTab(Tab.LOG)} />}
-        {activeTab === Tab.STATS && <StatsView entries={entries} />}
-        {activeTab === Tab.EXPLORE && <ExploreView lastEntry={lastEntry} />}
-        {activeTab === Tab.ACCOUNT && (
-          <AccountView
-            user={user}
-            entries={entries}
-            onLogout={handleLogout}
-            onEditProfile={() => setActiveTab(Tab.PROFILE_EDIT)}
-            onSupport={() => setActiveTab(Tab.SUPPORT)}
-            onAdmin={isAdmin ? () => setActiveTab(Tab.ADMIN) : undefined}
-          />
-        )}
-        {activeTab === Tab.PROFILE_EDIT && <ProfileEditView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} onUserUpdate={setUser} />}
-        {activeTab === Tab.SUPPORT && <SupportView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} />}
-        {activeTab === Tab.ADMIN && isAdmin && <AdminView onBack={() => setActiveTab(Tab.ACCOUNT)} />}
+      <main className="flex-1 relative overflow-y-auto no-scrollbar scroll-smooth">
+        <div className="min-h-full flex flex-col">
+          {activeTab === Tab.LOG && (
+            <div className="flex-1 flex flex-col">
+              <MoodCanvas onSave={handleSaveMood} alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} />
+            </div>
+          )}
+          {activeTab === Tab.HISTORY && (
+            <div className="flex-1 flex flex-col">
+              <HistoryView entries={entries} onNavigateToLog={() => setActiveTab(Tab.LOG)} />
+            </div>
+          )}
+          {activeTab === Tab.STATS && (
+            <div className="flex-1 flex flex-col">
+              <StatsView entries={entries} />
+            </div>
+          )}
+          {activeTab === Tab.EXPLORE && (
+            <div className="flex-1 flex flex-col">
+              <ExploreView lastEntry={lastEntry} />
+            </div>
+          )}
+          {activeTab === Tab.ACCOUNT && (
+            <div className="flex-1 flex flex-col">
+              <AccountView
+                user={user}
+                entries={entries}
+                onLogout={handleLogout}
+                onEditProfile={() => setActiveTab(Tab.PROFILE_EDIT)}
+                onSupport={() => setActiveTab(Tab.SUPPORT)}
+                onAdmin={isAdmin ? () => setActiveTab(Tab.ADMIN) : undefined}
+              />
+            </div>
+          )}
+          {activeTab === Tab.PROFILE_EDIT && (
+            <div className="flex-1 flex flex-col">
+              <ProfileEditView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} onUserUpdate={setUser} />
+            </div>
+          )}
+          {activeTab === Tab.SUPPORT && (
+            <div className="flex-1 flex flex-col">
+              <SupportView user={user} onBack={() => setActiveTab(Tab.ACCOUNT)} />
+            </div>
+          )}
+          {activeTab === Tab.ADMIN && isAdmin && (
+            <div className="flex-1 flex flex-col">
+              <AdminView onBack={() => setActiveTab(Tab.ACCOUNT)} />
+            </div>
+          )}
+        </div>
       </main>
       {!hideNav && (
         <nav className="glass absolute bottom-6 left-4 right-4 h-20 rounded-[2.5rem] flex items-center justify-between px-2 z-50 border border-white/10 shadow-2xl">

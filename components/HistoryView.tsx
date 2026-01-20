@@ -18,7 +18,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   return (
-    <div className="px-6 pt-20 pb-40 h-full overflow-y-auto no-scrollbar scroll-smooth">
+    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col">
       <header className="mb-6">
         <h2 className="text-2xl font-bold capitalize">{format(today, 'MMMM yyyy', { locale: es })}</h2>
         <p className="text-slate-400 text-sm">Tu mapa visual de emociones</p>
