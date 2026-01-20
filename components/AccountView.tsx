@@ -58,11 +58,11 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
           alert("Necesitas dar permiso en el navegador para activar los recordatorios.");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving preference:", error);
       // Revertir estado si falla
       setNotifsEnabled(previousState);
-      alert("No se pudo guardar la preferencia. Revisa tu conexión.");
+      alert(`No se pudo guardar la preferencia: ${error.message || 'Error desconocido'}. Revisa tu conexión.`);
     } finally {
       setIsSyncing(false);
     }
