@@ -160,7 +160,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                 <div className="p-2 bg-slate-500/10 rounded-xl text-slate-400"><Zap size={18} /></div>
                 <span className="text-sm font-medium">Versión</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v1.0.1</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v1.0.2</span>
             </div>
           </div>
         </section>

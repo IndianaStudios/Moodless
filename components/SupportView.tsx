@@ -33,9 +33,16 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
 
   useEffect(() => {
     if (viewMode === 'list') {
-      const q = query(collection(db, 'support_tickets'), where('userId', '==', user.id), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'support_tickets'), where('userId', '==', user.id));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        setTickets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const fetchedTickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort in memory to avoid needing a Firestore Composite Index
+        fetchedTickets.sort((a: any, b: any) => {
+          const dateA = a.createdAt?.seconds || 0;
+          const dateB = b.createdAt?.seconds || 0;
+          return dateB - dateA;
+        });
+        setTickets(fetchedTickets);
       });
       return () => unsubscribe();
     }
