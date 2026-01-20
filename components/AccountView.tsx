@@ -13,7 +13,8 @@ import {
   Bell,
   BellOff,
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
 
 interface AccountViewProps {
@@ -111,14 +112,20 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
         <section>
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Ajustes de Cuenta</h3>
           <div className="glass rounded-[2rem] border-white/5 overflow-hidden">
-            <button onClick={handleToggleNotifs} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5">
+            <button
+              onClick={handleToggleNotifs}
+              disabled={isSyncing}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5 disabled:opacity-50"
+            >
               <div className="flex items-center gap-4">
                 <div className={`p-2 rounded-xl ${notifsEnabled ? 'bg-green-500/10 text-green-400' : 'bg-slate-500/10 text-slate-400'}`}>
-                  {notifsEnabled ? <Bell size={18} /> : <BellOff size={18} />}
+                  {isSyncing ? <Loader2 size={18} className="animate-spin" /> : (notifsEnabled ? <Bell size={18} /> : <BellOff size={18} />)}
                 </div>
                 <div className="text-left">
                   <span className="text-sm font-medium block">Recordatorios</span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{notifsEnabled ? 'Activos' : 'Inactivos'}</span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    {isSyncing ? 'Guardando...' : (notifsEnabled ? 'Activos' : 'Inactivos')}
+                  </span>
                 </div>
               </div>
               <div className={`w-10 h-5 rounded-full relative transition-colors ${notifsEnabled ? 'bg-green-500' : 'bg-slate-700'}`}>

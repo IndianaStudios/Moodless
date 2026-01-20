@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getToken, onMessage, isSupported } from 'firebase/messaging';
 
 // Sustituye esto con tu "Key Pair" de la pestaña Cloud Messaging en Firebase
-const VAPID_KEY = "BJe98i81m5q5VZy5HxfRg_tnooZOCxJt7Nl0B5QjO1UW0J8714v-dIKD6tA_7cW4ocj9f7GPvMJe9hu0CBPHTlg"; 
+const VAPID_KEY = "BJe98i81m5q5VZy5HxfRg_tnooZOCxJt7Nl0B5QjO1UW0J8714v-dIKD6tA_7cW4ocj9f7GPvMJe9hu0CBPHTlg";
 
 export const notificationService = {
   requestPermission: async (): Promise<NotificationPermission> => {
@@ -20,7 +20,7 @@ export const notificationService = {
   // Obtener Token de FCM para notificaciones Push desde la nube
   initFCM: async (userId: string) => {
     if (!messaging) return;
-    
+
     // Verificación asíncrona de soporte para evitar errores críticos
     const supported = await isSupported();
     if (!supported) {
@@ -38,9 +38,9 @@ export const notificationService = {
             fcmTokens: arrayUnion(token),
             'preferences.notificationsEnabled': true
           }).catch(async () => {
-            await setDoc(userRef, { 
+            await setDoc(userRef, {
               fcmTokens: [token],
-              preferences: { notificationsEnabled: true } 
+              preferences: { notificationsEnabled: true }
             }, { merge: true });
           });
           console.log("FCM Token registrado con éxito");
@@ -53,11 +53,9 @@ export const notificationService = {
 
   savePreference: async (userId: string, enabled: boolean) => {
     const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      'preferences.notificationsEnabled': enabled
-    }).catch(async () => {
-      await setDoc(userRef, { preferences: { notificationsEnabled: enabled } }, { merge: true });
-    });
+    await setDoc(userRef, {
+      preferences: { notificationsEnabled: enabled }
+    }, { merge: true });
   },
 
   getPreference: async (userId: string): Promise<boolean> => {
@@ -98,14 +96,14 @@ export const notificationService = {
   scheduleCheck: async (userId: string, userName: string, alreadyLogged: boolean) => {
     const isEnabled = await notificationService.getPreference(userId);
     const permission = notificationService.getPermissionStatus();
-    
+
     if (isEnabled && !alreadyLogged && permission === 'granted') {
       setTimeout(() => {
         notificationService.sendImmediate(
-          "Moodless: Tu racha está en peligro", 
+          "Moodless: Tu racha está en peligro",
           `¡Hola, ${userName}! No olvides dedicarle un momento de tu día a registrar tu aura. ✨`
         );
-      }, 10000); 
+      }, 10000);
     }
   }
 };
