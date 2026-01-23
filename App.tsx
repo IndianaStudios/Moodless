@@ -65,19 +65,17 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    // Registrar Service Worker para PWA inmediatamente
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then(reg => console.log('SW registrado para PWA:', reg.scope))
+        .catch(err => console.log('Error registrando SW:', err));
+    }
+
     const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser);
       setIsLoaded(true);
     });
-
-    // Registrar Service Worker para PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/firebase-messaging-sw.js')
-          .then(reg => console.log('SW registrado para PWA:', reg.scope))
-          .catch(err => console.log('Error registrando SW:', err));
-      });
-    }
 
     return () => unsubscribe();
   }, []);
@@ -87,9 +85,12 @@ const App: React.FC = () => {
       if (user) {
         setIsFetchingData(true);
         try {
-          // Inicializar FCM para este usuario
-          notificationService.initFCM(user.id);
-          notificationService.listenForForegroundMessages();
+          // Pequeño retardo para asegurar que el SW esté listo
+          setTimeout(async () => {
+            // Inicializar FCM para este usuario
+            await notificationService.initFCM(user.id);
+            await notificationService.listenForForegroundMessages();
+          }, 1000);
 
           const entriesRef = collection(db, 'users', user.id, 'entries');
           const q = query(entriesRef, orderBy('date', 'asc'));

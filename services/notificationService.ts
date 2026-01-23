@@ -29,10 +29,26 @@ export const notificationService = {
     }
 
     try {
+      if (!('serviceWorker' in navigator)) {
+        console.warn("Service Worker no soportado.");
+        return;
+      }
+
+      // Esperar a que el SW esté listo
+      const registration = await navigator.serviceWorker.ready;
+      console.log("Service Worker listo para FCM:", registration.scope);
+
       const permission = await Notification.requestPermission();
+      console.log("Estado de permiso de notificación:", permission);
+
       if (permission === 'granted') {
-        const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+        const token = await getToken(messaging, {
+          vapidKey: VAPID_KEY,
+          serviceWorkerRegistration: registration
+        });
+
         if (token) {
+          console.log("FCM Token obtenido:", token.substring(0, 10) + "...");
           const userRef = doc(db, 'users', userId);
           await updateDoc(userRef, {
             fcmTokens: arrayUnion(token),
@@ -43,8 +59,10 @@ export const notificationService = {
               preferences: { notificationsEnabled: true }
             }, { merge: true });
           });
-          console.log("FCM Token registrado con éxito");
+          console.log("FCM Token sincronizado en Firestore");
         }
+      } else {
+        console.warn("Permiso de notificación denegado por el usuario.");
       }
     } catch (error) {
       console.error("Error al inicializar FCM:", error);

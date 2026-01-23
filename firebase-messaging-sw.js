@@ -28,3 +28,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('fetch', () => {
   // Permite que la app sea instalable
 });
+
+self.addEventListener('push', (event) => {
+  // El SDK de Firebase maneja esto, pero tener el listener ayuda en algunos navegadores
+});
