@@ -16,8 +16,6 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
     color: p.hex
   }));
 
-  console.log("StatsView entries:", entries);
-  console.log("StatsView stats:", stats);
 
   const lastEntry = [...entries].reverse().find(e => e);
   const Icon = lastEntry ? MOOD_ICONS.find(i => i.name === lastEntry.iconName)?.Icon : null;
@@ -38,6 +36,24 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
   };
 
   const reportData = getReportData(lastEntry?.report);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState(300);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(containerRef.current);
+    updateWidth();
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="px-6 pt-24 pb-40 w-full flex-1 flex flex-col">
@@ -134,20 +150,40 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <TrendingUp size={12} /> Frecuencia Emocional
         </h3>
 
-        <div className="w-full h-[220px]">
+        <div ref={containerRef} className="w-full h-[240px]">
           {entries.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <XAxis dataKey="name" hide />
-                <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                  contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '12px', color: '#fff' }}
-                />
-                <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={40}>
-                  {stats.map((entry, index) => <Cell key={`c-${index}`} fill={entry.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <BarChart
+              width={containerWidth}
+              height={240}
+              data={stats}
+              margin={{ top: 25, right: 30, left: 30, bottom: 5 }}
+              barCategoryGap="15%"
+            >
+              <XAxis dataKey="name" axisLine={false} tick={false} />
+              <Tooltip
+                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                contentStyle={{
+                  backgroundColor: '#1e293b',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)',
+                  padding: '8px 12px'
+                }}
+                itemStyle={{ color: '#fff', fontWeight: 'bold', padding: 0 }}
+                labelStyle={{ color: '#94a3b8', fontWeight: 'black', fontSize: '10px', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}
+              />
+              <Bar
+                dataKey="count"
+                name="Registros"
+                radius={[6, 6, 0, 0]}
+                minPointSize={4}
+              >
+                {stats.map((entry, index) => (
+                  <Cell key={`c-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
           ) : (
             <div className="flex items-center justify-center h-full w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
           )}
