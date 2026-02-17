@@ -4,7 +4,7 @@ import { MoodEntry } from '../types';
 import { MOOD_ICONS, EMOTIONAL_PALETTE } from '../constants';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, X } from 'lucide-react';
 
 interface HistoryViewProps {
   entries: MoodEntry[];
@@ -16,6 +16,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const [zoomedMascot, setZoomedMascot] = React.useState<string | null>(null);
+  const [zoomedColor, setZoomedColor] = React.useState('#fff');
 
   return (
     <div className="px-6 pt-20 pb-40 flex-1 flex flex-col">
@@ -65,17 +68,25 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
           </div>
         ) : (
           [...entries].reverse().slice(0, 10).map(entry => {
-            const Icon = MOOD_ICONS.find(i => i.name === entry.iconName)?.Icon;
-            const moodLabel = EMOTIONAL_PALETTE.find(p => p.category === entry.category)?.label || 'Estado';
+            const paletteEntry = EMOTIONAL_PALETTE.find(p => p.category === entry.category);
+            const moodLabel = paletteEntry?.label || 'Estado';
+            const mascot = paletteEntry?.mascot || '/mascot_calm.png';
 
             return (
               <div key={entry.id} className="glass p-4 rounded-2xl flex items-center gap-4">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: entry.color, opacity: 0.4 + (entry.intensity * 0.6) }}
+                <button
+                  onClick={() => {
+                    setZoomedMascot(mascot);
+                    setZoomedColor(entry.color);
+                  }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center relative bg-white/5 active:scale-90 transition-transform hover:bg-white/10"
                 >
-                  {Icon && <Icon className="text-white" />}
-                </div>
+                  <img src={mascot} alt="Mood" className="w-10 h-10 object-contain relative z-10 rounded-full" />
+                  <div
+                    className="absolute inset-0 rounded-full blur-md opacity-30"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                </button>
                 <div className="flex-1">
                   <div className="font-bold capitalize">
                     {format(new Date(entry.date + 'T12:00:00'), "EEEE, d 'de' MMMM", { locale: es })}
@@ -87,6 +98,29 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
           })
         )}
       </div>
+
+      {/* Image Zoom Modal */}
+      {zoomedMascot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setZoomedMascot(null)}
+        >
+          <button className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors">
+            <X size={32} />
+          </button>
+          <div className="relative max-w-sm w-full aspect-square animate-in zoom-in-95 duration-300">
+            <div
+              className="absolute inset-0 rounded-full blur-[100px] opacity-20"
+              style={{ backgroundColor: zoomedColor }}
+            />
+            <img
+              src={zoomedMascot}
+              alt="Zoomed Mascot"
+              className="w-full h-full object-contain relative z-10 rounded-3xl shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

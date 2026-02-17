@@ -69,6 +69,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
   const [arousal, setArousal] = useState(3);
   const [dominance, setDominance] = useState(3);
   const [color, setColor] = useState('#94A3B8');
+  const [currentMascot, setCurrentMascot] = useState('/mascot_calm.png');
+  const [currentLabel, setCurrentLabel] = useState('Neutral');
 
   // Lógica de mapeo SAM -> Color y Categoría
   useEffect(() => {
@@ -82,6 +84,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
     }
     const def = EMOTIONAL_PALETTE.find(p => p.category === cat) || EMOTIONAL_PALETTE[6];
     setColor(def.hex);
+    setCurrentMascot(def.mascot || '/mascot_calm.png');
+    setCurrentLabel(def.label);
   }, [valence, arousal]);
 
   const handleSave = () => {

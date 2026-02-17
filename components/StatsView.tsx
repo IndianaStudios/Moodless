@@ -3,7 +3,7 @@ import React from 'react';
 import { MoodEntry } from '../types';
 import { EMOTIONAL_PALETTE, MOOD_ICONS } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
-import { Calendar, Zap, FileText, TrendingUp, Sparkles } from 'lucide-react';
+import { Calendar, Zap, FileText, TrendingUp, Sparkles, X } from 'lucide-react';
 
 interface StatsViewProps {
   entries: MoodEntry[];
@@ -15,6 +15,8 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
     count: entries.filter(e => e.category === p.category).length,
     color: p.hex
   }));
+
+  const [zoomedMascot, setZoomedMascot] = React.useState<string | null>(null);
 
 
   const lastEntry = [...entries].reverse().find(e => e);
@@ -85,12 +87,20 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
             </div>
           </div>
           {lastEntry && (
-            <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shrink-0"
-              style={{ backgroundColor: lastEntry.color }}
+            <button
+              onClick={() => setZoomedMascot(EMOTIONAL_PALETTE.find(p => p.category === lastEntry.category)?.mascot || '/mascot_calm.png')}
+              className="w-16 h-16 relative shrink-0 active:scale-95 transition-transform group"
             >
-              {Icon && <Icon size={20} className="text-white" />}
-            </div>
+              <div
+                className="absolute inset-0 rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity"
+                style={{ backgroundColor: lastEntry.color }}
+              />
+              <img
+                src={EMOTIONAL_PALETTE.find(p => p.category === lastEntry.category)?.mascot || '/mascot_calm.png'}
+                alt="Aura"
+                className="w-full h-full object-contain relative z-10 rounded-full border-2 border-white/10"
+              />
+            </button>
           )}
         </div>
 
@@ -189,6 +199,29 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           )}
         </div>
       </div>
+
+      {/* Image Zoom Modal */}
+      {zoomedMascot && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setZoomedMascot(null)}
+        >
+          <button className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors">
+            <X size={32} />
+          </button>
+          <div className="relative max-w-sm w-full aspect-square animate-in zoom-in-95 duration-300">
+            <div
+              className="absolute inset-0 rounded-full blur-[100px] opacity-20"
+              style={{ backgroundColor: EMOTIONAL_PALETTE.find(p => p.mascot === zoomedMascot)?.hex || '#fff' }}
+            />
+            <img
+              src={zoomedMascot}
+              alt="Zoomed Mascot"
+              className="w-full h-full object-contain relative z-10 rounded-3xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

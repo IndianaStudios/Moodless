@@ -18,7 +18,7 @@ export interface MoodEntry {
   category: MoodCategory;
   report?: string;
   // SAM Dimensions (Scale 1-5)
-  valence: number; 
+  valence: number;
   arousal: number;
   dominance: number;
 }
@@ -28,4 +28,5 @@ export interface ColorDefinition {
   hex: string;
   label: string;
   secondary: string;
+  mascot?: string;
 }

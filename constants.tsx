@@ -1,15 +1,15 @@
 
 import React from 'react';
-import { 
-  Sun, 
-  CloudRain, 
-  Zap, 
-  Wind, 
-  Moon, 
-  Ghost, 
-  Flame, 
-  Heart, 
-  Star, 
+import {
+  Sun,
+  CloudRain,
+  Zap,
+  Wind,
+  Moon,
+  Ghost,
+  Flame,
+  Heart,
+  Star,
   Coffee,
   Cloud,
   Droplets
@@ -17,13 +17,13 @@ import {
 import { MoodCategory, ColorDefinition } from './types';
 
 export const EMOTIONAL_PALETTE: ColorDefinition[] = [
-  { category: MoodCategory.JOY, hex: '#FACC15', secondary: '#FEF08A', label: 'Alegría' }, // Yellow
-  { category: MoodCategory.CALM, hex: '#2DD4BF', secondary: '#99F6E4', label: 'Calma' }, // Teal
-  { category: MoodCategory.ANGER, hex: '#EF4444', secondary: '#FECACA', label: 'Enojo' }, // Red
-  { category: MoodCategory.SADNESS, hex: '#3B82F6', secondary: '#BFDBFE', label: 'Tristeza' }, // Blue
-  { category: MoodCategory.ANXIETY, hex: '#8B5CF6', secondary: '#DDD6FE', label: 'Ansiedad' }, // Purple
-  { category: MoodCategory.ENERGY, hex: '#FB923C', secondary: '#FFEDD5', label: 'Energía' }, // Orange
-  { category: MoodCategory.NEUTRAL, hex: '#94A3B8', secondary: '#E2E8F0', label: 'Neutral' }, // Slate
+  { category: MoodCategory.JOY, hex: '#FACC15', secondary: '#FEF08A', label: 'Alegría', mascot: '/mascot_joy.png' },
+  { category: MoodCategory.CALM, hex: '#2DD4BF', secondary: '#99F6E4', label: 'Calma', mascot: '/mascot_calm.png' },
+  { category: MoodCategory.ANGER, hex: '#EF4444', secondary: '#FECACA', label: 'Enojo', mascot: '/mascot_anger.png' },
+  { category: MoodCategory.SADNESS, hex: '#3B82F6', secondary: '#BFDBFE', label: 'Tristeza', mascot: '/mascot_sadness.png' },
+  { category: MoodCategory.ANXIETY, hex: '#8B5CF6', secondary: '#DDD6FE', label: 'Ansiedad', mascot: '/mascot_anxiety.png' },
+  { category: MoodCategory.ENERGY, hex: '#FB923C', secondary: '#FFEDD5', label: 'Energía', mascot: '/mascot_joy.png' }, // Fallback
+  { category: MoodCategory.NEUTRAL, hex: '#94A3B8', secondary: '#E2E8F0', label: 'Neutral', mascot: '/mascot_calm.png' }, // Fallback
 ];
 
 export const MOOD_ICONS = [
