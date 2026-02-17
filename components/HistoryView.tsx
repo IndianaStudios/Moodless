@@ -33,20 +33,29 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
         ))}
         {days.map(day => {
           const entry = entries.find(e => isSameDay(new Date(e.date + 'T12:00:00'), day));
-          const Icon = entry ? MOOD_ICONS.find(i => i.name === entry.iconName)?.Icon : null;
+          const paletteEntry = entry ? EMOTIONAL_PALETTE.find(p => p.category === entry.category) : null;
+          const mascot = paletteEntry?.mascot || '/mascot_calm.png';
 
           return (
             <div
               key={day.toISOString()}
               className="aspect-square rounded-xl flex items-center justify-center relative overflow-hidden glass transition-all"
-              style={entry ? { backgroundColor: entry.color, opacity: 0.3 + (entry.intensity * 0.7) } : {}}
+              style={entry ? { backgroundColor: entry.color, opacity: 0.25 + (entry.intensity * 0.5) } : {}}
             >
-              {entry && Icon && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Icon size={16} className="text-white opacity-80" />
-                </div>
+              {entry && (
+                <button
+                  onClick={() => {
+                    setZoomedMascot(mascot);
+                    setZoomedColor(entry.color);
+                  }}
+                  className="absolute inset-0 flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <img src={mascot} alt="Mascot" className="w-full h-full object-cover opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                  <span className="absolute bottom-1 right-2 text-[10px] font-black text-white drop-shadow-lg">{format(day, 'd')}</span>
+                </button>
               )}
-              {!entry && <span className="text-[10px] text-slate-600">{format(day, 'd')}</span>}
+              {!entry && <span className="text-[10px] text-slate-600 font-bold">{format(day, 'd')}</span>}
             </div>
           );
         })}
