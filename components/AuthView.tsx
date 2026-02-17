@@ -103,7 +103,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
 
-      <div className="z-10 w-full max-sm px-4">
+      <div className="z-10 w-full max-w-md px-4">
         <header className="text-center mb-10">
           <div className="inline-block relative group">
             <div className="absolute inset-0 bg-purple-500/20 blur-3xl group-hover:bg-purple-500/40 transition-all duration-700" />

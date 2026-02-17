@@ -129,7 +129,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
         style={{ backgroundColor: color }}
       />
 
-      <div className="relative z-10 flex flex-col px-8 pt-20 pb-32 flex-1">
+      <div className="relative z-10 flex flex-col px-8 pt-20 pb-32 flex-1 max-w-3xl mx-auto w-full">
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">Modelo SAM</h1>
           <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Self-Assessment Manikin</p>

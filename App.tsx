@@ -147,17 +147,17 @@ const App: React.FC = () => {
   const hideNav = activeTab === Tab.PROFILE_EDIT || activeTab === Tab.SUPPORT || activeTab === Tab.ADMIN;
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-slate-950 text-white shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-slate-950 text-white relative overflow-hidden">
       {!hideNav && activeTab !== Tab.ACCOUNT && (
-        <div className="absolute top-4 left-6 right-6 flex justify-between items-center z-50 animate-in fade-in">
-          <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-full border border-white/10">
+        <div className="absolute top-4 left-0 right-0 flex justify-center z-50 animate-in fade-in">
+          <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-white/10 shadow-xl">
             <UserIcon size={12} className="text-purple-400" />
-            <span className="text-[9px] font-black uppercase tracking-widest">{user.name}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{user.name}</span>
           </div>
         </div>
       )}
       <main className="flex-1 relative overflow-y-auto no-scrollbar scroll-smooth">
-        <div className="min-h-full flex flex-col">
+        <div className="min-h-full flex flex-col max-w-5xl mx-auto w-full px-4 sm:px-8">
           {activeTab === Tab.LOG && (
             <div className="flex-1 flex flex-col">
               <MoodCanvas onSave={handleSaveMood} alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} />
@@ -208,13 +208,15 @@ const App: React.FC = () => {
         </div>
       </main>
       {!hideNav && (
-        <nav className="glass absolute bottom-6 left-4 right-4 h-20 rounded-[2.5rem] flex items-center justify-between px-2 z-50 border border-white/10 shadow-2xl">
-          <button onClick={() => changeTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
-          <button onClick={() => changeTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
-          <button onClick={() => changeTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
-          <button onClick={() => changeTab(Tab.STATS)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.STATS ? 'text-white' : 'text-slate-500'}`}><BarChart2 size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
-          <button onClick={() => changeTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
-        </nav>
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50">
+          <nav className="glass w-full max-w-lg h-20 rounded-[2.5rem] flex items-center justify-between px-2 border border-white/10 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => changeTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
+            <button onClick={() => changeTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
+            <button onClick={() => changeTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
+            <button onClick={() => changeTab(Tab.STATS)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.STATS ? 'text-white' : 'text-slate-500'}`}><BarChart2 size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
+            <button onClick={() => changeTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
+          </nav>
+        </div>
       )}
       <InstallPrompt />
     </div>

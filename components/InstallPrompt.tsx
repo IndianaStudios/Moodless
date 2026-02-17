@@ -44,8 +44,8 @@ const PWAInstallPrompt: React.FC = () => {
     if (!isVisible && !isIOS) return null;
 
     return (
-        <div className="fixed bottom-24 left-6 right-6 z-[1000] animate-in slide-in-from-bottom-10 fade-in duration-700">
-            <div className="glass p-5 rounded-[2rem] border-white/20 shadow-2xl relative overflow-hidden bg-slate-900/90 backdrop-blur-2xl">
+        <div className="fixed bottom-24 left-0 right-0 z-[1000] animate-in slide-in-from-bottom-10 fade-in duration-700 flex justify-center px-6">
+            <div className="glass w-full max-w-sm p-5 rounded-[2rem] border-white/20 shadow-2xl relative overflow-hidden bg-slate-900/90 backdrop-blur-2xl">
                 <button
                     onClick={() => { setIsVisible(false); setIsIOS(false); }}
                     className="absolute top-4 right-4 p-1 rounded-full bg-white/5 text-slate-400"

@@ -24,7 +24,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
         <p className="text-slate-400 text-sm">Tu mapa visual de emociones</p>
       </header>
 
-      <div className="grid grid-cols-7 gap-2 mb-8 shrink-0">
+      <div className="grid grid-cols-7 gap-2 mb-8 shrink-0 max-w-md mx-auto w-full">
         {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(d => (
           <div key={d} className="text-center text-xs text-slate-500 font-bold mb-1">{d}</div>
         ))}

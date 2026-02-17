@@ -104,7 +104,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="glass p-5 rounded-[2rem] flex flex-col items-center border-white/5">
           <Zap className="text-yellow-400 mb-1" size={18} />
           <span className="text-2xl font-black">{calculateStreak()}</span>
@@ -115,6 +115,17 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <span className="text-2xl font-black">{entries.length}</span>
           <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Capturas</span>
         </div>
+        {/* Placeholder for future stats or just repeated for symmetry if needed, or leave at 2/4 */}
+        <div className="glass p-5 rounded-[2rem] hidden md:flex flex-col items-center border-white/5 opacity-50">
+          <TrendingUp className="text-purple-400 mb-1" size={18} />
+          <span className="text-2xl font-black">---</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Tendencia</span>
+        </div>
+        <div className="glass p-5 rounded-[2rem] hidden md:flex flex-col items-center border-white/5 opacity-50">
+          <Sparkles className="text-pink-400 mb-1" size={18} />
+          <span className="text-2xl font-black">---</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+        </div>
       </div>
 
       {/* Trends Chart */}
@@ -123,18 +134,20 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <TrendingUp size={12} /> Frecuencia Emocional
         </h3>
 
-        <div className="flex justify-center w-full overflow-hidden">
+        <div className="flex justify-center w-full h-[200px] overflow-hidden">
           {entries.length > 0 ? (
-            <BarChart width={300} height={160} data={stats}>
-              <XAxis dataKey="name" hide />
-              <Tooltip
-                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '10px', color: '#fff' }}
-              />
-              <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={20}>
-                {stats.map((entry, index) => <Cell key={`c-${index}`} fill={entry.color} />)}
-              </Bar>
-            </BarChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats}>
+                <XAxis dataKey="name" hide />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                  contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', fontSize: '12px', color: '#fff' }}
+                />
+                <Bar dataKey="count" radius={[6, 6, 6, 6]} barSize={40}>
+                  {stats.map((entry, index) => <Cell key={`c-${index}`} fill={entry.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-40 w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
           )}

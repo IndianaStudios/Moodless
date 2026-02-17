@@ -336,8 +336,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
 
       {/* YouTube Player Overlay */}
       {activeVideoId && (
-        <div className="fixed inset-x-4 bottom-24 z-[250] animate-in slide-in-from-bottom-8 duration-700">
-          <div className="glass p-3 rounded-[2.2rem] border-white/10 shadow-2xl relative overflow-hidden bg-black/80">
+        <div className="fixed inset-x-0 bottom-24 z-[250] animate-in slide-in-from-bottom-8 duration-700 flex justify-center px-4">
+          <div className="glass w-full max-w-2xl p-3 rounded-[2.2rem] border-white/10 shadow-2xl relative overflow-hidden bg-black/80 backdrop-blur-3xl">
             <div className="absolute inset-0 opacity-30 blur-3xl pointer-events-none" style={{ backgroundColor: moodColor }} />
             <div className="relative z-10">
               <header className="flex items-center justify-between mb-2 px-2">
