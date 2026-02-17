@@ -134,10 +134,10 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <TrendingUp size={12} /> Frecuencia Emocional
         </h3>
 
-        <div className="flex justify-center w-full h-[200px] overflow-hidden">
+        <div className="w-full h-[220px]">
           {entries.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats}>
+              <BarChart data={stats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <XAxis dataKey="name" hide />
                 <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.03)' }}
@@ -149,7 +149,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-40 w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
+            <div className="flex items-center justify-center h-full w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
           )}
         </div>
       </div>
