@@ -5,7 +5,7 @@
             "destination": "/api/$1"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!manifest\\.json|firebase-messaging-sw\\.js).*)",
             "destination": "/index.html"
         }
     ]

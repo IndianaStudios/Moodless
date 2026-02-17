@@ -1,6 +1,7 @@
 {
   "name": "Moodless - Diario Visual",
   "short_name": "Moodless",
+  "gcm_sender_id": "103953800507",
   "description": "Tu diario de emociones visual sin texto.",
   "start_url": "/",
   "display": "standalone",
