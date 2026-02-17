@@ -24,8 +24,8 @@ export const youtubeMusicService = {
     try {
       // Optimizamos la búsqueda añadiendo "official audio" para obtener tracks más aptos para embeber
       // y limitamos los resultados a los más relevantes.
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " official audio")}&type=video&videoEmbeddable=true&maxResults=3&key=${YOUTUBE_API_KEY}`;
-      
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " official audio")}&type=video&videoEmbeddable=true&maxResults=5&key=${YOUTUBE_API_KEY}`;
+
       const response = await fetch(url);
       const data = await response.json();
 

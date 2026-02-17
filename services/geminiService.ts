@@ -29,14 +29,15 @@ const getCachedData = (key: string) => {
   const cached = localStorage.getItem(key);
   if (!cached) return null;
   try {
-    const { data, timestamp, entryId } = JSON.parse(cached);
-    if (Date.now() - timestamp > 86400000) return null;
+    const { data, timestamp, entryId, ttl } = JSON.parse(cached);
+    const expireTime = ttl || 86400000;
+    if (Date.now() - timestamp > expireTime) return null;
     return { data, entryId };
   } catch { return null; }
 };
 
-const setCachedData = (key: string, data: any, entryId: string) => {
-  localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), entryId }));
+const setCachedData = (key: string, data: any, entryId: string, ttl: number = 86400000) => {
+  localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), entryId, ttl }));
 };
 
 export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[]): Promise<string> => {
@@ -103,14 +104,31 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  const hour = new Date().getHours();
+  let timeContext = "generales";
+  if (hour >= 5 && hour < 12) timeContext = "mañaneras, llenas de energía fresca";
+  else if (hour >= 12 && hour < 18) timeContext = "de tarde, para acompañar el flujo del día";
+  else if (hour >= 18 && hour < 23) timeContext = "de noche, relajantes o intensas";
+  else timeContext = "nocturnas, profundas y atmosféricas";
+
+  const varietySeed = Math.random().toString(36).substring(7);
+
   const prompt = `
-    Basado en este estado emocional (Valencia: ${valence}, Activación: ${arousal}), genera una búsqueda ideal para YouTube Music.
-    IMPORTANTE: ÚNICAMENTE recomienda canciones de ARTISTAS MUY CONOCIDOS y FAMOSOS (Mainstream / Top Global).
-    La prioridad es que el usuario RECONOZCA al artista. Nada de artistas indie desconocidos, covers de desconocidos o música de librería.
-    Busca HITS con LETRA que encajen en el mood.
-    Si es triste: Adele, Sam Smith, Billie Eilish, etc.
-    Si es feliz: Dua Lipa, Harry Styles, Bad Bunny, Coldplay, etc.
-    Responde JSON: {"vibe": "Nombre creativo de la atmósfera", "playlistName": "Título sugerido", "searchQuery": "términos de búsqueda específicos: Artista Famoso + Canción (ej. 'Billie Eilish Happier Than Ever', 'Coldplay Yellow', 'Bad Bunny Ojitos Lindos')"}
+    Basado en este estado emocional (Valencia: ${valence}, Activación: ${arousal}) y en un contexto de vibras ${timeContext}.
+    Semilla de Variación: ${varietySeed}.
+
+    Genera una búsqueda ideal para YouTube Music de un ARTISTA MUY CONOCIDO y FAMOSAMENTE GLOBAL.
+    IMPORTANTE: El género musical DEBE ser una consecuencia natural del estado de ánimo (Valencia y Activación).
+    No fuerces géneros irrelevantes. Prioriza la sincronización emocional.
+    
+    Busca HITS reconocibles que el usuario identifique de inmediato (ej. SIA, Queen, Taylor Swift, The Weeknd, Rosalia, etc.).
+    
+    Responde ÚNICAMENTE en JSON: 
+    {
+      "vibe": "Nombre creativo de la atmósfera (ej. 'Resiliencia Pura', 'Euforia Solar')",
+      "playlistName": "Título del mood",
+      "searchQuery": "Artista Famoso + Canción icónica (ej. 'Adele Hello', 'Avicii The Nights')"
+    }
   `;
 
   try {
@@ -127,7 +145,8 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
     const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
     const musicData = { ...result, groundingSources: grounding };
-    setCachedData(cacheKey, musicData, entryId);
+    // Reducción de caché a 4 horas (14400000 ms) para asegurar variedad durante el día
+    setCachedData(cacheKey, musicData, entryId, 14400000);
     return musicData;
   } catch (error) {
     console.error("Gemini API Error:", error);
