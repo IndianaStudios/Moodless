@@ -99,7 +99,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="flex flex-col h-full items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
+    <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
 
