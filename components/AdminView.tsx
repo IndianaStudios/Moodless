@@ -14,7 +14,9 @@ import {
     Lightbulb,
     HelpCircle,
     MoreVertical,
-    Mail
+    Mail,
+    Send,
+    Loader2
 } from 'lucide-react';
 
 interface Ticket {
@@ -37,10 +39,21 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'new' | 'resolved'>('all');
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+    const [replyMessage, setReplyMessage] = useState('');
+    const [sendingReply, setSendingReply] = useState(false);
+    const [replySuccess, setReplySuccess] = useState(false);
+    const [replyError, setReplyError] = useState('');
 
     useEffect(() => {
         fetchTickets();
     }, []);
+
+    // Reset reply state when selecting a new ticket
+    useEffect(() => {
+        setReplyMessage('');
+        setReplySuccess(false);
+        setReplyError('');
+    }, [selectedTicket?.id]);
 
     const fetchTickets = async () => {
         setLoading(true);
@@ -59,15 +72,55 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         }
     };
 
-    const updateStatus = async (ticketId: string, newStatus: Ticket['status']) => {
+    const updateStatusAndReply = async (ticketId: string, newStatus: Ticket['status']) => {
+        if (!replyMessage.trim()) {
+            setReplyError('Escribe un mensaje para el usuario antes de cambiar el estado.');
+            return;
+        }
+
+        setSendingReply(true);
+        setReplyError('');
+
         try {
-            await updateDoc(doc(db, 'support_tickets', ticketId), { status: newStatus });
+            // 1. Actualizar estado en Firestore
+            await updateDoc(doc(db, 'support_tickets', ticketId), {
+                status: newStatus,
+                adminReply: replyMessage.trim(),
+            });
+
+            // 2. Enviar email al usuario
+            const ticket = tickets.find(t => t.id === ticketId) || selectedTicket;
+            if (ticket?.userEmail) {
+                try {
+                    await fetch('/api/send-reply', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userEmail: ticket.userEmail,
+                            userName: ticket.userName,
+                            ticketId,
+                            status: newStatus,
+                            adminMessage: replyMessage.trim(),
+                            originalMessage: ticket.message,
+                        }),
+                    });
+                } catch (emailErr) {
+                    console.error('Email failed but status was updated:', emailErr);
+                }
+            }
+
+            // 3. Actualizar UI
             setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
             if (selectedTicket?.id === ticketId) {
                 setSelectedTicket(prev => prev ? { ...prev, status: newStatus } : null);
             }
+            setReplySuccess(true);
+            setReplyMessage('');
         } catch (error) {
             console.error("Error updating status:", error);
+            setReplyError('No se pudo actualizar el ticket. Inténtalo de nuevo.');
+        } finally {
+            setSendingReply(false);
         }
     };
 
@@ -123,8 +176,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                             key={f.id}
                             onClick={() => setFilter(f.id as any)}
                             className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filter === f.id
-                                    ? 'bg-purple-500 text-white border-purple-500'
-                                    : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+                                ? 'bg-purple-500 text-white border-purple-500'
+                                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
                                 }`}
                         >
                             {f.label}
@@ -222,24 +275,57 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                             </div>
                         </div>
 
+                        {/* Reply Section */}
+                        {selectedTicket.status !== 'resolved' && (
+                            <div className="mb-8 pb-8 border-b border-white/10">
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+                                    Responder al Usuario
+                                </h3>
+                                <textarea
+                                    value={replyMessage}
+                                    onChange={(e) => { setReplyMessage(e.target.value); setReplyError(''); setReplySuccess(false); }}
+                                    placeholder="Escribe tu respuesta para el usuario..."
+                                    disabled={sendingReply}
+                                    className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-sm font-medium resize-none placeholder:text-slate-600 disabled:opacity-50"
+                                />
+
+                                {replyError && (
+                                    <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                                        <AlertCircle size={14} className="text-red-400 shrink-0" />
+                                        <p className="text-red-400 text-xs font-medium">{replyError}</p>
+                                    </div>
+                                )}
+
+                                {replySuccess && (
+                                    <div className="mt-3 bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-center gap-2 animate-in fade-in duration-300">
+                                        <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+                                        <p className="text-green-400 text-xs font-medium">Mensaje enviado al usuario correctamente.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Actions */}
                         <div>
                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Acciones</h3>
                             <div className="grid grid-cols-2 gap-3">
                                 {selectedTicket.status !== 'resolved' && (
                                     <button
-                                        onClick={() => updateStatus(selectedTicket.id, 'resolved')}
-                                        className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-400 font-bold text-xs flex flex-col items-center gap-2 hover:bg-green-500/20 transition-all"
+                                        onClick={() => updateStatusAndReply(selectedTicket.id, 'resolved')}
+                                        disabled={sendingReply}
+                                        className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-400 font-bold text-xs flex flex-col items-center gap-2 hover:bg-green-500/20 transition-all disabled:opacity-50"
                                     >
-                                        <CheckCircle2 size={20} />
+                                        {sendingReply ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
                                         Marcar Resuelto
                                     </button>
                                 )}
                                 {selectedTicket.status === 'new' && (
                                     <button
-                                        onClick={() => updateStatus(selectedTicket.id, 'in_progress')}
-                                        className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-yellow-400 font-bold text-xs flex flex-col items-center gap-2 hover:bg-yellow-500/20 transition-all"
+                                        onClick={() => updateStatusAndReply(selectedTicket.id, 'in_progress')}
+                                        disabled={sendingReply}
+                                        className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-yellow-400 font-bold text-xs flex flex-col items-center gap-2 hover:bg-yellow-500/20 transition-all disabled:opacity-50"
                                     >
-                                        <Clock size={20} />
+                                        {sendingReply ? <Loader2 size={20} className="animate-spin" /> : <Clock size={20} />}
                                         En Progreso
                                     </button>
                                 )}

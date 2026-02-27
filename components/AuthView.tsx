@@ -23,21 +23,41 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     const trimmedEmail = email.trim();
     const trimmedName = name.trim();
 
-    // Validaciones básicas
-    if (!isLogin && trimmedName.length < 3) {
-      setError('El nombre debe tener al menos 3 letras.');
-      setLoading(false);
-      return;
+    // Validaciones
+    const validationErrors = [];
+
+    if (isLogin) {
+      if (!trimmedEmail) validationErrors.push('Introduce tu correo electrónico.');
+      if (!password) validationErrors.push('Introduce tu contraseña.');
+    } else {
+      if (trimmedName.length < 3) {
+        validationErrors.push('El nombre debe tener al menos 3 letras.');
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        validationErrors.push('Introduce un correo electrónico válido (ej. correo@dominio.com).');
+      }
+
+      if (password.length < 6) {
+        validationErrors.push('La contraseña debe tener al menos 6 caracteres.');
+      }
+      if (!/[A-Z]/.test(password)) {
+        validationErrors.push('La contraseña debe contener al menos una mayúscula.');
+      }
+      if (!/[a-z]/.test(password)) {
+        validationErrors.push('La contraseña debe contener al menos una minúscula.');
+      }
+      if (!/[0-9]/.test(password)) {
+        validationErrors.push('La contraseña debe contener al menos un número.');
+      }
+      if (!/[^A-Za-z0-9]/.test(password)) {
+        validationErrors.push('La contraseña debe contener al menos un carácter especial.');
+      }
     }
 
-    if (!trimmedEmail.includes('@')) {
-      setError('Introduce un correo electrónico válido.');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'));
       setLoading(false);
       return;
     }
@@ -66,9 +86,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
         case 'auth/invalid-credential':
           setError('Los datos de acceso no son válidos. Revisa tu correo o contraseña.');
           break;
-        case 'auth/weak-password':
-          setError('La contraseña es demasiado débil (mínimo 6 caracteres).');
+        case 'auth/weak-password': {
+          const raw = (err.message || '')
+            .replace(/^Firebase:\s*/i, '')
+            .replace(/\s*\(auth\/[^)]+\)\.?\s*$/i, '')
+            .trim();
+          setError(raw || 'La contraseña no cumple los requisitos de seguridad.');
           break;
+        }
         case 'auth/network-request-failed':
           setError('Error de conexión. Revisa tu internet.');
           break;
@@ -79,7 +104,6 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
           setError('Ocurrió un error inesperado. Inténtalo de nuevo.');
       }
     } finally {
-      setLoading(false);
       setLoading(false);
     }
   };
@@ -158,9 +182,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-3 animate-shake">
-              <AlertCircle size={16} className="text-red-400 shrink-0" />
-              <p className="text-red-400 text-xs font-medium leading-tight">{error}</p>
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 animate-shake text-left backdrop-blur-sm">
+              <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-1">
+                {error.split('\n').map((line, i) => (
+                  <p key={i} className="text-red-400 text-xs font-medium leading-tight">
+                    {error.includes('\n') ? `• ${line}` : line}
+                  </p>
+                ))}
+              </div>
             </div>
           )}
 
