@@ -1,16 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const FROM_EMAIL = 'Moodless <moodlessapp@yjonse.resend.app>';
+const FROM_EMAIL = 'Moodless <onboarding@resend.dev>';
 
 const statusLabels: Record<string, { emoji: string; label: string; color: string }> = {
-    in_progress: { emoji: '🔄', label: 'En Progreso', color: '#eab308' },
-    resolved: { emoji: '✅', label: 'Resuelto', color: '#22c55e' },
+  in_progress: { emoji: '🔄', label: 'En Progreso', color: '#eab308' },
+  resolved: { emoji: '✅', label: 'Resuelto', color: '#22c55e' },
 };
 
 function buildReplyHtml(userName: string, ticketId: string, status: string, adminMessage: string, originalMessage: string) {
-    const statusInfo = statusLabels[status] || { emoji: '📋', label: status, color: '#94a3b8' };
+  const statusInfo = statusLabels[status] || { emoji: '📋', label: status, color: '#94a3b8' };
 
-    return `
+  return `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
       <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 32px; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 22px;">${statusInfo.emoji} Actualización de tu Ticket</h1>
@@ -45,49 +45,49 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { userEmail, userName, ticketId, status, adminMessage, originalMessage } = req.body;
+
+  if (!userEmail || !adminMessage || !status) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_API_KEY) {
+    console.error('RESEND_API_KEY not configured');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
+  const statusInfo = statusLabels[status] || { emoji: '📋', label: status };
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: [userEmail],
+        subject: `${statusInfo.emoji} Tu ticket ha sido ${statusInfo.label.toLowerCase()} — Moodless`,
+        html: buildReplyHtml(userName, ticketId, status, adminMessage, originalMessage || ''),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Resend API error:', errorData);
+      return res.status(500).json({ error: 'Failed to send reply email', details: errorData });
     }
 
-    const { userEmail, userName, ticketId, status, adminMessage, originalMessage } = req.body;
-
-    if (!userEmail || !adminMessage || !status) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (!RESEND_API_KEY) {
-        console.error('RESEND_API_KEY not configured');
-        return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    const statusInfo = statusLabels[status] || { emoji: '📋', label: status };
-
-    try {
-        const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                from: FROM_EMAIL,
-                to: [userEmail],
-                subject: `${statusInfo.emoji} Tu ticket ha sido ${statusInfo.label.toLowerCase()} — Moodless`,
-                html: buildReplyHtml(userName, ticketId, status, adminMessage, originalMessage || ''),
-            }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Resend API error:', errorData);
-            return res.status(500).json({ error: 'Failed to send reply email', details: errorData });
-        }
-
-        const data = await response.json();
-        return res.status(200).json({ success: true, id: data.id });
-    } catch (error) {
-        console.error('Error sending reply email:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
+    const data = await response.json();
+    return res.status(200).json({ success: true, id: data.id });
+  } catch (error) {
+    console.error('Error sending reply email:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }

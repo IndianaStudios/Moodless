@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const FROM_EMAIL = 'Moodless <moodlessapp@yjonse.resend.app>';
+const FROM_EMAIL = 'Moodless <onboarding@resend.dev>';
 const ADMIN_EMAIL = 'indianasainzpalacios@gmail.com';
 
 const categoryLabels: Record<string, string> = {
