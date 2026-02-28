@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import nodemailer from 'nodemailer';
 
-const FROM_EMAIL = 'Moodless <onboarding@resend.dev>';
 const ADMIN_EMAIL = 'indianasainzpalacios@gmail.com';
 
 const categoryLabels: Record<string, string> = {
@@ -68,24 +68,6 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
     </div>`;
 }
 
-async function sendEmail(apiKey: string, to: string, subject: string, html: string) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(JSON.stringify(errorData));
-  }
-
-  return response.json();
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -97,39 +79,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY) {
-    console.error('RESEND_API_KEY not configured');
+  const { GMAIL_USER, GMAIL_PASS } = process.env;
+
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.error('GMAIL_USER or GMAIL_PASS not configured');
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS, // Contraseña de aplicación
+    },
+  });
+
+  const FROM_EMAIL = `"Moodless" <${GMAIL_USER}>`;
+
   try {
     // 1. Email de notificación al admin
-    const adminResult = await sendEmail(
-      RESEND_API_KEY,
-      ADMIN_EMAIL,
-      `🎫 Nuevo Ticket [${categoryLabels[category] || category}] - Moodless`,
-      buildAdminEmailHtml(category, userName, userEmail, ticketId, message)
-    );
+    const adminInfo = await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `🎫 Nuevo Ticket [${categoryLabels[category] || category}] - Moodless`,
+      html: buildAdminEmailHtml(category, userName, userEmail, ticketId, message),
+    });
 
     // 2. Email de confirmación al usuario
     if (userEmail) {
       try {
-        await sendEmail(
-          RESEND_API_KEY,
-          userEmail,
-          `✅ Tu ticket ha sido recibido — Moodless`,
-          buildUserConfirmationHtml(userName, category, ticketId, message)
-        );
+        await transporter.sendMail({
+          from: FROM_EMAIL,
+          to: userEmail,
+          subject: `✅ Tu ticket ha sido recibido — Moodless`,
+          html: buildUserConfirmationHtml(userName, category, ticketId, message),
+        });
       } catch (userEmailError) {
         // Si falla el email al usuario, no bloqueamos (el del admin ya se envió)
         console.error('Failed to send confirmation to user:', userEmailError);
       }
     }
 
-    return res.status(200).json({ success: true, id: adminResult.id });
+    return res.status(200).json({ success: true, id: adminInfo.messageId });
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending email with Nodemailer:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
