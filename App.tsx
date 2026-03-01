@@ -101,9 +101,6 @@ const App: React.FC = () => {
           });
           setEntries(loadedEntries);
 
-          const alreadyLoggedToday = loadedEntries.some(e => e.date === new Date().toISOString().split('T')[0]);
-          await notificationService.scheduleCheck(user.id, user.name, alreadyLoggedToday);
-
         } catch (e) {
           console.error("Error fetching Firestore data", e);
         } finally {

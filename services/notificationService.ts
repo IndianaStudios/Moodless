@@ -86,13 +86,32 @@ export const notificationService = {
     }
   },
 
-  sendImmediate: (title: string, body: string) => {
+  sendImmediate: async (title: string, body: string) => {
     if (Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: 'https://cdn-icons-png.flaticon.com/512/599/599305.png',
-        tag: 'moodless-notif'
-      });
+      try {
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, {
+            body,
+            icon: '/logo.jpg',
+            tag: 'moodless-notif'
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("SW notification failed:", e);
+      }
+
+      // Fallback para navegadores de escritorio viejo sin SW
+      try {
+        new Notification(title, {
+          body,
+          icon: '/logo.jpg',
+          tag: 'moodless-notif'
+        });
+      } catch (fallbackError) {
+        console.error("Fallback notification failed:", fallbackError);
+      }
     }
   },
 
@@ -109,19 +128,5 @@ export const notificationService = {
         payload.notification?.body || "Tienes una nueva actualización."
       );
     });
-  },
-
-  scheduleCheck: async (userId: string, userName: string, alreadyLogged: boolean) => {
-    const isEnabled = await notificationService.getPreference(userId);
-    const permission = notificationService.getPermissionStatus();
-
-    if (isEnabled && !alreadyLogged && permission === 'granted') {
-      setTimeout(() => {
-        notificationService.sendImmediate(
-          "Moodless: Tu racha está en peligro",
-          `¡Hola, ${userName}! No olvides dedicarle un momento de tu día a registrar tu aura. ✨`
-        );
-      }, 10000);
-    }
   }
 };
