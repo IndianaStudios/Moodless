@@ -140,8 +140,14 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
 
   const stopBreathAudio = () => {
     if (breathNodeRef.current) {
-      breathNodeRef.current.gain.setTargetAtTime(0, initAudio().currentTime, 0.2);
-      setTimeout(() => { breathNodeRef.current = null; }, 300);
+      try {
+        breathNodeRef.current.disconnect();
+      } catch (e) { /* ignore */ }
+      breathNodeRef.current = null;
+    }
+    // Suspender el AudioContext para cortar todo el audio
+    if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+      audioCtxRef.current.suspend();
     }
   };
 
