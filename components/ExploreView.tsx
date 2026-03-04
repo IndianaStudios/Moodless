@@ -45,10 +45,25 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
 
   const [painterDots, setPainterDots] = useState<{ id: number, x: number, y: number, color: string }[]>([]);
   const [bubbles, setBubbles] = useState<{ id: number, x: number, y: number, size: number, opacity: number }[]>([]);
+  const [vibeEmojis, setVibeEmojis] = useState<{ id: number, x: number, delay: number, duration: number }[]>([]);
   const gameIntervalRef = useRef<number | null>(null);
 
   const currentMood = lastEntry?.category || MoodCategory.NEUTRAL;
   const moodColor = EMOTIONAL_PALETTE.find(p => p.category === currentMood)?.hex || '#ffffff';
+
+  const spawnGoodVibes = () => {
+    const newEmojis = Array.from({ length: 15 }, (_, i) => ({
+      id: Date.now() + i,
+      x: 10 + Math.random() * 80,
+      delay: Math.random() * 0.4,
+      duration: 1.2 + Math.random() * 1,
+    }));
+    setVibeEmojis(prev => [...prev, ...newEmojis]);
+    // Limpiar emojis antiguos después de la animación
+    setTimeout(() => {
+      setVibeEmojis(prev => prev.filter(e => !newEmojis.find(n => n.id === e.id)));
+    }, 3000);
+  };
 
   const initAudio = () => {
     if (!audioCtxRef.current) {
@@ -332,6 +347,44 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
             </button>
           </div>
         ) : null}
+      </div>
+
+      {/* Good Vibes Button */}
+      <div className="relative shrink-0">
+        <button
+          onClick={spawnGoodVibes}
+          className="w-full py-5 rounded-[2rem] glass border border-white/10 text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-white/10"
+        >
+          🤙🏻 Good Vibes
+        </button>
+
+        {/* Floating Emojis */}
+        {vibeEmojis.map(emoji => (
+          <span
+            key={emoji.id}
+            className="absolute text-2xl pointer-events-none select-none"
+            style={{
+              left: `${emoji.x}%`,
+              bottom: '0',
+              animationName: 'floatUp',
+              animationDuration: `${emoji.duration}s`,
+              animationDelay: `${emoji.delay}s`,
+              animationTimingFunction: 'ease-out',
+              animationFillMode: 'forwards',
+              opacity: 0,
+            }}
+          >
+            🤙🏻
+          </span>
+        ))}
+
+        <style>{`
+          @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-300px) scale(1.3) rotate(15deg); }
+          }
+        `}</style>
       </div>
 
       {/* YouTube Player Overlay */}
