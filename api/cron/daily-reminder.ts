@@ -1,8 +1,9 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 function getFirebaseAdmin() {
-    if (admin.apps.length) return admin;
+    const existingApps = admin.apps ?? [];
+    if (existingApps.length > 0) return admin;
 
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -13,12 +14,11 @@ function getFirebaseAdmin() {
             `Missing Firebase env vars. ` +
             `FIREBASE_PROJECT_ID: ${projectId ? 'SET' : 'MISSING'}, ` +
             `FIREBASE_CLIENT_EMAIL: ${clientEmail ? 'SET' : 'MISSING'}, ` +
-            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET' : 'MISSING'}`
+            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET (' + privateKey.length + ' chars)' : 'MISSING'}`
         );
     }
 
     // Manejar diferentes formatos de la clave privada
-    // Vercel puede almacenar los \n como texto literal o como saltos de línea reales
     if (privateKey.includes('\\n')) {
         privateKey = privateKey.replace(/\\n/g, '\n');
     }
@@ -28,6 +28,11 @@ function getFirebaseAdmin() {
         privateKey = privateKey.slice(1, -1);
     }
 
+    console.log('Initializing Firebase Admin...');
+    console.log('Project ID:', projectId);
+    console.log('Client Email:', clientEmail);
+    console.log('Private Key starts with:', privateKey.substring(0, 30));
+
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId,
@@ -36,6 +41,7 @@ function getFirebaseAdmin() {
         }),
     });
 
+    console.log('Firebase Admin initialized OK');
     return admin;
 }
 
