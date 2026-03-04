@@ -1,56 +1,68 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as admin from 'firebase-admin';
 
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-    try {
-        const projectId = process.env.FIREBASE_PROJECT_ID;
-        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-        const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+function getFirebaseAdmin() {
+    if (admin.apps.length) return admin;
 
-        if (!projectId || !clientEmail || !privateKey) {
-            console.warn('Firebase Admin is not configured. Missing environment variables.');
-        } else {
-            admin.initializeApp({
-                credential: admin.credential.cert({
-                    projectId,
-                    clientEmail,
-                    // Reemplazar saltos de línea literales \n por saltos de línea reales
-                    privateKey: privateKey.replace(/\\n/g, '\n'),
-                }),
-            });
-            console.log('Firebase Admin initialized successfully.');
-        }
-    } catch (error) {
-        console.error('Failed to initialize Firebase Admin:', error);
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    if (!projectId || !clientEmail || !privateKey) {
+        throw new Error(
+            `Missing Firebase env vars. ` +
+            `FIREBASE_PROJECT_ID: ${projectId ? 'SET' : 'MISSING'}, ` +
+            `FIREBASE_CLIENT_EMAIL: ${clientEmail ? 'SET' : 'MISSING'}, ` +
+            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET' : 'MISSING'}`
+        );
     }
+
+    // Manejar diferentes formatos de la clave privada
+    // Vercel puede almacenar los \n como texto literal o como saltos de línea reales
+    if (privateKey.includes('\\n')) {
+        privateKey = privateKey.replace(/\\n/g, '\n');
+    }
+
+    // Si la clave viene rodeada de comillas, quitarlas
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.slice(1, -1);
+    }
+
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId,
+            clientEmail,
+            privateKey,
+        }),
+    });
+
+    return admin;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('Cron Job trigged: /api/cron/daily-reminder');
+    console.log('Cron Job triggered: /api/cron/daily-reminder');
 
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        if (!admin.apps.length) {
-            throw new Error('Firebase Admin not initialized. Check credentials.');
-        }
-
-        const db = admin.firestore();
-        const messaging = admin.messaging();
+        const adminApp = getFirebaseAdmin();
+        const db = adminApp.firestore();
+        const messaging = adminApp.messaging();
 
         // 1. Get all users
         const usersSnapshot = await db.collection('users').get();
         const today = new Date().toISOString().split('T')[0];
 
+        console.log(`Checking ${usersSnapshot.size} users for today: ${today}`);
+
         let notificationsSent = 0;
         let usersChecked = 0;
+        let usersSkipped = 0;
         let errors = 0;
 
-        // Utilizamos Promise.all para procesar los usuarios en paralelo y que el cron no tarde mucho
-        const promises = usersSnapshot.docs.map(async (userDoc) => {
+        for (const userDoc of usersSnapshot.docs) {
             usersChecked++;
             const userData = userDoc.data();
             const userId = userDoc.id;
@@ -59,59 +71,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const notificationsEnabled = userData.preferences?.notificationsEnabled;
             const fcmTokens = userData.fcmTokens as string[] | undefined;
 
-            if (notificationsEnabled === true && fcmTokens && fcmTokens.length > 0) {
-                // 3. Check if user already logged an entry today
-                const entriesSnapshot = await db.collection(`users/${userId}/entries`)
-                    .where('date', '==', today)
-                    .limit(1)
-                    .get();
+            if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
+                usersSkipped++;
+                continue;
+            }
 
-                if (entriesSnapshot.empty) {
-                    // User hasn't logged today. Send them a Push Notification
-                    console.log(`Sending reminder to user ${userId}...`);
+            // 3. Check if user already logged an entry today
+            const entriesSnapshot = await db.collection(`users/${userId}/entries`)
+                .where('date', '==', today)
+                .limit(1)
+                .get();
 
-                    const message = {
-                        notification: {
-                            title: 'Tu Diario Moodless te espera',
-                            body: 'Tómate un minuto para registrar cómo te sientes hoy. 🌈',
-                        },
-                        tokens: fcmTokens,
-                    };
+            if (!entriesSnapshot.empty) {
+                // Already logged today, skip
+                continue;
+            }
 
-                    try {
-                        const response = await messaging.sendEachForMulticast(message);
-                        notificationsSent += response.successCount;
-                        if (response.failureCount > 0) {
-                            errors += response.failureCount;
-                            console.error(`Failed to send to ${response.failureCount} tokens for user ${userId}.`);
+            // 4. User hasn't logged today -> send Push Notification
+            console.log(`Sending reminder to user ${userId} (${fcmTokens.length} tokens)...`);
 
-                            // Opcional: limpiar tokens inválidos aquí
-                            // response.responses.forEach((resp, idx) => {
-                            //    if (!resp.success) console.error(resp.error);
-                            // });
+            try {
+                const response = await messaging.sendEachForMulticast({
+                    notification: {
+                        title: 'Tu Diario Moodless te espera',
+                        body: 'Tómate un minuto para registrar cómo te sientes hoy. 🌈',
+                    },
+                    tokens: fcmTokens,
+                });
+
+                notificationsSent += response.successCount;
+                if (response.failureCount > 0) {
+                    errors += response.failureCount;
+                    // Log specific token errors
+                    response.responses.forEach((resp, idx) => {
+                        if (!resp.success) {
+                            console.error(`Token ${idx} failed for user ${userId}:`, resp.error?.message);
                         }
-                    } catch (sendError) {
-                        errors++;
-                        console.error(`Error sending message to user ${userId}:`, sendError);
-                    }
+                    });
                 }
+            } catch (sendError: any) {
+                errors++;
+                console.error(`Error sending to user ${userId}:`, sendError.message);
             }
-        });
+        }
 
-        await Promise.all(promises);
-
-        return res.status(200).json({
+        const result = {
             success: true,
-            message: 'Cron job executed successfully',
-            stats: {
-                usersChecked,
-                notificationsSent,
-                errors
-            }
-        });
+            message: 'Cron job executed',
+            stats: { usersChecked, usersSkipped, notificationsSent, errors }
+        };
+
+        console.log('Cron result:', JSON.stringify(result));
+        return res.status(200).json(result);
 
     } catch (error: any) {
-        console.error('Error in cron job:', error);
-        return res.status(500).json({ error: error.message || 'Internal Server Error' });
+        console.error('CRON FATAL ERROR:', error.message);
+        return res.status(500).json({
+            error: error.message || 'Internal Server Error',
+            hint: 'Check Firebase environment variables in Vercel'
+        });
     }
 }
