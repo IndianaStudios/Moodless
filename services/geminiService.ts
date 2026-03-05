@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { MoodEntry, MoodCategory } from "../types";
 
 export type GameType = 'PAINTER' | 'BREATH' | 'POP' | 'ORDER' | 'MIRROR';
@@ -20,6 +19,8 @@ export interface MusicRecommendation {
   groundingSources?: any[];
 }
 
+const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
+
 const cleanJsonResponse = (text: string) => {
   if (!text) return "{}";
   return text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -40,17 +41,53 @@ const setCachedData = (key: string, data: any, entryId: string, ttl: number = 86
   localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), entryId, ttl }));
 };
 
+async function callOpenRouter(prompt: string, jsonMode: boolean = false): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OPENROUTER_API_KEY not configured');
+  }
+
+  const body: any = {
+    model: OPENROUTER_MODEL,
+    messages: [
+      { role: 'system', content: 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.' },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 300,
+  };
+
+  if (jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Moodless',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(`OpenRouter error ${response.status}: ${JSON.stringify(err)}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[]): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Analiza este estado emocional SAM: Valencia:${currentEntry.valence}, Activación:${currentEntry.arousal}, Dominancia:${currentEntry.dominance}. 
   Responde en JSON: {"title": "Nombre poético de la vibra", "explanation": "Breve explicación psicológica de 2 frases"}.`;
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-    return cleanJsonResponse(response.text || "");
+    const text = await callOpenRouter(prompt, true);
+    return cleanJsonResponse(text);
   } catch {
     return JSON.stringify({ title: "Estado Calibrado", explanation: "Tu energía actual se encuentra en un punto de equilibrio receptivo." });
   }
@@ -60,8 +97,6 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
   const cacheKey = `game_config_${entryId}`;
   const cached = getCachedData(cacheKey);
   if (cached && cached.entryId === entryId) return cached.data;
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   let type: GameType = 'MIRROR';
   if (valence <= 2) type = 'PAINTER';
@@ -73,13 +108,8 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
   Responde JSON: {"title": "Título", "description": "Frase inspiradora", "mantra": "Instrucción de respiración"}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-
-    const data = JSON.parse(cleanJsonResponse(response.text || "{}"));
+    const text = await callOpenRouter(prompt, true);
+    const data = JSON.parse(cleanJsonResponse(text));
     const config: GameConfig = {
       type,
       title: data.title || "Espacio Aura",
@@ -101,8 +131,6 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
   const cacheKey = `music_config_${entryId}`;
   const cached = getCachedData(cacheKey);
   if (cached && cached.entryId === entryId) return cached.data;
-
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const hour = new Date().getHours();
   let timeContext = "generales";
@@ -132,24 +160,13 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        tools: [{ googleSearch: {} }]
-      }
-    });
-
-    const result = JSON.parse(cleanJsonResponse(response.text || "{}"));
-    const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-
-    const musicData = { ...result, groundingSources: grounding };
-    // Reducción de caché a 4 horas (14400000 ms) para asegurar variedad durante el día
+    const text = await callOpenRouter(prompt, true);
+    const result = JSON.parse(cleanJsonResponse(text));
+    const musicData = { ...result, groundingSources: [] };
     setCachedData(cacheKey, musicData, entryId, 14400000);
     return musicData;
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("OpenRouter API Error:", error);
     return {
       vibe: "Pop Hits",
       playlistName: "Top Global",
@@ -159,13 +176,9 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
 };
 
 export const getVibeRecommendation = async (mood: MoodCategory): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`
-    });
-    return response.text || "Confía en tu proceso interno.";
+    const text = await callOpenRouter(`Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`);
+    return text || "Confía en tu proceso interno.";
   } catch {
     return "Siente el ritmo de tu respiración.";
   }
