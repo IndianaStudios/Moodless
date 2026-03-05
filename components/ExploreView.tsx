@@ -178,6 +178,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
       localStorage.removeItem(`game_config_${lastEntry.id}`);
     }
 
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    // 1. Música (primera llamada)
     try {
       const musicRec = await getMoodMusicRecommendation(currentMood, lastEntry.valence, lastEntry.arousal, lastEntry.id);
       setMusic(musicRec);
@@ -188,11 +191,17 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
       }
     } catch (e) { console.error(e); } finally { setLoadingMusic(false); }
 
-    getMoodGameConfig(currentMood, lastEntry.valence, lastEntry.arousal, lastEntry.dominance, lastEntry.id)
-      .then(config => setGameConfig({ ...config, themeColor: moodColor }))
-      .catch(console.error)
-      .finally(() => setLoadingGame(false));
+    await delay(1500);
 
+    // 2. Juego (segunda llamada)
+    try {
+      const config = await getMoodGameConfig(currentMood, lastEntry.valence, lastEntry.arousal, lastEntry.dominance, lastEntry.id);
+      setGameConfig({ ...config, themeColor: moodColor });
+    } catch (e) { console.error(e); } finally { setLoadingGame(false); }
+
+    await delay(1500);
+
+    // 3. Vibe (tercera llamada)
     getVibeRecommendation(currentMood).then(setRecommendation).catch(console.error);
   }, [lastEntry, currentMood, moodColor]);
 
