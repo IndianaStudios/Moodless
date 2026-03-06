@@ -20,6 +20,7 @@ export interface MusicRecommendation {
 }
 
 const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
+const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Modelo hiper-rápido de Groq
 
 const cleanJsonResponse = (text: string) => {
   if (!text) return "{}";
@@ -40,6 +41,43 @@ const getCachedData = (key: string) => {
 const setCachedData = (key: string, data: any, entryId: string, ttl: number = 86400000) => {
   localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), entryId, ttl }));
 };
+
+
+async function callGroq(prompt: string, jsonMode: boolean = false): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+  const body: any = {
+    model: GROQ_MODEL,
+    messages: [
+      { role: 'system', content: 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.' },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 300,
+  };
+
+  if (jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(`Groq error ${response.status}: ${JSON.stringify(err)}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
 
 async function callOpenRouter(prompt: string, jsonMode: boolean = false): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -62,31 +100,62 @@ async function callOpenRouter(prompt: string, jsonMode: boolean = false): Promis
     body.response_format = { type: 'json_object' };
   }
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'Moodless',
-    },
-    body: JSON.stringify(body),
-  });
+  const maxRetries = 2; // Reducido a 2 porque ahora es el fallback
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(`OpenRouter error ${response.status}: ${JSON.stringify(err)}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (attempt > 0) {
+      const waitTime = 2000 * attempt;
+      console.log(`OpenRouter retry ${attempt}/${maxRetries}, waiting ${waitTime}ms...`);
+      await new Promise(r => setTimeout(r, waitTime));
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'Moodless',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (response.status === 429) {
+      console.warn(`OpenRouter 429 rate limit on attempt ${attempt + 1}`);
+      if (attempt === maxRetries - 1) throw new Error('OpenRouter rate limit exceeded');
+      continue;
+    }
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`OpenRouter error ${response.status}: ${JSON.stringify(err)}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
   }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  throw new Error('OpenRouter fallback failed');
+}
+
+// Orquestador principal: Intenta Groq primero, si falla, usa OpenRouter
+async function callAI(prompt: string, jsonMode: boolean = false): Promise<string> {
+  try {
+    // 1. Intentar Groq (Principal)
+    return await callGroq(prompt, jsonMode);
+  } catch (groqError: any) {
+    console.warn('Groq failed or not configured, falling back to OpenRouter...', groqError.message);
+
+    // 2. Fallback a OpenRouter
+    return await callOpenRouter(prompt, jsonMode);
+  }
 }
 
 export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[]): Promise<string> => {
   const prompt = `Analiza este estado emocional SAM: Valencia:${currentEntry.valence}, Activación:${currentEntry.arousal}, Dominancia:${currentEntry.dominance}. 
   Responde en JSON: {"title": "Nombre poético de la vibra", "explanation": "Breve explicación psicológica de 2 frases"}.`;
   try {
-    const text = await callOpenRouter(prompt, true);
+    const text = await callAI(prompt, true);
     return cleanJsonResponse(text);
   } catch {
     return JSON.stringify({ title: "Estado Calibrado", explanation: "Tu energía actual se encuentra en un punto de equilibrio receptivo." });
@@ -108,7 +177,7 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
   Responde JSON: {"title": "Título", "description": "Frase inspiradora", "mantra": "Instrucción de respiración"}`;
 
   try {
-    const text = await callOpenRouter(prompt, true);
+    const text = await callAI(prompt, true);
     const data = JSON.parse(cleanJsonResponse(text));
     const config: GameConfig = {
       type,
@@ -160,13 +229,13 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
   `;
 
   try {
-    const text = await callOpenRouter(prompt, true);
+    const text = await callAI(prompt, true);
     const result = JSON.parse(cleanJsonResponse(text));
     const musicData = { ...result, groundingSources: [] };
     setCachedData(cacheKey, musicData, entryId, 14400000);
     return musicData;
   } catch (error) {
-    console.error("OpenRouter API Error:", error);
+    console.error("AI Generation Error:", error);
     return {
       vibe: "Pop Hits",
       playlistName: "Top Global",
@@ -177,7 +246,7 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
 
 export const getVibeRecommendation = async (mood: MoodCategory): Promise<string> => {
   try {
-    const text = await callOpenRouter(`Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`);
+    const text = await callAI(`Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`);
     return text || "Confía en tu proceso interno.";
   } catch {
     return "Siente el ritmo de tu respiración.";
