@@ -1,0 +1,128 @@
+import { VercelRequest, VercelResponse } from '@vercel/node';
+
+const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+async function callGroq(prompt: string, jsonMode: boolean = false): Promise<string> {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+    const body: any = {
+        model: GROQ_MODEL,
+        messages: [
+            { role: 'system', content: 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.' },
+            { role: 'user', content: prompt }
+        ],
+        temperature: 0.8,
+        max_tokens: 300,
+    };
+
+    if (jsonMode) {
+        body.response_format = { type: 'json_object' };
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(`Groq error ${response.status}: ${JSON.stringify(err)}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+}
+
+async function callOpenRouter(prompt: string, jsonMode: boolean = false, origin: string = ''): Promise<string> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+        throw new Error('OPENROUTER_API_KEY not configured');
+    }
+
+    const body: any = {
+        model: OPENROUTER_MODEL,
+        messages: [
+            { role: 'system', content: 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.' },
+            { role: 'user', content: prompt }
+        ],
+        temperature: 0.8,
+        max_tokens: 300,
+    };
+
+    if (jsonMode) {
+        body.response_format = { type: 'json_object' };
+    }
+
+    const maxRetries = 2;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        if (attempt > 0) {
+            const waitTime = 2000 * attempt;
+            console.log(`OpenRouter retry ${attempt}/${maxRetries}, waiting ${waitTime}ms...`);
+            await new Promise(r => setTimeout(r, waitTime));
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': origin || 'https://moodless.vercel.app',
+                'X-Title': 'Moodless',
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (response.status === 429) {
+            console.warn(`OpenRouter 429 rate limit on attempt ${attempt + 1}`);
+            if (attempt === maxRetries - 1) throw new Error('OpenRouter rate limit exceeded');
+            continue;
+        }
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`OpenRouter error ${response.status}: ${JSON.stringify(err)}`);
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '';
+    }
+
+    throw new Error('OpenRouter fallback failed');
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        const { prompt, jsonMode } = req.body;
+
+        if (!prompt) {
+            return res.status(400).json({ error: 'Prompt is required' });
+        }
+
+        const origin = req.headers.origin || '';
+
+        let text = '';
+        try {
+            text = await callGroq(prompt, jsonMode);
+        } catch (groqError: any) {
+            console.warn('Groq failed or not configured, falling back to OpenRouter...', groqError.message);
+            text = await callOpenRouter(prompt, jsonMode, origin);
+        }
+
+        return res.status(200).json({ result: text });
+    } catch (error: any) {
+        console.error('AI Generation Error:', error);
+        return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
+}
