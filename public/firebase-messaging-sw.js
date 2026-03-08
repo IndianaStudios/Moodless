@@ -13,22 +13,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Mensaje en segundo plano recibido ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: '/logo.jpg'
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-// Requerido para que el navegador lo detecte como PWA instalable
-self.addEventListener('fetch', () => {
-    // Permite que la app sea instalable
-});
-
-self.addEventListener('push', (event) => {
-    // El SDK de Firebase maneja esto, pero tener el listener ayuda en algunos navegadores
+self.addEventListener('notificationclick', function (event) {
+    console.log('[firebase-messaging-sw.js] Notificación clickeada', event.notification);
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+            // Si la ventana ya está abierta, pon el foco en ella
+            for (let i = 0; i < clientList.length; i++) {
+                let client = clientList[i];
+                if (client.url.includes('/') && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Si no está abierta, abre una nueva
+            if (clients.openWindow) {
+                return clients.openWindow('/');
+            }
+        })
+    );
 });
