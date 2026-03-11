@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifySignatureEdge } from '@upstash/qstash/dist/nextjs';
 import admin from 'firebase-admin';
 
 function getFirebaseAdmin() {
@@ -14,25 +14,18 @@ function getFirebaseAdmin() {
             `Missing Firebase env vars. ` +
             `FIREBASE_PROJECT_ID: ${projectId ? 'SET' : 'MISSING'}, ` +
             `FIREBASE_CLIENT_EMAIL: ${clientEmail ? 'SET' : 'MISSING'}, ` +
-            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET (' + privateKey.length + ' chars)' : 'MISSING'}`
+            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET (' + privateKey?.length + ' chars)' : 'MISSING'}`
         );
     }
 
-    // Manejar diferentes formatos de la clave privada
     if (privateKey.includes('\\n')) {
         privateKey = privateKey.replace(/\\n/g, '\n');
     }
 
-    // Si la clave viene rodeada de comillas, quitarlas
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
         privateKey = privateKey.slice(1, -1);
     }
-
-    console.log('Initializing Firebase Admin...');
-    console.log('Project ID:', projectId);
-    console.log('Client Email:', clientEmail);
-    console.log('Private Key starts with:', privateKey.substring(0, 30));
-
+    
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId,
@@ -41,15 +34,12 @@ function getFirebaseAdmin() {
         }),
     });
 
-    console.log('Firebase Admin initialized OK');
     return admin;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('Cron Job triggered: /api/cron/daily-reminder');
-
-    if (req.method !== 'GET' && req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+async function handler(req: Request) {
+    if (req.method !== 'POST') {
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
     }
 
     try {
@@ -57,44 +47,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const db = adminApp.firestore();
         const messaging = adminApp.messaging();
 
-        // 1. Get all users
         const usersSnapshot = await db.collection('users').get();
         const today = new Date().toISOString().split('T')[0];
 
-        console.log(`Checking ${usersSnapshot.size} users for today: ${today}`);
-
         let notificationsSent = 0;
-        let usersChecked = 0;
-        let usersSkipped = 0;
         let errors = 0;
 
         for (const userDoc of usersSnapshot.docs) {
-            usersChecked++;
             const userData = userDoc.data();
             const userId = userDoc.id;
 
-            // 2. Check if user wants notifications and has a device token
             const notificationsEnabled = userData.preferences?.notificationsEnabled;
             const fcmTokens = userData.fcmTokens as string[] | undefined;
+            const timeZone = userData.timeZone || 'UTC'; // Fallback a UTC si no tiene
 
             if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
-                usersSkipped++;
                 continue;
             }
 
-            // 3. Check if user already logged an entry today
+            // Comprobar la hora local en la zona horaria del usuario
+            try {
+                const userTimeOptions: Intl.DateTimeFormatOptions = { 
+                    timeZone, 
+                    hour: 'numeric', 
+                    hour12: false 
+                };
+                const formatter = new Intl.DateTimeFormat('en-US', userTimeOptions);
+                const userHour = parseInt(formatter.format(new Date()), 10);
+
+                // Solo enviar si en LA HORA DEL USUARIO son las 14:xx o las 20:xx
+                if (userHour !== 14 && userHour !== 20) {
+                    continue;
+                }
+            } catch (tzError) {
+                console.warn(`Timezone inválida para usuario ${userId}: ${timeZone}`);
+                // Si la zona horaria falla por alguna razón, no enviamos por si acaso
+                continue;
+            }
+
             const entriesSnapshot = await db.collection(`users/${userId}/entries`)
                 .where('date', '==', today)
                 .limit(1)
                 .get();
 
             if (!entriesSnapshot.empty) {
-                // Already logged today, skip
                 continue;
             }
-
-            // 4. User hasn't logged today -> send Push Notification
-            console.log(`Sending reminder to user ${userId} (${fcmTokens.length} tokens)...`);
 
             try {
                 const response = await messaging.sendEachForMulticast({
@@ -108,12 +106,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 notificationsSent += response.successCount;
                 if (response.failureCount > 0) {
                     errors += response.failureCount;
-                    // Log specific token errors
-                    response.responses.forEach((resp, idx) => {
-                        if (!resp.success) {
-                            console.error(`Token ${idx} failed for user ${userId}:`, resp.error?.message);
-                        }
-                    });
                 }
             } catch (sendError: any) {
                 errors++;
@@ -121,20 +113,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        const result = {
-            success: true,
-            message: 'Cron job executed',
-            stats: { usersChecked, usersSkipped, notificationsSent, errors }
-        };
-
-        console.log('Cron result:', JSON.stringify(result));
-        return res.status(200).json(result);
+        return new Response(JSON.stringify({ success: true, notificationsSent, errors }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
     } catch (error: any) {
-        console.error('CRON FATAL ERROR:', error.message);
-        return res.status(500).json({
-            error: error.message || 'Internal Server Error',
-            hint: 'Check Firebase environment variables in Vercel'
+        console.error('QSTASH FATAL ERROR:', error.message);
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
         });
     }
 }
+
+export const config = {
+  runtime: 'edge',
+};
+
+export default verifySignatureEdge(handler);

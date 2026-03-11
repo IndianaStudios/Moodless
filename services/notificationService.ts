@@ -49,17 +49,24 @@ export const notificationService = {
 
         if (token) {
           console.log("FCM Token obtenido:", token.substring(0, 10) + "...");
+          
+          // Capturar la zona horaria del dispositivo
+          const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+          console.log("Zona horaria detectada:", userTimeZone);
+
           const userRef = doc(db, 'users', userId);
           await updateDoc(userRef, {
             fcmTokens: arrayUnion(token),
+            timeZone: userTimeZone,
             'preferences.notificationsEnabled': true
           }).catch(async () => {
             await setDoc(userRef, {
               fcmTokens: [token],
+              timeZone: userTimeZone,
               preferences: { notificationsEnabled: true }
             }, { merge: true });
           });
-          console.log("FCM Token sincronizado en Firestore");
+          console.log("FCM Token y TimeZone sincronizados en Firestore");
         }
       } else {
         console.warn("Permiso de notificación denegado por el usuario.");

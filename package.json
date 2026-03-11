@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
+    "@upstash/qstash": "^2.9.0",
     "date-fns": "^4.1.0",
     "firebase": "^12.8.0",
     "firebase-admin": "^13.7.0",
