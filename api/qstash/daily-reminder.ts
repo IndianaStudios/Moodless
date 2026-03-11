@@ -1,5 +1,6 @@
-import { verifySignatureEdge } from '@upstash/qstash/dist/nextjs';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
+import { verifySignature } from '@upstash/qstash/nextjs';
 
 function getFirebaseAdmin() {
     const existingApps = admin.apps ?? [];
@@ -25,7 +26,7 @@ function getFirebaseAdmin() {
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
         privateKey = privateKey.slice(1, -1);
     }
-    
+
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId,
@@ -37,9 +38,9 @@ function getFirebaseAdmin() {
     return admin;
 }
 
-async function handler(req: Request) {
+async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
@@ -67,10 +68,10 @@ async function handler(req: Request) {
 
             // Comprobar la hora local en la zona horaria del usuario
             try {
-                const userTimeOptions: Intl.DateTimeFormatOptions = { 
-                    timeZone, 
-                    hour: 'numeric', 
-                    hour12: false 
+                const userTimeOptions: Intl.DateTimeFormatOptions = {
+                    timeZone,
+                    hour: 'numeric',
+                    hour12: false
                 };
                 const formatter = new Intl.DateTimeFormat('en-US', userTimeOptions);
                 const userHour = parseInt(formatter.format(new Date()), 10);
@@ -100,6 +101,18 @@ async function handler(req: Request) {
                         title: 'Tu Diario Moodless te espera',
                         body: 'Tómate un minuto para registrar cómo te sientes hoy. 🌈',
                     },
+                    webpush: {
+                        notification: {
+                            icon: 'https://moodless.vercel.app/logo.jpg',
+                            badge: 'https://moodless.vercel.app/logo.jpg',
+                        }
+                    },
+                    android: {
+                        notification: {
+                            icon: 'https://moodless.vercel.app/logo.jpg',
+                            color: '#0f172a'
+                        }
+                    },
                     tokens: fcmTokens,
                 });
 
@@ -113,22 +126,19 @@ async function handler(req: Request) {
             }
         }
 
-        return new Response(JSON.stringify({ success: true, notificationsSent, errors }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return res.status(200).json({ success: true, notificationsSent, errors });
 
     } catch (error: any) {
         console.error('QSTASH FATAL ERROR:', error.message);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        return res.status(500).json({ error: error.message });
     }
 }
 
+// Importante: No debe exportarse config = { runtime: 'edge' }
 export const config = {
-  runtime: 'edge',
+  api: {
+    bodyParser: false, // Upstash nextjs/verifySignature lo requiere en false para poder leer el raw body en Next.js/Vercel Serverless
+  },
 };
 
-export default verifySignatureEdge(handler);
+export default verifySignature(handler);
