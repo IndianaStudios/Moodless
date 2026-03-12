@@ -24,9 +24,84 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
 
   const calculateStreak = () => {
     if (entries.length === 0) return 0;
-    const uniqueDays = new Set(entries.map(e => e.date)).size;
-    return uniqueDays;
+
+    const loggedDates = new Set(entries.map(e => e.date));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Formatear fecha como YYYY-MM-DD
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+
+    let streak = 0;
+    let checkDate = new Date(today);
+
+    // Si hoy ya registraste, empieza a contar desde hoy
+    // Si no, empieza desde ayer (como Duolingo: no pierdes la racha hasta que acabe el día)
+    if (loggedDates.has(fmt(checkDate))) {
+      streak = 1;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      // Aún no has registrado hoy, comprobar si ayer registraste
+      checkDate.setDate(checkDate.getDate() - 1);
+      if (!loggedDates.has(fmt(checkDate))) {
+        return 0; // Ni hoy ni ayer → racha rota
+      }
+      streak = 1;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    // Contar hacia atrás mientras haya días consecutivos
+    while (loggedDates.has(fmt(checkDate))) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streak;
   };
+
+  const calculateTrend = (): { symbol: string; label: string; color: string } => {
+    if (entries.length < 3) return { symbol: '—', label: 'Pocas vibes', color: 'text-slate-500' };
+
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    const recent = sorted.slice(-7);
+    const previous = sorted.slice(-14, -7);
+
+    const avg = (arr: MoodEntry[]) => arr.reduce((s, e) => s + (e.valence || 3), 0) / (arr.length || 1);
+    const recentAvg = avg(recent);
+    const previousAvg = previous.length > 0 ? avg(previous) : recentAvg;
+
+    const diff = recentAvg - previousAvg;
+
+    if (diff > 0.3) return { symbol: '↑', label: 'Subiendo', color: 'text-green-400' };
+    if (diff < -0.3) return { symbol: '↓', label: 'Bajando', color: 'text-red-400' };
+    return { symbol: '→', label: 'Estable', color: 'text-blue-400' };
+  };
+
+  const calculateAura = (): { emoji: string; label: string; color: string } => {
+    if (entries.length === 0) return { emoji: '🌫️', label: 'Sin datos', color: '#94A3B8' };
+
+    // Últimos 7 registros
+    const recent = [...entries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+    const counts: Record<string, number> = {};
+    recent.forEach(e => { counts[e.category] = (counts[e.category] || 0) + 1; });
+
+    const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    const palette = EMOTIONAL_PALETTE.find(p => p.category === dominant);
+
+    const emojiMap: Record<string, string> = {
+      JOY: '☀️', CALM: '🍃', ANGER: '🔥', SADNESS: '🌧️',
+      ANXIETY: '👻', ENERGY: '⚡', NEUTRAL: '☁️'
+    };
+
+    return {
+      emoji: emojiMap[dominant] || '🌫️',
+      label: palette?.label || 'Neutral',
+      color: palette?.hex || '#94A3B8'
+    };
+  };
+
+  const trend = calculateTrend();
+  const aura = calculateAura();
 
   const getReportData = (reportStr?: string) => {
     if (!reportStr) return null;
@@ -141,16 +216,17 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <span className="text-2xl font-black">{entries.length}</span>
           <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Capturas</span>
         </div>
-        {/* Placeholder for future stats or just repeated for symmetry if needed, or leave at 2/4 */}
-        <div className="glass p-5 rounded-[2rem] hidden md:flex flex-col items-center border-white/5 opacity-50">
-          <TrendingUp className="text-purple-400 mb-1" size={18} />
-          <span className="text-2xl font-black">---</span>
-          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Tendencia</span>
+        {/* Tendencia */}
+        <div className="glass p-5 rounded-[2rem] flex flex-col items-center border-white/5">
+          <TrendingUp className={`${trend.color} mb-1`} size={18} />
+          <span className={`text-2xl font-black ${trend.color}`}>{trend.symbol}</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">{trend.label}</span>
         </div>
-        <div className="glass p-5 rounded-[2rem] hidden md:flex flex-col items-center border-white/5 opacity-50">
-          <Sparkles className="text-pink-400 mb-1" size={18} />
-          <span className="text-2xl font-black">---</span>
-          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+        {/* Aura */}
+        <div className="glass p-5 rounded-[2rem] flex flex-col items-center border-white/5">
+          <span className="text-lg mb-1">{aura.emoji}</span>
+          <span className="text-lg font-black" style={{ color: aura.color }}>{aura.label}</span>
+          <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Tu Aura</span>
         </div>
       </div>
 

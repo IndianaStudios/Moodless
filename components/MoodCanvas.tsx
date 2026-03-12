@@ -113,14 +113,14 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
         <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
           <Check className="text-green-500 w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Vibe capturada</h2>
-        <p className="text-slate-400 mb-8">Tus dimensiones SAM han sido procesadas.</p>
+        <h2 className="text-2xl font-bold mb-2">Vibe registrada ✨</h2>
+        <p className="text-slate-400 mb-8">Ya has registrado cómo te sientes hoy.</p>
         <button
           onClick={() => setIsEditing(true)}
           className="flex items-center gap-2 px-6 py-3 rounded-2xl glass text-sm font-bold text-white hover:bg-white/10 transition-all border border-white/10"
         >
           <Edit2 size={16} />
-          Recalibrar SAM
+          Cambiar mi vibe
         </button>
       </div>
     );
@@ -135,8 +135,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
 
       <div className="relative z-10 flex flex-col px-8 pt-20 pb-32 flex-1 max-w-3xl mx-auto w-full">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl font-black tracking-tight text-white mb-2">Modelo SAM</h1>
-          <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Self-Assessment Manikin</p>
+          <h1 className="text-3xl font-black tracking-tight text-white mb-2">¿Cómo estás hoy?</h1>
+          <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Desliza para capturar tu vibe</p>
         </header>
 
         <div className="flex-1 flex flex-col justify-center gap-12">
@@ -144,7 +144,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-center text-slate-400">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                <Smile size={14} /> Valencia (Placer)
+                <Smile size={14} /> ¿Cómo te sientes?
               </span>
               <span className="text-xs font-mono">{valence}/5</span>
             </div>
@@ -165,7 +165,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-center text-slate-400">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                <Zap size={14} /> Activación (Energía)
+                <Zap size={14} /> ¿Cuánta energía tienes?
               </span>
               <span className="text-xs font-mono">{arousal}/5</span>
             </div>
@@ -186,7 +186,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
           <section className="space-y-4">
             <div className="flex justify-between items-center text-slate-400">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                <Maximize2 size={14} /> Dominancia (Control)
+                <Maximize2 size={14} /> ¿Cuánto control sientes?
               </span>
               <span className="text-xs font-mono">{dominance}/5</span>
             </div>
@@ -209,7 +209,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
           className="mt-8 py-5 rounded-3xl font-black text-lg bg-white text-slate-950 shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-3"
         >
           <Send size={20} />
-          CALIBRAR VIBE
+          GUARDAR MI VIBE
         </button>
       </div>
     </div>

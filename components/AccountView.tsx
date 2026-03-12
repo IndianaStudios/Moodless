@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, authService } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { MoodEntry } from '../types';
+import { EMOTIONAL_PALETTE } from '../constants';
 import {
   User as UserIcon,
   Trash2,
@@ -14,7 +15,9 @@ import {
   BellOff,
   AlertTriangle,
   ShieldCheck,
-  Loader2
+  Loader2,
+  TrendingUp,
+  Calendar,
 } from 'lucide-react';
 
 interface AccountViewProps {
@@ -97,17 +100,75 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center">
-          <Award className="text-yellow-400 mb-2" size={20} />
+      <div className="grid grid-cols-4 gap-3 mb-8">
+        {/* Racha */}
+        {(() => {
+          const loggedDates = new Set(entries.map(e => e.date));
+          const today = new Date(); today.setHours(0,0,0,0);
+          const fmt = (d: Date) => d.toISOString().split('T')[0];
+          let streak = 0; let checkDate = new Date(today);
+          if (loggedDates.has(fmt(checkDate))) { streak = 1; checkDate.setDate(checkDate.getDate()-1); }
+          else { checkDate.setDate(checkDate.getDate()-1); if (!loggedDates.has(fmt(checkDate))) { streak = 0; } else { streak = 1; checkDate.setDate(checkDate.getDate()-1); } }
+          if (streak > 0) { while(loggedDates.has(fmt(checkDate))) { streak++; checkDate.setDate(checkDate.getDate()-1); } }
+          return (
+            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+              <Zap className="text-yellow-400 mb-1" size={16} />
+              <span className="text-xl font-black">{streak}</span>
+              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Racha</span>
+            </div>
+          );
+        })()}
+        {/* Capturas */}
+        <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+          <Calendar className="text-blue-400 mb-1" size={16} />
           <span className="text-xl font-black">{entries.length}</span>
-          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Capturas</span>
+          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Vibes</span>
         </div>
-        <div className="glass p-5 rounded-3xl border-white/5 flex flex-col items-center">
-          <Zap className="text-blue-400 mb-2" size={20} />
-          <span className="text-xl font-black">{new Set(entries.map(e => e.date)).size}</span>
-          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Días</span>
-        </div>
+        {/* Tendencia */}
+        {(() => {
+          if (entries.length < 3) return (
+            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+              <TrendingUp className="text-slate-500 mb-1" size={16} />
+              <span className="text-xl font-black text-slate-500">—</span>
+              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Pocas</span>
+            </div>
+          );
+          const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+          const recent = sorted.slice(-7); const previous = sorted.slice(-14,-7);
+          const avg = (arr: MoodEntry[]) => arr.reduce((s,e) => s + (e.valence||3), 0) / (arr.length||1);
+          const diff = avg(recent) - (previous.length > 0 ? avg(previous) : avg(recent));
+          const t = diff > 0.3 ? { s: '↑', c: 'text-green-400', l: 'Sube' } : diff < -0.3 ? { s: '↓', c: 'text-red-400', l: 'Baja' } : { s: '→', c: 'text-blue-400', l: 'Estable' };
+          return (
+            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+              <TrendingUp className={`${t.c} mb-1`} size={16} />
+              <span className={`text-xl font-black ${t.c}`}>{t.s}</span>
+              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">{t.l}</span>
+            </div>
+          );
+        })()}
+        {/* Aura */}
+        {(() => {
+          if (entries.length === 0) return (
+            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+              <span className="text-base mb-1">🌫️</span>
+              <span className="text-xs font-black text-slate-500">---</span>
+              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+            </div>
+          );
+          const recent = [...entries].sort((a,b) => b.date.localeCompare(a.date)).slice(0,7);
+          const counts: Record<string,number> = {};
+          recent.forEach(e => { counts[e.category] = (counts[e.category]||0)+1; });
+          const dominant = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+          const palette = EMOTIONAL_PALETTE.find(p => p.category === dominant);
+          const emojiMap: Record<string,string> = { JOY:'☀️', CALM:'🍃', ANGER:'🔥', SADNESS:'🌧️', ANXIETY:'👻', ENERGY:'⚡', NEUTRAL:'☁️' };
+          return (
+            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
+              <span className="text-base mb-1">{emojiMap[dominant]||'🌫️'}</span>
+              <span className="text-xs font-black" style={{color: palette?.hex||'#94A3B8'}}>{palette?.label||'Neutral'}</span>
+              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="space-y-6">
