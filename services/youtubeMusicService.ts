@@ -15,28 +15,43 @@ export interface YouTubeTrack {
 const YOUTUBE_API_KEY = 'AIzaSyDQh369SbmMGSGyLvE2ZrtWBzKKpHdmCrk';
 
 export const youtubeMusicService = {
-  searchTracks: async (query: string): Promise<YouTubeTrack[]> => {
+  searchTracks: async (queries: string | string[]): Promise<YouTubeTrack[]> => {
     if (!YOUTUBE_API_KEY) {
       console.warn("YouTube Music: Es necesario configurar la clave API en services/youtubeMusicService.ts");
       return [];
     }
 
+    // Compatibilidad: si recibe un solo string, convertirlo a array
+    const queryList = Array.isArray(queries) ? queries : [queries];
+
     try {
-      // Optimizamos la búsqueda añadiendo "official audio" para obtener tracks más aptos para embeber
-      // y limitamos los resultados a los más relevantes.
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " official audio")}&type=video&videoEmbeddable=true&maxResults=5&key=${YOUTUBE_API_KEY}`;
+      const tracks: YouTubeTrack[] = [];
+      const seenChannels = new Set<string>();
 
-      const response = await fetch(url);
-      const data = await response.json();
+      for (const query of queryList) {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " official audio")}&type=video&videoEmbeddable=true&maxResults=1&key=${YOUTUBE_API_KEY}`;
 
-      if (!data.items) return [];
+        const response = await fetch(url);
+        const data = await response.json();
 
-      return data.items.map((item: any) => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        channelTitle: item.snippet.channelTitle,
-        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-      }));
+        if (data.items && data.items.length > 0) {
+          const item = data.items[0];
+          const channel = item.snippet.channelTitle;
+
+          // Evitar duplicados del mismo canal/artista
+          if (!seenChannels.has(channel)) {
+            seenChannels.add(channel);
+            tracks.push({
+              id: item.id.videoId,
+              title: item.snippet.title,
+              channelTitle: channel,
+              thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+            });
+          }
+        }
+      }
+
+      return tracks;
     } catch (error) {
       console.error("Error en búsqueda YouTube:", error);
       return [];

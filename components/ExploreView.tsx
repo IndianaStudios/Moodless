@@ -185,8 +185,9 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
       const musicRec = await getMoodMusicRecommendation(currentMood, lastEntry.valence, lastEntry.arousal, lastEntry.id);
       setMusic(musicRec);
 
-      if (youtubeMusicService.isConfigured() && musicRec.searchQuery) {
-        const tracks = await youtubeMusicService.searchTracks(musicRec.searchQuery);
+      if (youtubeMusicService.isConfigured() && (musicRec.searchQueries || musicRec.searchQuery)) {
+        const queries = musicRec.searchQueries || (musicRec.searchQuery ? [musicRec.searchQuery] : []);
+        const tracks = await youtubeMusicService.searchTracks(queries);
         setYoutubeTracks(tracks);
       }
     } catch (e) { console.error(e); } finally { setLoadingMusic(false); }

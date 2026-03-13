@@ -15,7 +15,8 @@ export interface GameConfig {
 export interface MusicRecommendation {
   vibe: string;
   playlistName: string;
-  searchQuery: string;
+  searchQueries: string[];
+  searchQuery?: string; // Retrocompatibilidad con datos cacheados
   groundingSources?: any[];
 }
 
@@ -120,23 +121,34 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
     Basado en este estado emocional (Valencia: ${valence}, Activación: ${arousal}) y en un contexto de vibras ${timeContext}.
     Semilla de Variación: ${varietySeed}.
 
-    Genera una búsqueda ideal para YouTube Music de un ARTISTA MUY CONOCIDO y FAMOSAMENTE GLOBAL.
-    IMPORTANTE: El género musical DEBE ser una consecuencia natural del estado de ánimo (Valencia y Activación).
-    No fuerces géneros irrelevantes. Prioriza la sincronización emocional.
-    
-    Busca HITS reconocibles que el usuario identifique de inmediato (ej. SIA, Queen, Taylor Swift, The Weeknd, Rosalia, etc.).
+    Recomienda 5 CANCIONES DIFERENTES de ARTISTAS DIFERENTES que sean MUY CONOCIDOS y FAMOSOS GLOBALMENTE.
+    IMPORTANTE: 
+    - Cada canción DEBE ser de un artista DIFERENTE. Nunca repitas artista.
+    - El género musical DEBE ser una consecuencia natural del estado de ánimo (Valencia y Activación).
+    - Prioriza canciones icónicas que el usuario identifique de inmediato.
+    - VARÍA los géneros: pop, rock, electrónica, R&B, indie, latin, etc.
     
     Responde ÚNICAMENTE en JSON: 
     {
       "vibe": "Nombre creativo de la atmósfera (ej. 'Resiliencia Pura', 'Euforia Solar')",
       "playlistName": "Título del mood",
-      "searchQuery": "Artista Famoso + Canción icónica (ej. 'Adele Hello', 'Avicii The Nights')"
+      "searchQueries": [
+        "Artista1 Cancion1",
+        "Artista2 Cancion2",
+        "Artista3 Cancion3",
+        "Artista4 Cancion4",
+        "Artista5 Cancion5"
+      ]
     }
   `;
 
   try {
     const text = await callAI(prompt, true);
     const result = JSON.parse(cleanJsonResponse(text));
+    // Compatibilidad: si viene searchQuery viejo, convertirlo a array
+    if (result.searchQuery && !result.searchQueries) {
+      result.searchQueries = [result.searchQuery];
+    }
     const musicData = { ...result, groundingSources: [] };
     setCachedData(cacheKey, musicData, entryId, 14400000);
     return musicData;
@@ -145,7 +157,7 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
     return {
       vibe: "Pop Hits",
       playlistName: "Top Global",
-      searchQuery: "Top Hits 2024"
+      searchQueries: ["Adele Hello", "The Weeknd Blinding Lights", "Billie Eilish Bad Guy", "Dua Lipa Levitating", "Harry Styles As It Was"]
     };
   }
 };
