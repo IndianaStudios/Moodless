@@ -2,16 +2,20 @@
 import React, { useState } from 'react';
 import { authService, User } from '../services/authService';
 import { UserCircle, Lock, ArrowRight, Sparkles, Loader2, AlertCircle, Mail } from 'lucide-react';
+import LegalView from './LegalView';
 
 interface AuthViewProps {
   onAuthSuccess: (user: User) => void;
+  onBack?: () => void;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [legalPage, setLegalPage] = useState<'privacy' | 'terms' | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +34,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
       if (!trimmedEmail) validationErrors.push('Introduce tu correo electrónico.');
       if (!password) validationErrors.push('Introduce tu contraseña.');
     } else {
+      if (!agreedToTerms) {
+        validationErrors.push('Debes consentir la Política de Privacidad para crear tu cuenta.');
+      }
+
       if (trimmedName.length < 3) {
         validationErrors.push('El nombre debe tener al menos 3 letras.');
       }
@@ -122,10 +130,23 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  if (legalPage) {
+    return <LegalView type={legalPage} onBack={() => setLegalPage(null)} />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
+
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="absolute top-8 left-8 p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors group z-50 animate-in fade-in"
+        >
+          <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+        </button>
+      )}
 
       <div className="z-10 w-full max-w-md px-4">
         <header className="text-center mb-10">
@@ -180,6 +201,28 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
             />
           </div>
+
+          {!isLogin && (
+            <div className="flex items-start gap-3 px-1 mt-2 text-left animate-in fade-in duration-300 group">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                disabled={loading}
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 cursor-pointer accent-purple-500 transition-all"
+              />
+              <label htmlFor="terms" className="text-[11px] text-slate-400 leading-relaxed cursor-pointer select-none">
+                Consiento explícitamente el tratamiento de mis estados emocionales y acepto la <span 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('privacy'); }}
+                  className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
+                >Política de Privacidad</span> y <span 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('terms'); }}
+                  className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
+                >Términos del Servicio</span> de acuerdo al RGPD.
+              </label>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 animate-shake text-left backdrop-blur-sm">

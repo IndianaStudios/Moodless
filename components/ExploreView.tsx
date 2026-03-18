@@ -23,6 +23,7 @@ import {
   Link2,
   PlayCircle
 } from 'lucide-react';
+import MoodCanvasGame from './MoodCanvasGame';
 
 interface ExploreViewProps {
   lastEntry?: MoodEntry;
@@ -40,13 +41,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const breathNodeRef = useRef<GainNode | null>(null);
-
-  const [painterDots, setPainterDots] = useState<{ id: number, x: number, y: number, color: string }[]>([]);
-  const [bubbles, setBubbles] = useState<{ id: number, x: number, y: number, size: number, opacity: number }[]>([]);
   const [vibeEmojis, setVibeEmojis] = useState<{ id: number, x: number, delay: number, duration: number }[]>([]);
-  const gameIntervalRef = useRef<number | null>(null);
 
   const currentMood = lastEntry?.category || MoodCategory.NEUTRAL;
   const moodColor = EMOTIONAL_PALETTE.find(p => p.category === currentMood)?.hex || '#ffffff';
@@ -63,109 +58,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
     setTimeout(() => {
       setVibeEmojis(prev => prev.filter(e => !newEmojis.find(n => n.id === e.id)));
     }, 3000);
-  };
-
-  const initAudio = () => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
-  };
-
-  const playPopSound = () => {
-    if (isMuted) return;
-    const ctx = initAudio();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, now);
-    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(now + 0.1);
-  };
-
-  const playPaintSound = () => {
-    if (isMuted) return;
-    const ctx = initAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    const freq = 180 + Math.random() * 200;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
-  };
-
-  const startBreathAudio = () => {
-    if (isMuted) return;
-    const ctx = initAudio();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    const bufferSize = ctx.sampleRate * 2;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    noise.loop = true;
-    filter.type = 'lowpass';
-    gain.gain.value = 0;
-    breathNodeRef.current = gain;
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    noise.start();
-    const animate = () => {
-      if (!breathNodeRef.current) return;
-      const t = ctx.currentTime;
-      const v = (Math.sin(t * 1.5) + 1) / 2;
-      gain.gain.setTargetAtTime(0.05 + v * 0.1, t, 0.1);
-      filter.frequency.setTargetAtTime(300 + v * 800, t, 0.1);
-      requestAnimationFrame(animate);
-    };
-    animate();
-  };
-
-  const stopBreathAudio = () => {
-    if (breathNodeRef.current) {
-      try {
-        breathNodeRef.current.disconnect();
-      } catch (e) { /* ignore */ }
-      breathNodeRef.current = null;
-    }
-    // Suspender el AudioContext para cortar todo el audio
-    if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
-      audioCtxRef.current.suspend();
-    }
-  };
-
-  const handlePainterClick = (e: React.MouseEvent | React.TouchEvent) => {
-    if (gameConfig?.type !== 'PAINTER') return;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    let clientX, clientY;
-    if ('touches' in e) {
-      clientX = (e as React.TouchEvent).touches[0].clientX;
-      clientY = (e as React.TouchEvent).touches[0].clientY;
-    } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
-    }
-    const x = ((clientX - rect.left) / rect.width) * 100;
-    const y = ((clientY - rect.top) / rect.height) * 100;
-    playPaintSound();
-    setPainterDots(prev => [...prev.slice(-15), { id: Date.now(), x, y, color: moodColor }]);
   };
 
   const loadData = useCallback(async (force: boolean = false) => {
@@ -207,29 +99,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
   }, [lastEntry, currentMood, moodColor]);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  useEffect(() => {
-    if (activeGame) {
-      initAudio();
-      if (gameConfig?.type === 'POP') {
-        gameIntervalRef.current = window.setInterval(() => {
-          setBubbles(prev => [...prev.slice(-10), { id: Date.now(), x: Math.random() * 80 + 10, y: Math.random() * 80 + 10, size: Math.random() * 50 + 50, opacity: 0.3 }]);
-        }, 1200);
-      } else if (gameConfig?.type === 'BREATH') {
-        startBreathAudio();
-      }
-    } else {
-      if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
-      setBubbles([]);
-      stopBreathAudio();
-    }
-    return () => { if (gameIntervalRef.current) clearInterval(gameIntervalRef.current); stopBreathAudio(); };
-  }, [activeGame, gameConfig?.type, isMuted]);
-
-  const popBubble = (id: number) => {
-    playPopSound();
-    setBubbles(prev => prev.filter(b => b.id !== id));
-  };
 
   const reportData = lastEntry?.report ? (() => {
     try { return JSON.parse(lastEntry.report); } catch { return { title: "Tu Aura", explanation: lastEntry.report }; }
@@ -358,7 +227,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
           <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-1000 w-full">
             <h3 className="text-2xl font-black mb-3 text-white leading-tight">{gameConfig.title}</h3>
             <p className="text-sm text-slate-400 mb-8 italic px-4 font-medium">"{gameConfig.description}"</p>
-            <button onClick={() => { setActiveGame(true); initAudio(); }} className="w-full py-4 rounded-full bg-white text-slate-950 font-black shadow-xl active:scale-95 transition-all text-[10px] uppercase tracking-[0.2em]">
+            <button onClick={() => { setActiveGame(true); }} className="w-full py-4 rounded-full bg-white text-slate-950 font-black shadow-xl active:scale-95 transition-all text-[10px] uppercase tracking-[0.2em]">
               Sintonizar Ahora
             </button>
           </div>
@@ -449,36 +318,16 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
               <button onClick={() => setActiveGame(false)} className="p-4 bg-white/5 rounded-full text-slate-400"><X size={28} /></button>
             </div>
           </header>
-
-          <main className="flex-1 flex items-center justify-center p-10 relative overflow-hidden"
-            onMouseDown={handlePainterClick} onTouchStart={handlePainterClick}>
-            {gameConfig?.type === 'PAINTER' && (
-              <div className="w-full h-full glass rounded-[3.5rem] relative overflow-hidden">
-                {painterDots.map(dot => (
-                  <div key={dot.id} className="absolute rounded-full blur-3xl animate-pulse"
-                    style={{ left: `${dot.x}%`, top: `${dot.y}%`, width: '150px', height: '150px', backgroundColor: dot.color, transform: 'translate(-50%, -50%)', opacity: 0.5 }} />
-                ))}
-                <p className="absolute bottom-10 left-0 right-0 text-center text-[10px] font-black uppercase text-slate-700 tracking-widest">Toca el vacío</p>
+          <main className="flex-1 w-full h-full relative p-4">
+            <div className="w-full h-full glass rounded-[3.5rem] relative overflow-hidden">
+              <MoodCanvasGame config={gameConfig!} themeColor={moodColor} isMuted={isMuted} />
+              
+              <div className="absolute bottom-10 left-0 right-0 text-center pointer-events-none">
+                <p className="text-[12px] font-black uppercase text-slate-500 tracking-[0.3em] bg-black/30 inline-block px-4 py-2 rounded-full backdrop-blur-md">
+                  {gameConfig?.instruction}
+                </p>
               </div>
-            )}
-            {gameConfig?.type === 'POP' && (
-              <div className="w-full h-full glass rounded-[3.5rem] relative overflow-hidden bg-white/[0.01]">
-                {bubbles.map(bubble => (
-                  <button key={bubble.id} onClick={(e) => { e.stopPropagation(); popBubble(bubble.id); }}
-                    className="absolute rounded-full border border-white/20 active:scale-150 active:opacity-0 transition-all duration-700"
-                    style={{ left: `${bubble.x}%`, top: `${bubble.y}%`, width: bubble.size, height: bubble.size, backgroundColor: `${moodColor}11`, boxShadow: `inset 0 0 30px ${moodColor}22` }} />
-                ))}
-              </div>
-            )}
-            {gameConfig?.type === 'BREATH' && (
-              <div className="flex flex-col items-center gap-16">
-                <div className="w-64 h-64 rounded-full border-[10px] flex items-center justify-center animate-ping duration-[6000ms]" style={{ borderColor: `${moodColor}33` }}>
-                  <div className="w-40 h-40 rounded-full shadow-[0_0_100px_rgba(255,255,255,0.1)] transition-all duration-[4000ms] animate-pulse"
-                    style={{ backgroundColor: moodColor, boxShadow: `0 0 80px ${moodColor}66` }} />
-                </div>
-                <p className="text-white text-xl font-black tracking-[0.3em] animate-pulse uppercase">Fluye con la calma</p>
-              </div>
-            )}
+            </div>
           </main>
         </div>
       )}

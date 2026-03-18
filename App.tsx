@@ -7,6 +7,7 @@ import HistoryView from './components/HistoryView';
 import StatsView from './components/StatsView';
 import ExploreView from './components/ExploreView';
 import AuthView from './components/AuthView';
+import LandingView from './components/LandingView';
 import AccountView from './components/AccountView';
 import ProfileEditView from './components/ProfileEditView';
 import SupportView from './components/SupportView';
@@ -38,6 +39,23 @@ const App: React.FC = () => {
   const [entries, setEntries] = useState<MoodEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isFetchingData, setIsFetchingData] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches 
+        // @ts-ignore - support older iOS
+        || window.navigator.standalone 
+        || document.referrer.includes('android-app://');
+      
+      setIsStandalone(standalone);
+      if (standalone) {
+        setShowAuth(true); // Default to AuthView in PWA mode
+      }
+    };
+    checkStandalone();
+  }, []);
 
   // Sync state with URL Hash for back button support
   useEffect(() => {
@@ -137,7 +155,12 @@ const App: React.FC = () => {
   };
 
   if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="text-white animate-spin" size={40} /></div>;
-  if (!user) return <AuthView onAuthSuccess={setUser} />;
+  if (!user) {
+    if (showAuth || isStandalone) {
+      return <AuthView onAuthSuccess={setUser} onBack={isStandalone ? undefined : () => setShowAuth(false)} />;
+    }
+    return <LandingView onStart={() => setShowAuth(true)} />;
+  }
 
   const lastEntry = entries[entries.length - 1];
   const isAdmin = user && user.email && ADMIN_EMAILS.includes(user.email);

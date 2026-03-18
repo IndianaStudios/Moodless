@@ -1,6 +1,6 @@
 import { MoodEntry, MoodCategory } from "../types";
 
-export type GameType = 'PAINTER' | 'BREATH' | 'POP' | 'ORDER' | 'MIRROR';
+export type GameType = 'STARDUST' | 'SHATTER' | 'RIPPLES' | 'BREATH_JOURNEY';
 
 export interface GameConfig {
   type: GameType;
@@ -9,7 +9,7 @@ export interface GameConfig {
   instruction: string;
   themeColor: string;
   intensity: number;
-  mantra: string;
+  mantra?: string;
 }
 
 export interface MusicRecommendation {
@@ -28,16 +28,21 @@ const cleanJsonResponse = (text: string) => {
 const getCachedData = (key: string) => {
   const cached = localStorage.getItem(key);
   if (!cached) return null;
-  try {
-    const { data, timestamp, entryId, ttl } = JSON.parse(cached);
-    const expireTime = ttl || 86400000;
-    if (Date.now() - timestamp > expireTime) return null;
-    return { data, entryId };
-  } catch { return null; }
+  const parsed = JSON.parse(cached);
+  if (Date.now() - parsed.timestamp > parsed.expiresIn) {
+    localStorage.removeItem(key);
+    return null;
+  }
+  return parsed;
 };
 
-const setCachedData = (key: string, data: any, entryId: string, ttl: number = 86400000) => {
-  localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now(), entryId, ttl }));
+const setCachedData = (key: string, data: any, entryId: string, expiresIn = 86400000) => {
+  localStorage.setItem(key, JSON.stringify({
+    data,
+    entryId,
+    timestamp: Date.now(),
+    expiresIn
+  }));
 };
 
 
@@ -74,14 +79,24 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
   const cached = getCachedData(cacheKey);
   if (cached && cached.entryId === entryId) return cached.data;
 
-  let type: GameType = 'MIRROR';
-  if (valence <= 2) type = 'PAINTER';
-  else if (arousal >= 4) type = 'BREATH';
-  else if (valence >= 4 && arousal >= 3) type = 'POP';
-  else if (dominance <= 2) type = 'ORDER';
+  // Lógica de mapeo para los nuevos minijuegos
+  let type: GameType = 'RIPPLES'; // Default: calmo o neutral
+  if (arousal >= 4 && (valence <= 2 || mood === MoodCategory.ANXIETY)) {
+    type = 'BREATH_JOURNEY'; // Ansiedad o alta activación negativa extrema
+  } else if (arousal >= 3 && valence <= 2) {
+    type = 'SHATTER'; // Enojo o frustración
+  } else if (valence >= 4) {
+    type = 'STARDUST'; // Alegría o alta energía positiva
+  }
 
-  const prompt = `Crea un minijuego visual de meditación para alguien que se siente "${mood}". Tipo de juego: ${type}.
-  Responde JSON: {"title": "Título", "description": "Frase inspiradora", "mantra": "Instrucción de respiración"}`;
+  const prompt = `Crea la narrativa para un minijuego de meditación visual llamado ${type} para alguien que se siente "${mood}".
+  El juego ${type} va de: ${
+    type === 'STARDUST' ? 'Atrapar estrellas luminosas con el dedo para canalizar energía positiva.' :
+    type === 'SHATTER' ? 'Romper cristales tocándolos para liberar tensión y frustración.' :
+    type === 'RIPPLES' ? 'Crear ondas lentas en agua oscura para encontrar la calma.' :
+    'Respiración guiada (4-7-8) con un mandala que crece y decrece.'
+  }
+  Responde JSON: {"title": "Título evocador (ej: Polvo Cósmico, Cristales Tensión)", "description": "1 frase inspiradora de por qué hacer esto", "mantra": "Instrucción de respiración corta"}`;
 
   try {
     const text = await callAI(prompt, true);
@@ -89,16 +104,17 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
     const config: GameConfig = {
       type,
       title: data.title || "Espacio Aura",
-      description: data.description || "Conecta con tu pulso interior.",
-      instruction: "Fluye con el movimiento.",
+      description: data.description || "Conecta con tu interior.",
+      instruction: "Interactúa con el entorno.",
       themeColor: '#ffffff',
       intensity: arousal,
-      mantra: data.mantra || "Respira y libera."
+      mantra: data.mantra || "Respira y fluye."
     };
 
     setCachedData(cacheKey, config, entryId);
     return config;
   } catch (error) {
+    console.error("AI Generation Error:", error);
     return { type, title: "Aura Zen", description: "Encuentra el equilibrio en el movimiento.", instruction: "Toca suavemente.", themeColor: '#ffffff', intensity: arousal, mantra: "Inhala paz." };
   }
 };
