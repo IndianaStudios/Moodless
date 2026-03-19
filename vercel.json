@@ -5,6 +5,10 @@
             "destination": "/api/$1"
         },
         {
+            "source": "/google*.html",
+            "destination": "/google*.html"
+        },
+        {
             "source": "/((?!manifest\\.json|firebase-messaging-sw\\.js).*)",
             "destination": "/index.html"
         }
