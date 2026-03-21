@@ -101,7 +101,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Generar el enlace de reset con Firebase Admin
-        const resetLink = await adminApp.auth().generatePasswordResetLink(email);
+        const firebaseResetLink = await adminApp.auth().generatePasswordResetLink(email);
+
+        // Extraer el oobCode del enlace de Firebase y redirigir a nuestra app
+        const url = new URL(firebaseResetLink);
+        const oobCode = url.searchParams.get('oobCode');
+        const appResetLink = `https://moodless.vercel.app?mode=resetPassword&oobCode=${oobCode}`;
 
         // Enviar email personalizado
         const transporter = nodemailer.createTransport({
@@ -113,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             from: `"Moodless" <${GMAIL_USER}>`,
             to: email,
             subject: '🔑 Restablece tu contraseña — Moodless',
-            html: buildResetEmailHtml(userName, resetLink),
+            html: buildResetEmailHtml(userName, appResetLink),
         });
 
         return res.status(200).json({ success: true });

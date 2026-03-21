@@ -16,6 +16,7 @@ import { generateMoodReport } from './services/geminiService';
 import { notificationService } from './services/notificationService';
 import AdminView from './components/AdminView';
 import InstallPrompt from './components/InstallPrompt';
+import ResetPasswordView from './components/ResetPasswordView';
 import { db } from './services/firebase';
 import { collection, query, getDocs, setDoc, doc, orderBy } from 'firebase/firestore';
 
@@ -41,6 +42,17 @@ const App: React.FC = () => {
   const [isFetchingData, setIsFetchingData] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [resetOobCode, setResetOobCode] = useState<string | null>(null);
+
+  // Detectar parámetros de reset de contraseña en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+    if (mode === 'resetPassword' && oobCode) {
+      setResetOobCode(oobCode);
+    }
+  }, []);
 
   useEffect(() => {
     const checkStandalone = () => {
@@ -155,6 +167,17 @@ const App: React.FC = () => {
   };
 
   if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="text-white animate-spin" size={40} /></div>;
+
+  // Mostrar página de reset si viene con oobCode
+  if (resetOobCode) {
+    return <ResetPasswordView oobCode={resetOobCode} onDone={() => {
+      setResetOobCode(null);
+      // Limpiar los parámetros de la URL
+      window.history.replaceState({}, '', '/');
+      setShowAuth(true);
+    }} />;
+  }
+
   if (!user) {
     if (showAuth || isStandalone) {
       return <AuthView onAuthSuccess={setUser} onBack={isStandalone ? undefined : () => setShowAuth(false)} />;
