@@ -12,7 +12,6 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail,
   User as FirebaseUser
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -140,6 +139,11 @@ export const authService = {
   },
 
   resetPassword: async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    const res = await fetch('/api/send-reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error('RESET_FAILED');
   }
 };
