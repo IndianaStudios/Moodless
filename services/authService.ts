@@ -12,6 +12,7 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
   User as FirebaseUser
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -130,12 +131,15 @@ export const authService = {
       try {
         await deleteUser(user);
       } catch (error: any) {
-        // Firebase requiere login reciente para borrar cuenta
         if (error.code === 'auth/requires-recent-login') {
           throw new Error("REAUTH_NEEDED");
         }
         throw error;
       }
     }
+  },
+
+  resetPassword: async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
   }
 };

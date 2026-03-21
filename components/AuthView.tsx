@@ -16,6 +16,8 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
   const [password, setPassword] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [legalPage, setLegalPage] = useState<'privacy' | 'terms' | null>(null);
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -130,8 +132,116 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      setError('Introduce tu correo electrónico.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await authService.resetPassword(trimmedEmail);
+      setResetSent(true);
+    } catch (err: any) {
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/invalid-email':
+          setError('No encontramos ninguna cuenta con ese correo.');
+          break;
+        case 'auth/too-many-requests':
+          setError('Demasiados intentos. Espera unos minutos.');
+          break;
+        default:
+          setError('Ocurrió un error. Inténtalo de nuevo.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (legalPage) {
     return <LegalView type={legalPage} onBack={() => setLegalPage(null)} />;
+  }
+
+  if (forgotPassword) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
+
+        <div className="z-10 w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+              <Lock className="text-purple-400" size={28} />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight">Recuperar contraseña</h2>
+            <p className="text-sm text-slate-400 mt-2">Te enviaremos un enlace para restablecer tu contraseña.</p>
+          </div>
+
+          {resetSent ? (
+            <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6">
+                <p className="text-emerald-400 font-bold text-lg mb-2">✅ Email enviado</p>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Hemos enviado un enlace de recuperación a <strong className="text-white">{email.trim()}</strong>. 
+                  Revisa tu bandeja de entrada (y spam) y sigue las instrucciones.
+                </p>
+              </div>
+              <button
+                onClick={() => { setForgotPassword(false); setResetSent(false); setError(''); }}
+                className="w-full py-4 bg-white text-slate-950 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95"
+              >
+                Volver al inicio de sesión
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  autoComplete="email"
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 animate-shake text-left backdrop-blur-sm">
+                  <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-red-400 text-xs font-medium leading-tight">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 bg-white text-slate-950 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={20} /> : 'Enviar enlace'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setForgotPassword(false); setError(''); }}
+                className="w-full text-center text-sm text-slate-500 hover:text-white transition-colors py-2"
+              >
+                ← Volver al inicio de sesión
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -245,6 +355,16 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
             {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Entrar' : 'Crear Cuenta')}
             {!loading && <ArrowRight size={20} />}
           </button>
+
+          {isLogin && (
+            <button
+              type="button"
+              onClick={() => { setForgotPassword(true); setError(''); }}
+              className="w-full text-center text-xs text-slate-500 hover:text-purple-400 transition-colors py-1"
+            >
+              ¿Has olvidado tu contraseña?
+            </button>
+          )}
 
           <div className="relative flex py-2 items-center">
             <div className="flex-grow border-t border-slate-700"></div>
