@@ -104,7 +104,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
                     webpush: {
                         notification: {
                             icon: 'https://moodless.vercel.app/logo.jpg',
-                            badge: 'https://moodless.vercel.app/logo.jpg',
+                            badge: 'https://moodless.vercel.app/badge.png',
                         }
                     },
                     android: {

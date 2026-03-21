@@ -101,6 +101,7 @@ export const notificationService = {
           await registration.showNotification(title, {
             body,
             icon: '/logo.jpg',
+            badge: '/badge.png',
             tag: 'moodless-notif'
           });
           return;
@@ -114,6 +115,7 @@ export const notificationService = {
         new Notification(title, {
           body,
           icon: '/logo.jpg',
+          badge: '/badge.png',
           tag: 'moodless-notif'
         });
       } catch (fallbackError) {
