@@ -28,6 +28,13 @@ export const authService = {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
 
+      // Fire-and-forget: enviar email de bienvenida sin bloquear al usuario
+      fetch('/api/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: name, userEmail: email }),
+      }).catch(err => console.warn('Welcome email failed:', err));
+
       return {
         id: userCredential.user.uid,
         name: name,
