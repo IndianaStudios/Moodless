@@ -3,13 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Moodless</title>
+    
+    <!-- SEO Core -->
+    <title>Moodless — Diario Emocional Visual con IA | Registra tu Estado de Ánimo</title>
+    <meta name="description" content="Moodless es tu diario emocional visual. Registra tu estado de ánimo diario, recibe análisis psicológicos con IA y descubre patrones emocionales con juegos terapéuticos. Gratis y privado." />
+    <meta name="keywords" content="diario emocional, estado de ánimo, salud mental, bienestar emocional, psicólogo IA, diario visual, mood tracker, registro emocional, mindfulness, auto-reflexión" />
+    <meta name="author" content="Indiana Sainz Palacios" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://moodless.vercel.app/" />
+
+    <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://moodless.vercel.app/" />
+    <meta property="og:title" content="Moodless — Tu Diario Emocional Visual con IA" />
+    <meta property="og:description" content="Registra tu estado de ánimo, recibe análisis psicológicos con Inteligencia Artificial y descubre tus patrones emocionales. Gratis y 100% privado." />
+    <meta property="og:image" content="https://moodless.vercel.app/logo.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="Moodless" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Moodless — Diario Emocional Visual con IA" />
+    <meta name="twitter:description" content="Registra tu estado de ánimo y recibe insights psicológicos con IA. Gratis y privado." />
+    <meta name="twitter:image" content="https://moodless.vercel.app/logo.jpg" />
+
+    <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    
+    <meta name="apple-mobile-web-app-title" content="Moodless" />
+    <meta name="application-name" content="Moodless" />
+
     <link rel="icon" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+
+    <!-- Datos Estructurados JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Moodless",
+      "alternateName": "Moodless - Diario Visual",
+      "url": "https://moodless.vercel.app",
+      "description": "Diario emocional visual con análisis psicológico por Inteligencia Artificial. Registra tu estado de ánimo, descubre patrones y mejora tu bienestar mental.",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Indiana Sainz Palacios"
+      },
+      "inLanguage": "es"
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
