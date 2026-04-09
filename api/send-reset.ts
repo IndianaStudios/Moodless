@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
+import { escapeHtml } from './_utils/escapeHtml';
+import { checkRateLimit } from './_utils/rateLimit';
 
 function getFirebaseAdmin() {
     const existingApps = admin.apps ?? [];
@@ -37,7 +39,7 @@ function buildResetEmailHtml(userName: string, resetLink: string) {
       </div>
       <div style="padding: 36px 32px; color: #e2e8f0;">
         <p style="font-size: 16px; line-height: 1.7; margin-top: 0;">
-          Hola <strong>${userName}</strong>,
+          Hola <strong>${escapeHtml(userName)}</strong>,
         </p>
         <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
           Alguien (esperamos que tú) ha solicitado restablecer la contraseña de tu cuenta en Moodless. 
@@ -77,8 +79,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
         return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Rate limit por IP (no hay auth porque el usuario olvidó su contraseña)
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    const isAllowed = await checkRateLimit(`reset:${clientIp}`, 3, 3600);
+    if (!isAllowed) {
+        // Devolvemos 200 igualmente para no revelar que hemos bloqueado
+        return res.status(200).json({ success: true });
     }
 
     const { GMAIL_USER, GMAIL_PASS } = process.env;

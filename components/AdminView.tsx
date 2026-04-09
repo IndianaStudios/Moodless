@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import { collection, query, orderBy, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import {
     ChevronLeft,
@@ -92,9 +92,13 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
             const ticket = tickets.find(t => t.id === ticketId) || selectedTicket;
             if (ticket?.userEmail) {
                 try {
+                    const token = await auth.currentUser?.getIdToken();
                     await fetch('/api/send-reply', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                        },
                         body: JSON.stringify({
                             userEmail: ticket.userEmail,
                             userName: ticket.userName,

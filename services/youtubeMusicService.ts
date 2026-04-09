@@ -1,3 +1,4 @@
+import { auth } from './firebase';
 
 export interface YouTubeTrack {
   id: string;
@@ -7,20 +8,12 @@ export interface YouTubeTrack {
 }
 
 /**
- * CONFIGURACIÓN MAESTRA DE YOUTUBE DATA API V3
- * 1. Ve a https://console.cloud.google.com/
- * 2. Habilita "YouTube Data API v3"
- * 3. Crea una Credencial (API Key) y pégala aquí:
+ * SERVICIO DE MÚSICA (YOUTUBE PROXY)
+ * Ahora las búsquedas se realizan a través de nuestra propia API (/api/search-youtube)
+ * para mantener la API Key protegida en el servidor.
  */
-const YOUTUBE_API_KEY = 'AIzaSyDQh369SbmMGSGyLvE2ZrtWBzKKpHdmCrk';
-
 export const youtubeMusicService = {
   searchTracks: async (queries: string | string[]): Promise<YouTubeTrack[]> => {
-    if (!YOUTUBE_API_KEY) {
-      console.warn("YouTube Music: Es necesario configurar la clave API en services/youtubeMusicService.ts");
-      return [];
-    }
-
     // Compatibilidad: si recibe un solo string, convertirlo a array
     const queryList = Array.isArray(queries) ? queries : [queries];
 
@@ -28,10 +21,25 @@ export const youtubeMusicService = {
       const tracks: YouTubeTrack[] = [];
       const seenChannels = new Set<string>();
 
-      for (const query of queryList) {
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + " official audio")}&type=video&videoEmbeddable=true&maxResults=1&key=${YOUTUBE_API_KEY}`;
+      // Obtener token de usuario para autenticar la petición al proxy
+      const token = await auth.currentUser?.getIdToken();
 
-        const response = await fetch(url);
+      for (const query of queryList) {
+        // Llamada a nuestro proxy interno
+        const url = `/api/search-youtube?q=${encodeURIComponent(query)}`;
+
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          console.error(`Error en proxy YouTube (${response.status})`);
+          continue;
+        }
+
         const data = await response.json();
 
         if (data.items && data.items.length > 0) {
@@ -59,6 +67,7 @@ export const youtubeMusicService = {
   },
 
   isConfigured: () => {
-    return !!YOUTUBE_API_KEY;
+    // Siempre asumimos configurado porque el servidor maneja la clave
+    return true;
   }
 };

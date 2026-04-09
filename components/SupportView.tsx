@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../services/authService';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import {
   ChevronLeft,
@@ -71,9 +71,13 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
 
       // Enviar notificación por email al admin
       try {
+        const token = await auth.currentUser?.getIdToken();
         await fetch('/api/send-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             category,
             message: message.trim(),

@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import { verifyAuth } from './_utils/verifyAuth';
+import { escapeHtml } from './_utils/escapeHtml';
+import { checkRateLimit } from './_utils/rateLimit';
 
 const statusLabels: Record<string, { emoji: string; label: string; color: string }> = {
   in_progress: { emoji: '🔄', label: 'En Progreso', color: '#eab308' },
@@ -25,12 +28,12 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
 
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px; color: #a78bfa; font-size: 12px; font-weight: bold;">Mensaje del equipo:</p>
-          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${adminMessage}</p>
+          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${escapeHtml(adminMessage)}</p>
         </div>
 
         <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin: 20px 0; opacity: 0.6;">
           <p style="margin: 0 0 8px; color: #94a3b8; font-size: 11px;">Tu mensaje original:</p>
-          <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #94a3b8;">${originalMessage}</p>
+          <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">${escapeHtml(originalMessage)}</p>
         </div>
 
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
@@ -46,6 +49,18 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Verificar autenticación
+  const authUser = await verifyAuth(req);
+  if (!authUser || 'error' in authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Rate limit: 20 respuestas por hora por admin
+  const isAllowed = await checkRateLimit(`reply:${authUser.uid}`, 20, 3600);
+  if (!isAllowed) {
+    return res.status(429).json({ error: 'Demasiadas respuestas enviadas. Inténtalo más tarde.' });
   }
 
   const { userEmail, userName, ticketId, status, adminMessage, originalMessage } = req.body;

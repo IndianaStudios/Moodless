@@ -1,4 +1,5 @@
 import { MoodEntry, MoodCategory } from "../types";
+import { auth } from "./firebase";
 
 export type GameType = 'STARDUST' | 'SHATTER' | 'RIPPLES' | 'BREATH_JOURNEY';
 
@@ -47,10 +48,15 @@ const setCachedData = (key: string, data: any, entryId: string, expiresIn = 8640
 
 
 async function callAI(prompt: string, jsonMode: boolean = false): Promise<string> {
+  // Esperar a que Firebase inicialice la sesión antes de pedir el token en un recargo rápido
+  if (auth.authStateReady) await auth.authStateReady();
+  
+  const token = await auth.currentUser?.getIdToken();
   const response = await fetch('/api/generate-ai', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ prompt, jsonMode }),
   });

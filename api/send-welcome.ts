@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import { escapeHtml } from './_utils/escapeHtml';
+import { checkRateLimit } from './_utils/rateLimit';
 
 function buildWelcomeHtml(userName: string) {
   return `
@@ -10,7 +12,7 @@ function buildWelcomeHtml(userName: string) {
       </div>
       <div style="padding: 36px 32px; color: #e2e8f0;">
         <p style="font-size: 16px; line-height: 1.7; margin-top: 0;">
-          Hola <strong>${userName}</strong>,
+          Hola <strong>${escapeHtml(userName)}</strong>,
         </p>
         <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
           Nos alegra mucho que te hayas unido a Moodless. A partir de ahora tienes un espacio seguro y privado para explorar tus emociones día a día.
@@ -67,8 +69,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userName, userEmail } = req.body;
 
-  if (!userName || !userEmail) {
+  if (!userName || !userEmail || typeof userName !== 'string' || typeof userEmail !== 'string') {
     return res.status(400).json({ error: 'Missing userName or userEmail' });
+  }
+
+  // Rate limit por IP para evitar spam de emails de bienvenida
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const isAllowed = await checkRateLimit(`welcome:${clientIp}`, 3, 3600);
+  if (!isAllowed) {
+    return res.status(429).json({ error: 'Too many requests' });
   }
 
   const { GMAIL_USER, GMAIL_PASS } = process.env;

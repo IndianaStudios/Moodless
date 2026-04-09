@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import { verifyAuth } from './_utils/verifyAuth';
+import { escapeHtml } from './_utils/escapeHtml';
+import { checkRateLimit } from './_utils/rateLimit';
 
 const ADMIN_EMAIL = 'indianasainzpalacios@gmail.com';
 
@@ -25,8 +28,8 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
         </table>
         <hr style="border: 1px solid #1e293b; margin: 20px 0;" />
         <h3 style="color: #a78bfa; margin-bottom: 12px;">Mensaje:</h3>
-        <div style="background: #1e293b; padding: 20px; border-radius: 12px; border-left: 4px solid #7c3aed; line-height: 1.6;">
-          ${message}
+        <div style="background: #1e293b; padding: 20px; border-radius: 12px; border-left: 4px solid #7c3aed; line-height: 1.6; white-space: pre-wrap;">
+          ${escapeHtml(message)}
         </div>
       </div>
       <div style="padding: 16px 32px; text-align: center; border-top: 1px solid #1e293b;">
@@ -43,7 +46,7 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Hemos recibido tu mensaje correctamente</p>
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${userName || 'usuario'}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${escapeHtml(userName || 'usuario')}</strong>,</p>
         <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
           Tu ticket de soporte ha sido registrado y nuestro equipo lo revisará lo antes posible. 
           A continuación tienes un resumen:
@@ -55,7 +58,7 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
           </table>
           <hr style="border: 1px solid #334155; margin: 12px 0;" />
           <p style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Tu mensaje:</p>
-          <p style="margin: 0; line-height: 1.6; font-size: 14px;">${message}</p>
+          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${escapeHtml(message)}</p>
         </div>
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
           Si necesitas añadir más información, puedes enviar otro ticket desde la app. 
@@ -73,10 +76,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Verificar autenticación
+  const authUser = await verifyAuth(req);
+  if (!authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const { category, message, userEmail, userName, ticketId } = req.body;
 
-  if (!category || !message) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!category || typeof category !== 'string' || !message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid required fields' });
+  }
+
+  if (message.length > 5000) {
+    return res.status(400).json({ error: 'Message is too long (limit: 5000 characters)' });
+  }
+
+  // Aplicar Rate Limit: 5 peticiones por hora (3600 segundos) por usuario
+  const isAllowed = await checkRateLimit(`email:${authUser.uid}`, 5, 3600);
+  if (!isAllowed) {
+    return res.status(429).json({ error: 'Demasiados correos de soporte enviados. Vuelve a intentarlo más tarde.' });
   }
 
   const { GMAIL_USER, GMAIL_PASS } = process.env;

@@ -1,4 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAuth } from './_utils/verifyAuth';
+import { checkRateLimit } from './_utils/rateLimit';
 
 const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
@@ -103,11 +105,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Verificar autenticación
+    const user = await verifyAuth(req);
+    if (!user || 'error' in user) {
+        return res.status(401).json({ error: 'Unauthorized', details: (user as any)?.error });
+    }
+
     try {
         const { prompt, jsonMode } = req.body;
 
-        if (!prompt) {
-            return res.status(400).json({ error: 'Prompt is required' });
+        if (!prompt || typeof prompt !== 'string') {
+            return res.status(400).json({ error: 'Prompt is required and must be a string' });
+        }
+
+        if (prompt.length > 2000) {
+            return res.status(400).json({ error: 'Prompt is too long (limit: 2000 characters)' });
+        }
+
+        // Aplicar Rate Limit: 20 peticiones por hora (3600 segundos) por usuario
+        const isAllowed = await checkRateLimit(`ai:${user.uid}`, 20, 3600);
+        if (!isAllowed) {
+            return res.status(429).json({ error: 'Too Many Requests. Has superado tu límite de peticiones de IA por hora. Vuelve a intentarlo en un rato.' });
         }
 
         const origin = req.headers.origin || '';
