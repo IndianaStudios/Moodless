@@ -78,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Verificar autenticación
   const authUser = await verifyAuth(req);
-  if (!authUser) {
+  if (!authUser || 'error' in authUser) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

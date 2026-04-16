@@ -36,7 +36,8 @@ export const youtubeMusicService = {
         });
 
         if (!response.ok) {
-          console.error(`Error en proxy YouTube (${response.status})`);
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`Error en proxy YouTube (${response.status}): ${errorData.error || 'Unknown error'}`);
           continue;
         }
 

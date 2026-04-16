@@ -62,7 +62,8 @@ async function callAI(prompt: string, jsonMode: boolean = false): Promise<string
   });
 
   if (!response.ok) {
-    throw new Error(`AI Request failed with status ${response.status}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`AI Request failed with status ${response.status}: ${errorData.error || 'Unknown Error'}`);
   }
 
   const data = await response.json();

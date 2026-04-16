@@ -65,8 +65,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userEmail, userName, ticketId, status, adminMessage, originalMessage } = req.body;
 
-  if (!userEmail || !adminMessage || !status) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!userEmail || typeof userEmail !== 'string' || !adminMessage || typeof adminMessage !== 'string' || !status || typeof status !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid required fields' });
   }
 
   const { GMAIL_USER, GMAIL_PASS } = process.env;

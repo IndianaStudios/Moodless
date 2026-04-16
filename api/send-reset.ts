@@ -1,34 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 import { escapeHtml } from './_utils/escapeHtml';
 import { checkRateLimit } from './_utils/rateLimit';
-
-function getFirebaseAdmin() {
-    const existingApps = admin.apps ?? [];
-    if (existingApps.length > 0) return admin;
-
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-    if (!projectId || !clientEmail || !privateKey) {
-        throw new Error('Missing Firebase Admin env vars.');
-    }
-
-    if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-    }
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-        privateKey = privateKey.slice(1, -1);
-    }
-
-    admin.initializeApp({
-        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-    });
-
-    return admin;
-}
+import { getFirebaseAdmin } from './_utils/verifyAuth';
 
 function buildResetEmailHtml(userName: string, resetLink: string) {
     return `

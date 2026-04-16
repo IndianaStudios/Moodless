@@ -1,42 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
 import { verifySignature } from '@upstash/qstash/nextjs';
-
-function getFirebaseAdmin() {
-    const existingApps = admin.apps ?? [];
-    if (existingApps.length > 0) return admin;
-
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-    if (!projectId || !clientEmail || !privateKey) {
-        throw new Error(
-            `Missing Firebase env vars. ` +
-            `FIREBASE_PROJECT_ID: ${projectId ? 'SET' : 'MISSING'}, ` +
-            `FIREBASE_CLIENT_EMAIL: ${clientEmail ? 'SET' : 'MISSING'}, ` +
-            `FIREBASE_PRIVATE_KEY: ${privateKey ? 'SET (' + privateKey?.length + ' chars)' : 'MISSING'}`
-        );
-    }
-
-    if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-    }
-
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-        privateKey = privateKey.slice(1, -1);
-    }
-
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey,
-        }),
-    });
-
-    return admin;
-}
+import { getFirebaseAdmin } from '../_utils/verifyAuth';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
