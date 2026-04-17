@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
-import { escapeHtml } from './_utils/escapeHtml';
-import { checkRateLimit } from './_utils/rateLimit';
-import { getFirebaseAdmin } from './_utils/verifyAuth';
+import { escapeHtml } from './_utils/escapeHtml.js';
+import { checkRateLimit } from './_utils/rateLimit.js';
+import { getFirebaseAdmin } from './_utils/verifyAuth.js';
 
 function buildResetEmailHtml(userName: string, resetLink: string) {
     return `

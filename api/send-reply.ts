@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
-import { verifyAuth } from './_utils/verifyAuth';
-import { escapeHtml } from './_utils/escapeHtml';
-import { checkRateLimit } from './_utils/rateLimit';
+import { verifyAuth } from './_utils/verifyAuth.js';
+import { escapeHtml } from './_utils/escapeHtml.js';
+import { checkRateLimit } from './_utils/rateLimit.js';
 
 const statusLabels: Record<string, { emoji: string; label: string; color: string }> = {
   in_progress: { emoji: '🔄', label: 'En Progreso', color: '#eab308' },

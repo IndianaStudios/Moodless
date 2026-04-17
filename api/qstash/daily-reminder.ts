@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifySignature } from '@upstash/qstash/nextjs';
-import { getFirebaseAdmin } from '../_utils/verifyAuth';
+import { getFirebaseAdmin } from '../_utils/verifyAuth.js';
 
 async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {

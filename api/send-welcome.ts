@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
-import { escapeHtml } from './_utils/escapeHtml';
-import { checkRateLimit } from './_utils/rateLimit';
+import { escapeHtml } from './_utils/escapeHtml.js';
+import { checkRateLimit } from './_utils/rateLimit.js';
 
 function buildWelcomeHtml(userName: string) {
   return `

@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyAuth } from './_utils/verifyAuth';
-import { checkRateLimit } from './_utils/rateLimit';
+import { verifyAuth } from './_utils/verifyAuth.js';
+import { checkRateLimit } from './_utils/rateLimit.js';
 
 const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyAuth } from './_utils/verifyAuth';
-import { checkRateLimit } from './_utils/rateLimit';
+import { verifyAuth } from './_utils/verifyAuth.js';
+import { checkRateLimit } from './_utils/rateLimit.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
