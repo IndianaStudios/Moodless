@@ -12,6 +12,7 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   User as FirebaseUser
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -71,8 +72,20 @@ export const authService = {
         name: user.displayName || user.email?.split('@')[0] || 'Usuario',
         email: user.email || ''
       };
-    } catch (error) {
-      console.error("Google login error:", error);
+    } catch (error: any) {
+      console.error("Google login popup error, attempting redirect...", error);
+      // Fallback a redirect method si el navegador bloquea el popup o iframe (común en Brave)
+      if (
+        error.code === 'auth/internal-error' || 
+        error.code === 'auth/popup-closed-by-user' ||
+        error.code === 'auth/popup-blocked'
+      ) {
+        const provider = new GoogleAuthProvider();
+        await signInWithRedirect(auth, provider);
+        // Devuelve null porque signInWithRedirect recarga la página. 
+        // El onAuthStateChanged lo capturará a la vuelta.
+        return null;
+      }
       throw error;
     }
   },
