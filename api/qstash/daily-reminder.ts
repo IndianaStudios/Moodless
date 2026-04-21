@@ -1,12 +1,13 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifySignature } from '@upstash/qstash/nextjs';
+import { Receiver } from '@upstash/qstash';
 import { getFirebaseAdmin } from '../_utils/verifyAuth.js';
 
-async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+const receiver = new Receiver({
+    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
+    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
+});
 
+async function runReminderTask(req: VercelRequest, res: VercelResponse) {
     try {
         const adminApp = getFirebaseAdmin();
         const db = adminApp.firestore();
@@ -16,7 +17,7 @@ async function handler(req: VercelRequest, res: VercelResponse) {
         const today = new Date().toISOString().split('T')[0];
 
         let notificationsSent = 0;
-        let errors = 0;
+        let errorsCount = 0;
 
         for (const userDoc of usersSnapshot.docs) {
             const userData = userDoc.data();
@@ -24,13 +25,12 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
             const notificationsEnabled = userData.preferences?.notificationsEnabled;
             const fcmTokens = userData.fcmTokens as string[] | undefined;
-            const timeZone = userData.timeZone || 'UTC'; // Fallback a UTC si no tiene
+            const timeZone = userData.timeZone || 'UTC';
 
             if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
                 continue;
             }
 
-            // Comprobar la hora local en la zona horaria del usuario
             try {
                 const userTimeOptions: Intl.DateTimeFormatOptions = {
                     timeZone,
@@ -40,13 +40,11 @@ async function handler(req: VercelRequest, res: VercelResponse) {
                 const formatter = new Intl.DateTimeFormat('en-US', userTimeOptions);
                 const userHour = parseInt(formatter.format(new Date()), 10);
 
-                // Solo enviar si en LA HORA DEL USUARIO son las 14:xx o las 20:xx
                 if (userHour !== 14 && userHour !== 20) {
                     continue;
                 }
             } catch (tzError) {
                 console.warn(`Timezone inválida para usuario ${userId}: ${timeZone}`);
-                // Si la zona horaria falla por alguna razón, no enviamos por si acaso
                 continue;
             }
 
@@ -82,27 +80,53 @@ async function handler(req: VercelRequest, res: VercelResponse) {
 
                 notificationsSent += response.successCount;
                 if (response.failureCount > 0) {
-                    errors += response.failureCount;
+                    errorsCount += response.failureCount;
                 }
             } catch (sendError: any) {
-                errors++;
+                errorsCount++;
                 console.error(`Error sending to user ${userId}:`, sendError.message);
             }
         }
 
-        return res.status(200).json({ success: true, notificationsSent, errors });
+        return res.status(200).json({ success: true, notificationsSent, errors: errorsCount });
 
     } catch (error: any) {
-        console.error('QSTASH FATAL ERROR:', error.message);
+        console.error('QSTASH TASK ERROR:', error.message);
         return res.status(500).json({ error: error.message });
     }
 }
 
-// Importante: No debe exportarse config = { runtime: 'edge' }
-export const config = {
-  api: {
-    bodyParser: false, // Upstash nextjs/verifySignature lo requiere en false para poder leer el raw body en Next.js/Vercel Serverless
-  },
-};
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
 
-export default verifySignature(handler);
+    const signature = req.headers['upstash-signature'] as string;
+    if (!signature) {
+        return res.status(401).json({ error: 'Missing Upstash Signature' });
+    }
+
+    // En Vercel Node, el body ya suele venir parseado si es JSON.
+    // QStash verify espera el string original. 
+    // Si res.body es un objeto, lo re-serializamos (esto puede fallar si el espaciado original era distinto, 
+    // pero es la mejor aproximación si no tenemos acceso al raw body stream).
+    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+
+    try {
+        const url = `https://${req.headers.host}/api/qstash/daily-reminder`;
+        const isValid = await receiver.verify({
+            signature,
+            body: rawBody,
+            url,
+        });
+
+        if (!isValid) {
+            return res.status(401).json({ error: 'Invalid Upstash Signature' });
+        }
+
+        return await runReminderTask(req, res);
+    } catch (err: any) {
+        console.error('Verification failed:', err.message);
+        return res.status(500).json({ error: `Signature verification error: ${err.message}` });
+    }
+}
