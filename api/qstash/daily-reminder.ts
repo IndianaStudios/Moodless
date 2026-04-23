@@ -2,98 +2,87 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { Receiver } from '@upstash/qstash';
 import { getFirebaseAdmin } from '../_utils/verifyAuth.js';
 
-const receiver = new Receiver({
-    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
-    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
-});
+async function runReminderTask(res: VercelResponse) {
+    const adminApp = getFirebaseAdmin();
+    const db = adminApp.firestore();
+    const messaging = adminApp.messaging();
 
-async function runReminderTask(req: VercelRequest, res: VercelResponse) {
-    try {
-        const adminApp = getFirebaseAdmin();
-        const db = adminApp.firestore();
-        const messaging = adminApp.messaging();
+    const usersSnapshot = await db.collection('users').get();
+    const today = new Date().toISOString().split('T')[0];
 
-        const usersSnapshot = await db.collection('users').get();
-        const today = new Date().toISOString().split('T')[0];
+    let notificationsSent = 0;
+    let errorsCount = 0;
 
-        let notificationsSent = 0;
-        let errorsCount = 0;
+    for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const userId = userDoc.id;
 
-        for (const userDoc of usersSnapshot.docs) {
-            const userData = userDoc.data();
-            const userId = userDoc.id;
+        const notificationsEnabled = userData.preferences?.notificationsEnabled;
+        const fcmTokens = userData.fcmTokens as string[] | undefined;
+        const timeZone = userData.timeZone || 'UTC';
 
-            const notificationsEnabled = userData.preferences?.notificationsEnabled;
-            const fcmTokens = userData.fcmTokens as string[] | undefined;
-            const timeZone = userData.timeZone || 'UTC';
-
-            if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
-                continue;
-            }
-
-            try {
-                const userTimeOptions: Intl.DateTimeFormatOptions = {
-                    timeZone,
-                    hour: 'numeric',
-                    hour12: false
-                };
-                const formatter = new Intl.DateTimeFormat('en-US', userTimeOptions);
-                const userHour = parseInt(formatter.format(new Date()), 10);
-
-                if (userHour !== 14 && userHour !== 20) {
-                    continue;
-                }
-            } catch (tzError) {
-                console.warn(`Timezone inválida para usuario ${userId}: ${timeZone}`);
-                continue;
-            }
-
-            const entriesSnapshot = await db.collection(`users/${userId}/entries`)
-                .where('date', '==', today)
-                .limit(1)
-                .get();
-
-            if (!entriesSnapshot.empty) {
-                continue;
-            }
-
-            try {
-                const response = await messaging.sendEachForMulticast({
-                    notification: {
-                        title: 'Tu Diario Moodless te espera',
-                        body: 'Tómate un minuto para registrar cómo te sientes hoy. 🌈',
-                    },
-                    webpush: {
-                        notification: {
-                            icon: 'https://moodless.vercel.app/logo.jpg',
-                            badge: 'https://moodless.vercel.app/badge.png',
-                        }
-                    },
-                    android: {
-                        notification: {
-                            icon: 'https://moodless.vercel.app/logo.jpg',
-                            color: '#0f172a'
-                        }
-                    },
-                    tokens: fcmTokens,
-                });
-
-                notificationsSent += response.successCount;
-                if (response.failureCount > 0) {
-                    errorsCount += response.failureCount;
-                }
-            } catch (sendError: any) {
-                errorsCount++;
-                console.error(`Error sending to user ${userId}:`, sendError.message);
-            }
+        if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
+            continue;
         }
 
-        return res.status(200).json({ success: true, notificationsSent, errors: errorsCount });
+        try {
+            const userTimeOptions: Intl.DateTimeFormatOptions = {
+                timeZone,
+                hour: 'numeric',
+                hour12: false
+            };
+            const formatter = new Intl.DateTimeFormat('en-US', userTimeOptions);
+            const userHour = parseInt(formatter.format(new Date()), 10);
 
-    } catch (error: any) {
-        console.error('QSTASH TASK ERROR:', error.message);
-        return res.status(500).json({ error: error.message });
+            if (userHour !== 14 && userHour !== 20) {
+                continue;
+            }
+        } catch (tzError) {
+            console.warn(`Timezone inválida para usuario ${userId}: ${timeZone}`);
+            continue;
+        }
+
+        const entriesSnapshot = await db.collection(`users/${userId}/entries`)
+            .where('date', '==', today)
+            .limit(1)
+            .get();
+
+        if (!entriesSnapshot.empty) {
+            continue;
+        }
+
+        try {
+            const response = await messaging.sendEachForMulticast({
+                notification: {
+                    title: 'Tu Diario Moodless te espera',
+                    body: 'Tómate un minuto para registrar cómo te sientes hoy. 🌈',
+                },
+                webpush: {
+                    notification: {
+                        icon: 'https://moodless.vercel.app/logo.jpg',
+                        badge: 'https://moodless.vercel.app/badge.png',
+                    }
+                },
+                android: {
+                    notification: {
+                        icon: 'https://moodless.vercel.app/logo.jpg',
+                        color: '#0f172a'
+                    }
+                },
+                tokens: fcmTokens,
+            });
+
+            notificationsSent += response.successCount;
+            if (response.failureCount > 0) {
+                errorsCount += response.failureCount;
+            }
+        } catch (sendError: any) {
+            errorsCount++;
+            console.error(`Error sending to user ${userId}:`, sendError.message);
+        }
     }
+
+    return res.status(200).json({ success: true, notificationsSent, errors: errorsCount });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -101,32 +90,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // --- 1. Verificar que la petición viene de QStash ---
     const signature = req.headers['upstash-signature'] as string;
     if (!signature) {
+        console.error('daily-reminder: Missing upstash-signature header');
         return res.status(401).json({ error: 'Missing Upstash Signature' });
     }
 
-    // En Vercel Node, el body ya suele venir parseado si es JSON.
-    // QStash verify espera el string original. 
-    // Si res.body es un objeto, lo re-serializamos (esto puede fallar si el espaciado original era distinto, 
-    // pero es la mejor aproximación si no tenemos acceso al raw body stream).
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const currentKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+    const nextKey = process.env.QSTASH_NEXT_SIGNING_KEY;
 
+    if (!currentKey || !nextKey) {
+        console.error('daily-reminder: QSTASH_CURRENT_SIGNING_KEY or QSTASH_NEXT_SIGNING_KEY not set in env vars!');
+        return res.status(500).json({ error: 'Server misconfiguration: QStash signing keys missing' });
+    }
+
+    // --- 2. Preparar body para verificación ---
+    // QStash cron jobs suelen enviar body vacío. Vercel parsea el body automáticamente.
+    // El Receiver necesita el body como string exacto que QStash firmó.
+    let bodyForVerification = '';
+    if (req.body !== undefined && req.body !== null) {
+        bodyForVerification = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    // --- 3. Verificar firma ---
     try {
+        const receiver = new Receiver({ currentSigningKey: currentKey, nextSigningKey: nextKey });
         const url = `https://${req.headers.host}/api/qstash/daily-reminder`;
-        const isValid = await receiver.verify({
+
+        console.log(`daily-reminder: Verifying signature. URL=${url}, bodyLength=${bodyForVerification.length}`);
+
+        await receiver.verify({
             signature,
-            body: rawBody,
+            body: bodyForVerification,
             url,
         });
 
-        if (!isValid) {
-            return res.status(401).json({ error: 'Invalid Upstash Signature' });
-        }
+        console.log('daily-reminder: Signature verified OK. Running task...');
+    } catch (verifyErr: any) {
+        console.error('daily-reminder: Signature verification failed:', verifyErr.message);
+        return res.status(401).json({ error: 'Invalid QStash signature' });
+    }
 
-        return await runReminderTask(req, res);
-    } catch (err: any) {
-        console.error('Verification failed:', err.message);
-        return res.status(500).json({ error: `Signature verification error: ${err.message}` });
+    // --- 4. Ejecutar tarea ---
+    try {
+        return await runReminderTask(res);
+    } catch (taskErr: any) {
+        console.error('daily-reminder: Task execution failed:', taskErr.message);
+        return res.status(500).json({ error: taskErr.message });
     }
 }
