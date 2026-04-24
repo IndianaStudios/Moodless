@@ -214,18 +214,18 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                 >
                     <ChevronLeft size={20} />
                 </button>
-                <div>
+                <div className="w-full">
                     <h2 className="text-xl font-black text-white">Admin Dashboard</h2>
-                    <div className="flex gap-4 mt-1">
+                    <div className="bg-slate-900/80 p-1 rounded-2xl flex gap-1 mt-3 w-full">
                         <button 
                             onClick={() => setActiveSubTab('tickets')}
-                            className={`text-[9px] uppercase tracking-widest font-bold transition-colors ${activeSubTab === 'tickets' ? 'text-purple-400' : 'text-slate-600 hover:text-slate-400'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeSubTab === 'tickets' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                         >
                             Soporte
                         </button>
                         <button 
                             onClick={() => setActiveSubTab('newsletter')}
-                            className={`text-[9px] uppercase tracking-widest font-bold transition-colors ${activeSubTab === 'newsletter' ? 'text-purple-400' : 'text-slate-600 hover:text-slate-400'}`}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeSubTab === 'newsletter' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                         >
                             Newsletter
                         </button>
