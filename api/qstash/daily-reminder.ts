@@ -85,6 +85,25 @@ async function runReminderTask(res: VercelResponse) {
     return res.status(200).json({ success: true, notificationsSent, errors: errorsCount });
 }
 
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+async function getRawBody(req: VercelRequest): Promise<string> {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            resolve(body);
+        });
+        req.on('error', reject);
+    });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -105,12 +124,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Server misconfiguration: QStash signing keys missing' });
     }
 
-    // --- 2. Preparar body para verificación ---
-    // QStash cron jobs suelen enviar body vacío. Vercel parsea el body automáticamente.
-    // El Receiver necesita el body como string exacto que QStash firmó.
+    // --- 2. Leer body crudo para verificación exacta ---
     let bodyForVerification = '';
-    if (req.body !== undefined && req.body !== null) {
-        bodyForVerification = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    try {
+        bodyForVerification = await getRawBody(req);
+    } catch (e: any) {
+        console.error('daily-reminder: Error reading raw body', e.message);
+        return res.status(500).json({ error: 'Failed to read request body' });
     }
 
     // --- 3. Verificar firma ---

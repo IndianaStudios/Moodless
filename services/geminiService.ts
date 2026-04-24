@@ -1,5 +1,6 @@
 import { MoodEntry, MoodCategory } from "../types";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 export type GameType = 'STARDUST' | 'SHATTER' | 'RIPPLES' | 'BREATH_JOURNEY';
 
@@ -19,6 +20,14 @@ export interface MusicRecommendation {
   searchQueries: string[];
   searchQuery?: string; // Retrocompatibilidad con datos cacheados
   groundingSources?: any[];
+}
+
+export interface MoodPrediction {
+  predictedCategory: string;
+  confidence: number;
+  pattern: string;
+  probabilities: Record<string, number>;
+  tip: string;
 }
 
 const cleanJsonResponse = (text: string) => {
@@ -191,5 +200,89 @@ export const getVibeRecommendation = async (mood: MoodCategory): Promise<string>
     return text || "Confía en tu proceso interno.";
   } catch {
     return "Siente el ritmo de tu respiración.";
+  }
+};
+
+const WEEKDAYS_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+export const getMoodPrediction = async (entries: MoodEntry[], forceRefresh = false): Promise<MoodPrediction | null> => {
+  if (entries.length < 5 || !auth.currentUser) return null;
+
+  const userId = auth.currentUser.uid;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cacheKey = `mood_prediction_${todayStr}`;
+
+  if (!forceRefresh) {
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached.data;
+  }
+
+  // 1. Obtener predicción que se hizo para HOY (guardada ayer o antes)
+  let feedbackContext = "";
+  try {
+    const prevPredDoc = await getDoc(doc(db, 'users', userId, 'predictions', todayStr));
+    if (prevPredDoc.exists()) {
+      const prevPred = prevPredDoc.data() as MoodPrediction;
+      const todayEntry = entries.find(e => e.date === todayStr);
+      
+      if (todayEntry) {
+        const wasCorrect = prevPred.predictedCategory === todayEntry.category;
+        feedbackContext = `RETROALIMENTACIÓN: Para hoy habías predicho "${prevPred.predictedCategory}" (${prevPred.confidence}% confianza). 
+        La realidad fue "${todayEntry.category}". Resultado: ${wasCorrect ? 'ACIERTO' : 'ERROR'}. 
+        ${!wasCorrect ? 'Analiza por qué falló el patrón y ajusta tu lógica.' : 'El patrón se mantiene, sigue así.'}`;
+      }
+    }
+  } catch (e) {
+    console.warn("Error fetching feedback context", e);
+  }
+
+  // 2. Tomar los últimos registros para el historial
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const recent = sorted.slice(-20);
+
+  const historyLines = recent.map(e => {
+    const d = new Date(e.date + 'T12:00:00');
+    const weekday = WEEKDAYS_ES[d.getDay()];
+    return `${e.date}(${weekday}):${e.category},V${e.valence},A${e.arousal},D${e.dominance}`;
+  }).join('|');
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowDay = WEEKDAYS_ES[tomorrow.getDay()];
+
+  const prompt = `Analiza estos registros SAM y predice el estado de mañana (${tomorrowDay}).
+${feedbackContext}
+Historial Real: ${historyLines}
+Categorías: JOY,CALM,ANGER,SADNESS,ANXIETY,ENERGY,NEUTRAL.
+JSON: {"predictedCategory":"CATEGORIA","confidence":0-100, "pattern":"Patrón detectado en 1 frase", "probabilities":{"JOY":N,"CALM":N,"ANGER":N,"SADNESS":N,"ANXIETY":N,"ENERGY":N,"NEUTRAL":N}, "tip":"Consejo breve"}. 
+IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si existe.`;
+
+  try {
+    const text = await callAI(prompt, true);
+    const result: MoodPrediction = JSON.parse(cleanJsonResponse(text));
+
+    const validCategories = ['JOY', 'CALM', 'ANGER', 'SADNESS', 'ANXIETY', 'ENERGY', 'NEUTRAL'];
+    if (!validCategories.includes(result.predictedCategory)) {
+      result.predictedCategory = 'NEUTRAL';
+    }
+    result.confidence = Math.min(100, Math.max(0, result.confidence || 50));
+
+    // Normalización de seguridad
+    if (result.probabilities) {
+      const sum = Object.values(result.probabilities).reduce((a, b) => a + b, 0);
+      if (sum > 0 && sum <= 1.1) {
+        Object.keys(result.probabilities).forEach(k => result.probabilities[k] = Math.round(result.probabilities[k] * 100));
+      }
+    }
+
+    // 3. Guardar predicción para MAÑANA en Firestore para el feedback del futuro
+    await setDoc(doc(db, 'users', userId, 'predictions', tomorrowStr), result);
+
+    setCachedData(cacheKey, result, todayStr, 43200000); // 12h cache
+    return result;
+  } catch (error) {
+    console.error('Prediction AI Error:', error);
+    return null;
   }
 };

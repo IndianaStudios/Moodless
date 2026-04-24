@@ -2,8 +2,9 @@
 import React from 'react';
 import { MoodEntry } from '../types';
 import { EMOTIONAL_PALETTE, MOOD_ICONS } from '../constants';
+import { getMoodPrediction, MoodPrediction } from '../services/geminiService';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
-import { Calendar, Zap, FileText, TrendingUp, Sparkles, X } from 'lucide-react';
+import { Calendar, Zap, FileText, TrendingUp, Sparkles, X, RefreshCw, Lock, Eye } from 'lucide-react';
 
 interface StatsViewProps {
   entries: MoodEntry[];
@@ -17,7 +18,28 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
   }));
 
   const [zoomedMascot, setZoomedMascot] = React.useState<string | null>(null);
+  const [prediction, setPrediction] = React.useState<MoodPrediction | null>(null);
+  const [predictionLoading, setPredictionLoading] = React.useState(false);
+  const [predictionError, setPredictionError] = React.useState(false);
 
+  const fetchPrediction = React.useCallback(async (force = false) => {
+    if (entries.length < 5) return;
+    setPredictionLoading(true);
+    setPredictionError(false);
+    try {
+      const result = await getMoodPrediction(entries, force);
+      setPrediction(result);
+      if (!result) setPredictionError(true);
+    } catch {
+      setPredictionError(true);
+    } finally {
+      setPredictionLoading(false);
+    }
+  }, [entries]);
+
+  React.useEffect(() => {
+    fetchPrediction();
+  }, [fetchPrediction]);
 
   const lastEntry = [...entries].reverse().find(e => e);
   const Icon = lastEntry ? MOOD_ICONS.find(i => i.name === lastEntry.iconName)?.Icon : null;
@@ -227,6 +249,133 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
           <span className="text-lg mb-1">{aura.emoji}</span>
           <span className="text-lg font-black" style={{ color: aura.color }}>{aura.label}</span>
           <span className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Tu Aura</span>
+        </div>
+      </div>
+
+      {/* Prediction Card */}
+      <div className="glass rounded-[2.5rem] border-white/5 overflow-hidden mb-6 relative" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(45,212,191,0.08))' }}>
+        {/* Animated border glow */}
+        <div className="absolute inset-0 rounded-[2.5rem] pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(45,212,191,0.15))', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMaskComposite: 'xor', padding: '1px' }} />
+
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Eye size={12} className="text-purple-400" /> Predicción Mañana
+            </h3>
+            {entries.length >= 5 && (
+              <button
+                onClick={() => fetchPrediction(true)}
+                disabled={predictionLoading}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all active:scale-90 disabled:opacity-30"
+              >
+                <RefreshCw size={12} className={`text-slate-400 ${predictionLoading ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+          </div>
+
+          {entries.length < 5 ? (
+            /* Locked state */
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <Lock size={20} className="text-slate-600" />
+              </div>
+              <p className="text-sm font-bold text-slate-400 mb-1">Predicción bloqueada</p>
+              <p className="text-xs text-slate-600 max-w-[240px]">Registra al menos <span className="text-purple-400 font-bold">5 días</span> para desbloquear predicciones con IA</p>
+              <div className="flex gap-1 mt-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all ${i < entries.length ? 'bg-purple-400 scale-110' : 'bg-white/10'}`} />
+                ))}
+              </div>
+            </div>
+          ) : predictionLoading && !prediction ? (
+            /* Skeleton loading */
+            <div className="space-y-4 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-white/5" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-5 bg-white/5 rounded-xl w-3/4" />
+                  <div className="h-3 bg-white/5 rounded-xl w-1/2" />
+                </div>
+              </div>
+              <div className="h-3 bg-white/5 rounded-xl w-full" />
+              <div className="h-3 bg-white/5 rounded-xl w-5/6" />
+              <div className="space-y-2 pt-2">
+                {[1,2,3].map(i => <div key={i} className="h-2.5 bg-white/5 rounded-xl" />)}
+              </div>
+            </div>
+          ) : predictionError ? (
+            <div className="py-6 text-center">
+              <p className="text-slate-500 text-sm">No se pudo generar la predicción</p>
+              <button onClick={() => fetchPrediction(true)} className="text-purple-400 text-xs font-bold mt-2 hover:underline">Reintentar</button>
+            </div>
+          ) : prediction ? (
+            /* Prediction content */
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+              {(() => {
+                const predPalette = EMOTIONAL_PALETTE.find(p => p.category === prediction.predictedCategory);
+                const predColor = predPalette?.hex || '#94A3B8';
+                const predLabel = predPalette?.label || 'Neutral';
+                const predMascot = predPalette?.mascot || '/mascot_calm.png';
+                const circumference = 2 * Math.PI * 28;
+                const strokeDash = (prediction.confidence / 100) * circumference;
+
+                return (
+                  <>
+                    <div className="flex items-center gap-5 mb-5">
+                      {/* Radial confidence ring + mascot */}
+                      <div className="relative w-[72px] h-[72px] shrink-0">
+                        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 64 64">
+                          <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                          <circle cx="32" cy="32" r="28" fill="none" stroke={predColor} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${strokeDash} ${circumference}`} className="transition-all duration-1000" />
+                        </svg>
+                        <div className="absolute inset-[6px] rounded-full overflow-hidden bg-white/5">
+                          <img src={predMascot} alt={predLabel} className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-xl font-black" style={{ color: predColor }}>{predLabel}</span>
+                          <span className="text-[11px] font-bold text-slate-500">{prediction.confidence}% confianza</span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{prediction.pattern}</p>
+                      </div>
+                    </div>
+
+                    {/* Probability bars */}
+                    {prediction.probabilities && (
+                      <div className="space-y-1.5 mb-5">
+                        {EMOTIONAL_PALETTE.map(p => {
+                          const prob = prediction.probabilities[p.category] || 0;
+                          if (prob === 0) return null;
+                          return (
+                            <div key={p.category} className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-slate-500 w-16 text-right uppercase tracking-wider">{p.label}</span>
+                              <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-1000"
+                                  style={{ width: `${prob}%`, backgroundColor: p.hex, opacity: 0.8 }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-bold text-slate-600 w-8">{prob}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Tip */}
+                    {prediction.tip && (
+                      <div className="flex items-start gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/5">
+                        <Sparkles size={12} className="text-purple-400 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-slate-400 leading-relaxed">{prediction.tip}</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          ) : null}
         </div>
       </div>
 
