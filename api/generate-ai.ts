@@ -3,7 +3,7 @@ import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 
 const OPENROUTER_MODEL = 'openai/gpt-oss-120b:free';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 
 async function callGroq(prompt: string, jsonMode: boolean = false): Promise<string> {
     const apiKey = process.env.GROQ_API_KEY;
@@ -16,7 +16,7 @@ async function callGroq(prompt: string, jsonMode: boolean = false): Promise<stri
             { role: 'user', content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 300,
+        max_tokens: 2000,
     };
 
     if (jsonMode) {
@@ -55,7 +55,7 @@ async function callOpenRouter(prompt: string, jsonMode: boolean = false, origin:
             { role: 'user', content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 300,
+        max_tokens: 2000,
     };
 
     if (jsonMode) {
@@ -122,8 +122,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Prompt is too long (limit: 2000 characters)' });
         }
 
-        // Aplicar Rate Limit: 20 peticiones por hora (3600 segundos) por usuario
-        const isAllowed = await checkRateLimit(`ai:${user.uid}`, 20, 3600);
+        // Aplicar Rate Limit: 100 peticiones por hora (3600 segundos) por usuario
+        const isAllowed = await checkRateLimit(`ai:${user.uid}`, 100, 3600);
         if (!isAllowed) {
             return res.status(429).json({ error: 'Too Many Requests. Has superado tu límite de peticiones de IA por hora. Vuelve a intentarlo en un rato.' });
         }

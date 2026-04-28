@@ -28,9 +28,10 @@ interface AccountViewProps {
   onEditProfile?: () => void;
   onSupport?: () => void;
   onAdmin?: () => void;
+  appVersion: string;
 }
 
-const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin }) => {
+const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, appVersion }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -223,7 +224,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                 <div className="p-2 bg-slate-500/10 rounded-xl text-slate-400"><Zap size={18} /></div>
                 <span className="text-sm font-medium">Versión</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v1.0.3</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{appVersion}</span>
             </div>
           </div>
         </section>

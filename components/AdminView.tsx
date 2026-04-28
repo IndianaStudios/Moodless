@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../services/firebase';
-import { collection, query, orderBy, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, updateDoc, Timestamp, setDoc } from 'firebase/firestore';
 import {
     ChevronLeft,
     Search,
@@ -13,10 +13,10 @@ import {
     Bug,
     Lightbulb,
     HelpCircle,
-    MoreVertical,
     Mail,
+    Loader2,
     Send,
-    Loader2
+    Rocket
 } from 'lucide-react';
 
 interface Ticket {
@@ -44,13 +44,15 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     const [replySuccess, setReplySuccess] = useState(false);
     const [replyError, setReplyError] = useState('');
 
-    // Newsletter states
-    const [activeSubTab, setActiveSubTab] = useState<'tickets' | 'newsletter'>('tickets');
-    const [newsletterSubject, setNewsletterSubject] = useState('');
-    const [newsletterContent, setNewsletterContent] = useState('');
-    const [sendingNewsletter, setSendingNewsletter] = useState(false);
-    const [newsletterSuccess, setNewsletterSuccess] = useState(false);
-    const [newsletterError, setNewsletterError] = useState('');
+    const [activeSubTab, setActiveSubTab] = useState<'tickets' | 'changelog'>('tickets');
+    
+    // Changelog state
+    const [changelogVersion, setChangelogVersion] = useState('');
+    const [changelogTitle, setChangelogTitle] = useState('');
+    const [changelogContent, setChangelogContent] = useState('');
+    const [sendingChangelog, setSendingChangelog] = useState(false);
+    const [changelogSuccess, setChangelogSuccess] = useState(false);
+    const [changelogError, setChangelogError] = useState('');
 
     useEffect(() => {
         fetchTickets();
@@ -136,48 +138,50 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         }
     };
 
-    const handleSendNewsletter = async () => {
-        if (!newsletterSubject.trim() || !newsletterContent.trim()) {
-            setNewsletterError('El asunto y el contenido son obligatorios.');
+    const handleSendChangelog = async () => {
+        if (!changelogVersion.trim() || !changelogTitle.trim() || !changelogContent.trim()) {
+            setChangelogError('Todos los campos son obligatorios.');
             return;
         }
 
-        if (!window.confirm('¿Estás seguro de que quieres enviar esta newsletter a TODOS los usuarios registrados?')) {
+        if (!window.confirm('¿Estás seguro de publicar esta actualización y enviar notificación Push a todos los usuarios?')) {
             return;
         }
 
-        setSendingNewsletter(true);
-        setNewsletterError('');
-        setNewsletterSuccess(false);
+        setSendingChangelog(true);
+        setChangelogError('');
+        setChangelogSuccess(false);
 
         try {
             const token = await auth.currentUser?.getIdToken();
-            const response = await fetch('/api/send-newsletter', {
+            const response = await fetch('/api/send-changelog-push', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
-                    subject: newsletterSubject.trim(),
-                    content: newsletterContent.trim(),
+                    version: changelogVersion.trim(),
+                    title: changelogTitle.trim(),
+                    content: changelogContent.trim(),
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Error enviando newsletter');
+                throw new Error(data.error || 'Error publicando changelog');
             }
 
-            setNewsletterSuccess(true);
-            setNewsletterSubject('');
-            setNewsletterContent('');
+            setChangelogSuccess(true);
+            setChangelogVersion('');
+            setChangelogTitle('');
+            setChangelogContent('');
         } catch (error: any) {
-            console.error("Error sending newsletter:", error);
-            setNewsletterError(error.message || 'No se pudo enviar la newsletter.');
+            console.error("Error sending changelog:", error);
+            setChangelogError(error.message || 'No se pudo publicar la actualización.');
         } finally {
-            setSendingNewsletter(false);
+            setSendingChangelog(false);
         }
     };
 
@@ -224,10 +228,10 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                             Soporte
                         </button>
                         <button 
-                            onClick={() => setActiveSubTab('newsletter')}
-                            className={`flex-1 py-3 px-4 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeSubTab === 'newsletter' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                            onClick={() => setActiveSubTab('changelog')}
+                            className={`flex-1 py-3 px-4 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeSubTab === 'changelog' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                         >
-                            Newsletter
+                            Changelog
                         </button>
                     </div>
                 </div>
@@ -235,7 +239,6 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
             {/* Content */}
             <div className="flex-1 overflow-hidden flex flex-col">
-                {/* List or Newsletter Form */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                     {activeSubTab === 'tickets' ? (
                         <>
@@ -259,7 +262,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                                 ))}
                             </div>
 
-                            {/* Ticket List */}
+                            {/* Ticket List Area */}
                             <div className="flex-1 overflow-y-auto px-6 space-y-3 pb-20">
                                 {loading ? (
                                     <div className="text-center py-10 text-slate-500 text-xs">Cargando tickets...</div>
@@ -301,70 +304,82 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                             </div>
                         </>
                     ) : (
-                        /* Newsletter Form */
+                        /* Changelog Form */
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            <div className="bg-purple-500/10 border border-purple-500/20 rounded-[2rem] p-6">
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-[2rem] p-6">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="p-2 bg-purple-500/20 rounded-xl">
-                                        <Mail size={20} className="text-purple-400" />
+                                    <div className="p-2 bg-blue-500/20 rounded-xl">
+                                        <Rocket size={20} className="text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-black text-white">Enviar Newsletter</h3>
-                                        <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">Novedades de Moodless</p>
+                                        <h3 className="text-sm font-black text-white">Publicar Novedades</h3>
+                                        <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest">Changelog & Push</p>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-400 leading-relaxed">
-                                    Este mensaje se enviará a todos los usuarios registrados en la plataforma. Asegúrate de revisar bien el contenido antes de enviar.
+                                <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                                    Publica un nuevo changelog. Se guardará en la base de datos para mostrarse a los usuarios en la app, y se enviará una notificación Push a todos los usuarios con la app instalada.
                                 </p>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Asunto de la Newsletter</label>
-                                    <input 
-                                        type="text"
-                                        value={newsletterSubject}
-                                        onChange={(e) => setNewsletterSubject(e.target.value)}
-                                        placeholder="Ej: ¡Nuevas funciones de IA disponibles!"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-                                    />
+                                <div className="flex gap-4">
+                                    <div className="space-y-2 w-1/3">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Versión</label>
+                                        <input 
+                                            type="text"
+                                            value={changelogVersion}
+                                            onChange={(e) => setChangelogVersion(e.target.value)}
+                                            placeholder="v1.2.0"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 w-2/3">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Título corto</label>
+                                        <input 
+                                            type="text"
+                                            value={changelogTitle}
+                                            onChange={(e) => setChangelogTitle(e.target.value)}
+                                            placeholder="¡Nuevos minijuegos!"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Contenido del Mensaje</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Novedades (Texto simple)</label>
                                     <textarea 
-                                        value={newsletterContent}
-                                        onChange={(e) => setNewsletterContent(e.target.value)}
-                                        placeholder="Escribe las novedades aquí..."
-                                        className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all resize-none"
+                                        value={changelogContent}
+                                        onChange={(e) => setChangelogContent(e.target.value)}
+                                        placeholder="Escribe las novedades de esta versión..."
+                                        className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
                                     />
                                 </div>
 
-                                {newsletterError && (
+                                {changelogError && (
                                     <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 animate-in fade-in">
                                         <AlertCircle size={18} className="text-red-400 shrink-0" />
-                                        <p className="text-red-400 text-xs font-medium">{newsletterError}</p>
+                                        <p className="text-red-400 text-xs font-medium">{changelogError}</p>
                                     </div>
                                 )}
 
-                                {newsletterSuccess && (
+                                {changelogSuccess && (
                                     <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3 animate-in fade-in">
                                         <CheckCircle2 size={18} className="text-green-400 shrink-0" />
-                                        <p className="text-green-400 text-xs font-medium">Newsletter enviada con éxito a todos los usuarios.</p>
+                                        <p className="text-green-400 text-xs font-medium">Changelog publicado y notificaciones enviadas correctamente.</p>
                                     </div>
                                 )}
 
                                 <button 
-                                    onClick={handleSendNewsletter}
-                                    disabled={sendingNewsletter}
+                                    onClick={handleSendChangelog}
+                                    disabled={sendingChangelog}
                                     className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
-                                    {sendingNewsletter ? (
+                                    {sendingChangelog ? (
                                         <Loader2 size={18} className="animate-spin" />
                                     ) : (
                                         <Send size={18} />
                                     )}
-                                    {sendingNewsletter ? 'Enviando...' : 'Enviar Newsletter'}
+                                    {sendingChangelog ? 'Publicando...' : 'Publicar y Notificar'}
                                 </button>
                             </div>
                         </div>
@@ -436,7 +451,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
                                 {replyError && (
                                     <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
-                                        <AlertCircle size={14} className="text-red-400 shrink-0" />
+                                        <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
                                         <p className="text-red-400 text-xs font-medium">{replyError}</p>
                                     </div>
                                 )}
@@ -484,3 +499,4 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 };
 
 export default AdminView;
+;

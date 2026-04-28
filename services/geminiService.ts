@@ -286,3 +286,32 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
     return null;
   }
 };
+
+export const analyzeEmotionalContext = async (userInput: string): Promise<any> => {
+  const prompt = `Actúa como un experto en psicología y análisis de contexto para la app Moodless.
+  El usuario dice: "${userInput}"
+  
+  Debes:
+  1. Extraer un array de contextos (ej: ['trabajo', 'familia', 'estudio', 'amigos', 'pareja', 'salud', 'ocio', 'soledad', 'ejercicio', 'alimentación']).
+  2. Identificar la emoción predominante (ej: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo').
+  3. Identificar el nivel de energía percibido ('baja', 'media', 'alta').
+  4. Identificar la intensidad emocional (número del 1 al 10).
+  5. Responder en máximo 1-2 frases cortas y empáticas, demostrando comprensión y sugiriendo una posible relación causa-efecto si aplica. Evita el lenguaje de terapeuta genérico.
+  
+  Formato JSON estricto:
+  {
+    "contexto": string[],
+    "emocion": string,
+    "energia": "baja" | "media" | "alta",
+    "intensidad": number,
+    "respuesta": string
+  }`;
+
+  try {
+    const text = await callAI(prompt, true);
+    return JSON.parse(cleanJsonResponse(text));
+  } catch (error) {
+    console.error("Context Analysis Error:", error);
+    throw error;
+  }
+};

@@ -18,7 +18,11 @@ import AdminView from './components/AdminView';
 import InstallPrompt from './components/InstallPrompt';
 import ResetPasswordView from './components/ResetPasswordView';
 import { db } from './services/firebase';
-import { collection, query, getDocs, setDoc, doc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, setDoc, doc, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import ChangelogModal from './components/ChangelogModal';
+import ContextChat from './components/ContextChat';
+import DeepenPromptModal from './components/DeepenPromptModal';
+import { Sparkles } from 'lucide-react';
 
 enum Tab {
   LOG = 'LOG',
@@ -43,6 +47,11 @@ const App: React.FC = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [resetOobCode, setResetOobCode] = useState<string | null>(null);
+  const [latestChangelog, setLatestChangelog] = useState<any | null>(null);
+  const [showContextChat, setShowContextChat] = useState(false);
+  const [showDeepenPrompt, setShowDeepenPrompt] = useState(false);
+  const [contextLogs, setContextLogs] = useState<any[]>([]);
+  const [appVersion, setAppVersion] = useState('v1.0.3');
 
   // Detectar parámetros de reset de contraseña en la URL
   useEffect(() => {
@@ -130,7 +139,6 @@ const App: React.FC = () => {
             loadedEntries.push(doc.data() as MoodEntry);
           });
           setEntries(loadedEntries);
-
         } catch (e) {
           console.error("Error fetching Firestore data", e);
         } finally {
@@ -143,13 +151,76 @@ const App: React.FC = () => {
     fetchUserData();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user) {
+      setContextLogs([]);
+      return;
+    }
+
+    const contextRef = collection(db, 'users', user.id, 'emotional_context_logs');
+    const qContext = query(contextRef, orderBy('timestamp', 'desc'), limit(50));
+    
+    const unsubscribeContext = onSnapshot(qContext, (snapshot) => {
+      const loadedContext: any[] = [];
+      snapshot.forEach((doc) => {
+        loadedContext.push({ id: doc.id, ...doc.data() });
+      });
+      setContextLogs(loadedContext);
+    }, (error) => {
+      console.error("Context logs subscription error:", error);
+    });
+
+    return () => unsubscribeContext();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const checkChangelog = async () => {
+      if (!user) return;
+      try {
+        const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docSnap = snapshot.docs[0];
+          const data = docSnap.data();
+          if (data.version) setAppVersion(data.version);
+          const createdAt = data.createdAt?.toMillis() || Date.now();
+          const lastSeen = user.lastSeenChangelog || 0;
+          
+          if (createdAt > lastSeen) {
+            setLatestChangelog({
+              id: docSnap.id,
+              version: data.version,
+              title: data.title,
+              content: data.content,
+              timestamp: createdAt
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching changelog:", err);
+      }
+    };
+    checkChangelog();
+  }, [user]);
+
+  const handleCloseChangelog = async () => {
+    if (latestChangelog && user) {
+      await authService.markChangelogAsSeen(latestChangelog.timestamp);
+      setUser({ ...user, lastSeenChangelog: latestChangelog.timestamp });
+    }
+    setLatestChangelog(null);
+  };
+
   const handleSaveMood = async (newMood: Omit<MoodEntry, 'id' | 'date'>) => {
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
     const newId = crypto.randomUUID();
     const entry: MoodEntry = { ...newMood, id: newId, date: today };
     setEntries(prev => [...prev.filter(e => e.date !== today), entry]);
-    changeTab(Tab.STATS);
+    
+    // En lugar de ir a STATS directo, mostramos la pregunta de profundizar
+    setShowDeepenPrompt(true);
+    
     try {
       await setDoc(doc(db, 'users', user.id, 'entries', newId), entry);
       const report = await generateMoodReport(entry, entries);
@@ -203,17 +274,25 @@ const App: React.FC = () => {
         <div className="min-h-full flex flex-col max-w-5xl mx-auto w-full px-4 sm:px-8">
           {activeTab === Tab.LOG && (
             <div className="flex-1 flex flex-col">
-              <MoodCanvas onSave={handleSaveMood} alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} />
+              <MoodCanvas 
+                onSave={handleSaveMood} 
+                onOpenContextChat={() => setShowContextChat(true)}
+                alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} 
+              />
             </div>
           )}
           {activeTab === Tab.HISTORY && (
             <div className="flex-1 flex flex-col">
-              <HistoryView entries={entries} onNavigateToLog={() => changeTab(Tab.LOG)} />
+              <HistoryView 
+                entries={entries} 
+                onNavigateToLog={() => changeTab(Tab.LOG)} 
+                onOpenContextChat={() => setShowContextChat(true)}
+              />
             </div>
           )}
           {activeTab === Tab.STATS && (
             <div className="flex-1 flex flex-col">
-              <StatsView entries={entries} />
+              <StatsView entries={entries} contextLogs={contextLogs} />
             </div>
           )}
           {activeTab === Tab.EXPLORE && (
@@ -230,6 +309,7 @@ const App: React.FC = () => {
                 onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
                 onSupport={() => changeTab(Tab.SUPPORT)}
                 onAdmin={isAdmin ? () => changeTab(Tab.ADMIN) : undefined}
+                appVersion={appVersion}
               />
             </div>
           )}
@@ -262,6 +342,24 @@ const App: React.FC = () => {
         </div>
       )}
       <InstallPrompt />
+      {latestChangelog && (
+        <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />
+      )}
+      {showContextChat && user && (
+        <ContextChat userId={user.id} onClose={() => setShowContextChat(false)} />
+      )}
+      {showDeepenPrompt && (
+        <DeepenPromptModal 
+          onConfirm={() => {
+            setShowDeepenPrompt(false);
+            setShowContextChat(true);
+          }}
+          onSkip={() => {
+            setShowDeepenPrompt(false);
+            changeTab(Tab.STATS);
+          }}
+        />
+      )}
     </div>
   );
 };

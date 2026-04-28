@@ -8,9 +8,10 @@ import { Calendar, Zap, FileText, TrendingUp, Sparkles, X, RefreshCw, Lock, Eye 
 
 interface StatsViewProps {
   entries: MoodEntry[];
+  contextLogs?: any[];
 }
 
-const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
+const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
   const stats = EMOTIONAL_PALETTE.map(p => ({
     name: p.label,
     count: entries.filter(e => e.category === p.category).length,
@@ -122,8 +123,38 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
     };
   };
 
+  const getContextCorrelations = () => {
+    if (contextLogs.length === 0) return [];
+    
+    const contextMap: Record<string, { totalEnergy: number, count: number, moods: string[] }> = {};
+    
+    contextLogs.forEach(log => {
+      const energyValue = log.energia === 'alta' ? 10 : log.energia === 'media' ? 5 : 2;
+      const ctxs = Array.isArray(log.contexto) ? log.contexto : [log.contexto];
+      ctxs.forEach((ctx: string) => {
+        if (!ctx) return;
+        if (!contextMap[ctx]) {
+          contextMap[ctx] = { totalEnergy: 0, count: 0, moods: [] };
+        }
+        contextMap[ctx].totalEnergy += energyValue;
+        contextMap[ctx].count += 1;
+        contextMap[ctx].moods.push(log.emocion);
+      });
+    });
+    
+    return Object.entries(contextMap).map(([name, data]) => ({
+      name,
+      avgEnergy: data.totalEnergy / data.count,
+      count: data.count,
+      topMood: data.moods.sort((a,b) => 
+        data.moods.filter(v => v===a).length - data.moods.filter(v => v===b).length
+      ).pop()
+    })).sort((a,b) => b.count - a.count).slice(0, 5);
+  };
+
   const trend = calculateTrend();
   const aura = calculateAura();
+  const correlations = getContextCorrelations();
 
   const getReportData = (reportStr?: string) => {
     if (!reportStr) return null;
@@ -423,6 +454,68 @@ const StatsView: React.FC<StatsViewProps> = ({ entries }) => {
             <div className="flex items-center justify-center h-full w-full text-slate-700 text-[10px] uppercase font-black tracking-widest">Esperando datos...</div>
           )}
         </div>
+      </div>
+
+      {/* Context Correlations */}
+      <div className="glass p-6 rounded-[2.5rem] border-white/5 overflow-hidden mb-10">
+        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <Sparkles size={12} className="text-purple-400" /> Correlaciones de Contexto
+        </h3>
+        
+        {correlations.length > 0 ? (
+          <div className="space-y-4 animate-in fade-in duration-500">
+            {correlations.map((cor, i) => (
+              <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-sm font-black capitalize">{cor.name}</span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Frecuencia: {cor.count} veces</span>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2 justify-end">
+                    <span className="text-xs font-bold text-slate-300">{cor.topMood}</span>
+                    <div className={`w-2 h-2 rounded-full ${cor.avgEnergy > 7 ? 'bg-yellow-400' : cor.avgEnergy > 4 ? 'bg-blue-400' : 'bg-purple-400'}`} />
+                  </div>
+                  <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+                    Energía {cor.avgEnergy > 7 ? 'Alta' : cor.avgEnergy > 4 ? 'Media' : 'Baja'}
+                  </span>
+                </div>
+              </div>
+            ))}
+            <p className="mt-6 text-[10px] text-slate-600 italic text-center">
+              "Tu energía tiende a ser {correlations[0].avgEnergy > 7 ? 'alta' : 'más baja'} cuando el contexto es {correlations[0].name}."
+            </p>
+          </div>
+        ) : (
+          <div className="py-8 text-center animate-in fade-in duration-500">
+            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="text-slate-700" size={20} />
+            </div>
+            <p className="text-sm font-bold text-slate-500 mb-1">Faltan datos de contexto</p>
+            <p className="text-xs text-slate-600 max-w-[200px] mx-auto">
+              Sigue contándome más sobre tu día en el chat para que pueda detectar patrones.
+            </p>
+          </div>
+        )}
+
+        {/* Lista de registros recientes de contexto */}
+        {contextLogs.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-white/5">
+            <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Últimos registros analizados</h4>
+            <div className="space-y-3">
+              {contextLogs.slice(0, 3).map((log, i) => (
+                <div key={i} className="flex flex-col gap-1 p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                  <p className="text-[11px] text-slate-400 italic">"{log.userInput}"</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {log.contexto?.map((c: string) => (
+                      <span key={c} className="text-[8px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">{c}</span>
+                    ))}
+                    <span className="text-[8px] bg-white/5 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase">{log.emocion}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Image Zoom Modal */}

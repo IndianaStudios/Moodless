@@ -4,14 +4,15 @@ import { MoodEntry } from '../types';
 import { MOOD_ICONS, EMOTIONAL_PALETTE } from '../constants';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PlusCircle, X } from 'lucide-react';
+import { PlusCircle, X, Sparkles } from 'lucide-react';
 
 interface HistoryViewProps {
   entries: MoodEntry[];
   onNavigateToLog: () => void;
+  onOpenContextChat: () => void;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onOpenContextChat }) => {
   const today = new Date();
   const monthStart = startOfMonth(today);
   const monthEnd = endOfMonth(today);
@@ -22,9 +23,17 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog }) =
 
   return (
     <div className="px-6 pt-20 pb-40 flex-1 flex flex-col">
-      <header className="mb-6">
-        <h2 className="text-2xl font-bold capitalize">{format(today, 'MMMM yyyy', { locale: es })}</h2>
-        <p className="text-slate-400 text-sm">Tu mapa visual de emociones</p>
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold capitalize">{format(today, 'MMMM yyyy', { locale: es })}</h2>
+          <p className="text-slate-400 text-sm">Tu mapa visual de emociones</p>
+        </div>
+        <button 
+          onClick={onOpenContextChat}
+          className="p-3 bg-purple-600/20 border border-purple-500/30 rounded-2xl text-purple-300 hover:bg-purple-600/30 transition-all active:scale-95"
+        >
+          <Sparkles size={20} />
+        </button>
       </header>
 
       <div className="grid grid-cols-7 gap-2 mb-8 shrink-0 max-w-md mx-auto w-full">

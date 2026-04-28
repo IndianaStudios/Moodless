@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { EMOTIONAL_PALETTE } from '../constants';
 import { MoodCategory, MoodEntry } from '../types';
-import { Check, Edit2, Send, Smile, Zap, Maximize2 } from 'lucide-react';
+import { Check, Edit2, Send, Smile, Zap, Maximize2, Sparkles } from 'lucide-react';
 
 interface MoodCanvasProps {
   onSave: (entry: Omit<MoodEntry, 'id' | 'date'>) => void;
+  onOpenContextChat: () => void;
   alreadyLogged: boolean;
 }
 
@@ -63,7 +64,7 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
   return null;
 };
 
-const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
+const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alreadyLogged }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [valence, setValence] = useState(3);
   const [arousal, setArousal] = useState(3);
@@ -210,6 +211,14 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, alreadyLogged }) => {
         >
           <Send size={20} />
           GUARDAR MI VIBE
+        </button>
+
+        <button 
+          onClick={onOpenContextChat}
+          className="mt-4 py-4 bg-purple-600/20 border border-purple-500/30 rounded-3xl flex items-center justify-center gap-3 text-purple-300 font-bold text-sm hover:bg-purple-600/30 transition-all active:scale-95"
+        >
+          <Sparkles size={18} />
+          ¿Quieres contarme más sobre tu día?
         </button>
       </div>
     </div>

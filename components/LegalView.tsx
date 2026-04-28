@@ -58,33 +58,41 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <p>Informamos que la aplicación utiliza rutinas e interfaces de programación (APIs) algorítmicas que analizan automáticamente la tendencia de tus anotaciones de estados de ánimo. Este perfilado se emplea <strong>únicamente</strong> como herramienta de auto-reflexión in-app (generando breves insights generativos) y no produce efectos jurídicos, médicos, ni de mercadotecnia en tu contra.</p>
               
               <h2>5. Transferencias Internacionales a Terceros</h2>
-              <p>La base de datos en la nube que utilizamos está alojada en servidores de Google (Firebase) ubicados en <strong>Madrid, España (europe-southwest1)</strong>, cumpliendo con las pautas de residencia de datos europea. Sin embargo, para poder generar respuestas terapéuticas con tecnología de Inteligencia Artificial ("Psicólogo IA"), los textos efímeros de tus entradas diarias pueden viajar a servidores de nuestros proveedores <strong>Groq y OpenRouter</strong> ubicados fuera del Espacio Económico Europeo (EE.UU). Estas transferencias se realizan bajo el amparo del <strong>Marco de Privacidad de Datos UE‑EE.UU. (EU‑U.S. Data Privacy Framework)</strong> o, en su defecto, mediante la adhesión a <strong>Cláusulas Contractuales Tipo</strong> de la Comisión Europea, garantizando un nivel de protección equivalente al del RGPD.</p>
+              <p>La base de datos en la nube que utilizamos está alojada en servidores de Google (Firebase) ubicados en <strong>Madrid, España (europe-southwest1)</strong>, cumpliendo con las pautas de residencia de datos europea. Sin embargo, para poder generar respuestas terapéuticas y analizar tu contexto mediante Inteligencia Artificial ("Psicólogo IA" y "Chat de Contexto"), los textos efímeros de tus entradas diarias y chats pueden viajar a servidores de nuestros proveedores <strong>Groq y OpenRouter</strong> ubicados fuera del Espacio Económico Europeo (EE.UU). Estas transferencias se realizan bajo el amparo del <strong>Marco de Privacidad de Datos UE‑EE.UU. (EU‑U.S. Data Privacy Framework)</strong> o, en su defecto, mediante la adhesión a <strong>Cláusulas Contractuales Tipo</strong> de la Comisión Europea, garantizando un nivel de protección equivalente al del RGPD.</p>
               <p>Aparte del análisis efímero mediante Inteligencia artificial, <strong>nunca vendemos ni cedemos tu base de datos a anunciantes u organismos de analítica de marketing comercial.</strong></p>
 
               <h2>6. Procesadores y Subprocesadores</h2>
               <p>Utilizamos los siguientes proveedores externos como encargados de tratamiento estrictamente para las funciones descritas:</p>
               <ul>
                 <li><strong>Google Firebase:</strong> Hosting de infraestructura, autenticación y base de datos (Datos en reposo en región EU).</li>
-                <li><strong>Groq / OpenRouter:</strong> Procesamiento de inferencia de IA para el análisis emocional (Acceso efímero sin retención de datos).</li>
+                <li><strong>Groq / OpenRouter:</strong> Procesamiento de inferencia de IA para el análisis emocional y extracción de contexto (Acceso efímero sin retención de datos para entrenamiento).</li>
               </ul>
 
-              <h2>7. Seguridad de los Datos</h2>
+              <h2>7. Datos Recopilados en el Chat de Contexto</h2>
+              <p>Al utilizar el "Chat de Contexto Emocional", procesamos información adicional que nos facilitas voluntariamente, como:</p>
+              <ul>
+                <li><strong>Contexto:</strong> Situaciones sociales, laborales o personales (ej. "trabajo", "familia").</li>
+                <li><strong>Métricas de Energía e Intensidad:</strong> Datos derivados de tu discurso para generar estadísticas avanzadas.</li>
+              </ul>
+              <p>Estos datos se almacenan vinculados a tu cuenta con las mismas medidas de seguridad que tus registros SAM.</p>
+
+              <h2>8. Seguridad de los Datos</h2>
               <p>Empleamos medidas técnicas e infraestructurales avanzadas para proteger tu intimidad. Esto incluye el <strong>cifrado de datos en tránsito</strong> mediante TLS/SSL, el uso de autenticación segura de Firebase y la implementación de reglas de seguridad a nivel de base de datos que impiden que cualquier persona ajena a ti (incluyendo los administradores) pueda leer tus diarios.</p>
 
-              <h2>8. Tus Derechos como interesado</h2>
+              <h2>9. Tus Derechos como interesado</h2>
               <p>En cualquier momento puedes ejercer tus derechos de forma gratuita desde la misma aplicación (eliminando o actualizando tu usuario), o enviando un e-mail a la dirección del Responsable del Tratamiento. Tus derechos incluyen el <strong>acceso</strong> a tus datos, la <strong>rectificación</strong>, la <strong>supresión/olvido</strong>, la <strong>limitación de su tratamiento</strong> y la <strong>portabilidad</strong> de los mismos.</p>
               <p>Asimismo, tienes el <strong>derecho a retirar tu consentimiento en cualquier momento</strong>, sin que ello afecte a la licitud del tratamiento basado en el consentimiento previo a su retirada (Artículo 7.3 del RGPD).</p>
 
-              <h2>9. Política de Cookies y ePrivacy</h2>
+              <h2>10. Política de Cookies y ePrivacy</h2>
               <p>Cumpliendo con la Directiva ePrivacy, informamos que Moodless utiliza únicamente <strong>tecnologías técnicas y esenciales</strong> para el mantenimiento de tu sesión (vía Firebase). No empleamos cookies de rastreo, ni píxeles de seguimiento ni herramientas analíticas intrusivas de terceros que monitoricen tu comportamiento fuera de la aplicación.</p>
 
-              <h2>10. Menores de Edad</h2>
+              <h2>11. Menores de Edad</h2>
               <p>Nuestra aplicación está dirigida a personas de <strong>al menos 14 años de edad</strong>. El uso por parte de menores de 14 años está permitido <strong>únicamente bajo la supervisión y autorización previa</strong> de sus padres o tutores legales. Si detectamos registros de menores de 14 años que no cuenten con dicha autorización verificable, procederemos al borrado inmediato de su información para garantizar su protección.</p>
 
-              <h2>11. Origen de los Datos</h2>
+              <h2>12. Origen de los Datos</h2>
               <p>Todos los datos objeto de tratamiento son <strong>facilitados directamente por ti</strong>. Moodless no obtiene información sobre tu persona a través de fuentes externas, bases de datos de terceros ni integraciones ocultas (Artículo 14 del RGPD), garantizando que solo tú tienes el control de lo que compartes.</p>
 
-              <h2>12. Autoridad de Control</h2>
+              <h2>13. Autoridad de Control</h2>
               <p>Tienes en todo momento el derecho a presentar una reclamación sobre el tratamiento que realizamos de tus datos en la <strong>Agencia Española de Protección de Datos (AEPD)</strong> (www.aepd.es), autoridad competente y supervisora en la materia.</p>
             </>
           ) : (

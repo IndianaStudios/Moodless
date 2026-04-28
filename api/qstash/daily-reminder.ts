@@ -61,6 +61,9 @@ async function runReminderTask(res: VercelResponse) {
                     notification: {
                         icon: 'https://moodless.vercel.app/logo.jpg',
                         badge: 'https://moodless.vercel.app/badge.png',
+                    },
+                    fcmOptions: {
+                        link: 'https://moodless.vercel.app/'
                     }
                 },
                 android: {

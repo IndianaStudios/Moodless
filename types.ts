@@ -30,3 +30,16 @@ export interface ColorDefinition {
   secondary: string;
   mascot?: string;
 }
+
+export interface EmotionalContextEntry {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // Full ISO
+  contexto: string[];
+  emocion: string;
+  energia: 'baja' | 'media' | 'alta';
+  intensidad: number;
+  userInput: string;
+  aiResponse: string;
+}

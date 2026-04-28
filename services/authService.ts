@@ -15,19 +15,27 @@ import {
   signInWithRedirect,
   User as FirebaseUser
 } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 
 export interface User {
   id: string;
   name: string;
   email?: string;
+  lastSeenChangelog?: number;
 }
 
 export const authService = {
-  signup: async (name: string, email: string, pass: string): Promise<User | null> => {
+  signup: async (name: string, email: string, pass: string, newsletterOptIn: boolean = false): Promise<User | null> => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
+
+      // Guardar el email y la preferencia de newsletter (por defecto false)
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        email: email,
+        preferences: { newsletterOptIn }
+      }, { merge: true });
 
       // Fire-and-forget: enviar email de bienvenida sin bloquear al usuario
       fetch('/api/send-welcome', {
@@ -76,7 +84,7 @@ export const authService = {
       console.error("Google login popup error, attempting redirect...", error);
       // Fallback a redirect method si el navegador bloquea el popup o iframe (común en Brave)
       if (
-        error.code === 'auth/internal-error' || 
+        error.code === 'auth/internal-error' ||
         error.code === 'auth/popup-closed-by-user' ||
         error.code === 'auth/popup-blocked'
       ) {
@@ -131,6 +139,16 @@ export const authService = {
         callback(null);
       }
     });
+  },
+
+  markChangelogAsSeen: async (timestamp: number) => {
+    if (!auth.currentUser) return;
+    try {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      await updateDoc(userRef, { lastSeenChangelog: timestamp });
+    } catch (error) {
+      console.error("Error updating lastSeenChangelog:", error);
+    }
   },
 
   logout: async () => {

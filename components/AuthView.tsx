@@ -188,7 +188,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6">
                 <p className="text-emerald-400 font-bold text-lg mb-2">✅ Email enviado</p>
                 <p className="text-sm text-slate-400 leading-relaxed">
-                  Hemos enviado un enlace de recuperación a <strong className="text-white">{email.trim()}</strong>. 
+                  Hemos enviado un enlace de recuperación a <strong className="text-white">{email.trim()}</strong>.
                   Revisa tu bandeja de entrada (y spam) y sigue las instrucciones.
                 </p>
               </div>
@@ -250,7 +250,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
 
       {onBack && (
-        <button 
+        <button
           onClick={onBack}
           className="absolute top-8 left-8 p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors group z-50 animate-in fade-in"
         >
@@ -314,19 +314,19 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
 
           {!isLogin && (
             <div className="flex items-start gap-3 px-1 mt-2 text-left animate-in fade-in duration-300 group">
-              <input 
-                type="checkbox" 
-                id="terms" 
+              <input
+                type="checkbox"
+                id="terms"
                 disabled={loading}
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="mt-1 w-4 h-4 cursor-pointer accent-purple-500 transition-all"
               />
               <label htmlFor="terms" className="text-[11px] text-slate-400 leading-relaxed cursor-pointer select-none">
-                Consiento explícitamente el tratamiento de mis estados emocionales y acepto la <span 
+                Consiento explícitamente el tratamiento de mis estados emocionales y acepto la <span
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('privacy'); }}
                   className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
-                >Política de Privacidad</span> y <span 
+                >Política de Privacidad</span> y <span
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('terms'); }}
                   className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
                 >Términos del Servicio</span> de acuerdo al RGPD.
