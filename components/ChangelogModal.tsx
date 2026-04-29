@@ -43,12 +43,12 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) =
           <X size={20} />
         </button>
 
-        <div className="relative pt-12 px-6 pb-6 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/30 mb-6 shadow-lg shadow-blue-500/20">
+        <div className="relative pt-12 px-6 pb-4 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/30 mb-3 shadow-lg shadow-blue-500/20 flex items-center justify-center">
             <PartyPopper className="text-blue-400" size={32} />
           </div>
           
-          <div className="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
             VERSIÓN {changelog.version}
           </div>
           

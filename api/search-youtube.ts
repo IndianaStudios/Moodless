@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import admin from 'firebase-admin';
 import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { getFirebaseAdmin } from './_utils/verifyAuth.js';
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await cacheRef.set({
         query: q.toLowerCase().trim(),
         result: data,
-        timestamp: adminApp.firestore.FieldValue.serverTimestamp()
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
     } catch (cacheWriteError) {
       console.error('Cache write error:', cacheWriteError);
