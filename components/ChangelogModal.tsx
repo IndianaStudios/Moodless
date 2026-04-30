@@ -25,18 +25,18 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) =
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop con blur */}
-      <div 
+      <div
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       />
-      
+
       {/* Modal Container */}
       <div className="relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
-        
+
         {/* Decoración Superior */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
-        
-        <button 
+        <div className="absolute top-0 left-0 right-0 h-[10rem] bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
+
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-white/5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10"
         >
@@ -47,11 +47,11 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) =
           <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/30 mb-3 shadow-lg shadow-blue-500/20 flex items-center justify-center">
             <PartyPopper className="text-blue-400" size={32} />
           </div>
-          
-          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+
+          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">
             VERSIÓN {changelog.version}
           </div>
-          
+
           <h2 className="text-2xl font-black text-white mb-2 leading-tight">
             {changelog.title}
           </h2>
@@ -66,7 +66,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) =
         </div>
 
         <div className="px-6 pb-6">
-          <button 
+          <button
             onClick={onClose}
             className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5"
           >
