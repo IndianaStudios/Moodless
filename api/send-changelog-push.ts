@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import admin from 'firebase-admin';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
+import { isAdmin } from './_utils/isAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -11,6 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authUser = await verifyAuth(req);
   if (!authUser || 'error' in authUser) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Verificar que sea ADMIN (AUTHZ fix)
+  if (!isAdmin('email' in authUser ? authUser.email : undefined)) {
+    return res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
 
   const { title, content, version } = req.body;

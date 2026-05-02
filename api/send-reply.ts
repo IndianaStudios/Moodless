@@ -46,6 +46,8 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
     </div>`;
 }
 
+import { isAdmin } from './_utils/isAdmin.js';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -55,6 +57,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authUser = await verifyAuth(req);
   if (!authUser || 'error' in authUser) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Verificar que sea ADMIN (AUTHZ fix)
+  if (!isAdmin('email' in authUser ? authUser.email : undefined)) {
+    return res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
 
   // Rate limit: 20 respuestas por hora por admin
