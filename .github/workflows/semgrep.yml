@@ -17,8 +17,6 @@ jobs:
       - name: Run Semgrep
         uses: semgrep/semgrep-action@v1
         with:
-          config: >-
-            p/javascript
-            p/security-audit
-            p/secrets
-            p/react
+          publish: true
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
