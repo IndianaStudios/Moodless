@@ -1,0 +1,26 @@
+name: Semgrep Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  semgrep:
+    name: Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/github-action@v1
+        with:
+          config: >-
+            p/javascript
+            p/security-audit
+            p/secrets
+            p/react
+          # Esto hará que el workflow falle si encuentra vulnerabilidades de nivel 'error'
+          auditOn: push
