@@ -21,10 +21,10 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
         <table style="width: 100%; border-collapse: collapse;">
-          <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${categoryLabels[category] || category}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">Usuario</td><td style="padding: 8px 0;">${userName || 'Anónimo'}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">Email</td><td style="padding: 8px 0;">${userEmail || 'No proporcionado'}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${ticketId || 'N/A'}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${categoryLabels[category] || escapeHtml(category)}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">Usuario</td><td style="padding: 8px 0;">${escapeHtml(userName || 'Anónimo')}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">Email</td><td style="padding: 8px 0;">${escapeHtml(userEmail || 'No proporcionado')}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${escapeHtml(ticketId || 'N/A')}</td></tr>
         </table>
         <hr style="border: 1px solid #1e293b; margin: 20px 0;" />
         <h3 style="color: #a78bfa; margin-bottom: 12px;">Mensaje:</h3>
@@ -53,8 +53,8 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
         </p>
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${categoryLabels[category] || category}</td></tr>
-            <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${ticketId || 'N/A'}</td></tr>
+            <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${categoryLabels[category] || escapeHtml(category)}</td></tr>
+            <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${escapeHtml(ticketId || 'N/A')}</td></tr>
           </table>
           <hr style="border: 1px solid #334155; margin: 12px 0;" />
           <p style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Tu mensaje:</p>

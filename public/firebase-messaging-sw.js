@@ -2,13 +2,16 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
+// 1. Extraer la configuración de los parámetros de búsqueda (query params)
+const urlParams = new URLSearchParams(location.search);
+
 firebase.initializeApp({
-    apiKey: "AIzaSyD8RrlU7DWcpqh4RBWrlyevEPR7HTTqINM",
-    authDomain: "moodless-4you.firebaseapp.com",
-    projectId: "moodless-4you",
-    storageBucket: "moodless-4you.firebasestorage.app",
-    messagingSenderId: "85765511157",
-    appId: "1:85765511157:web:ec7be81b029b0b892df2bc"
+    apiKey: urlParams.get('apiKey'),
+    authDomain: urlParams.get('authDomain'),
+    projectId: urlParams.get('projectId'),
+    storageBucket: urlParams.get('storageBucket'),
+    messagingSenderId: urlParams.get('messagingSenderId'),
+    appId: urlParams.get('appId')
 });
 
 const messaging = firebase.messaging();

@@ -19,11 +19,11 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Tu ticket ha sido actualizado</p>
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${userName || 'usuario'}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${escapeHtml(userName || 'usuario')}</strong>,</p>
         
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
           <p style="margin: 0 0 8px; color: #94a3b8; font-size: 12px;">Estado actualizado a:</p>
-          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${statusInfo.color};">${statusInfo.emoji} ${statusInfo.label}</p>
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${statusInfo.color};">${statusInfo.emoji} ${escapeHtml(statusInfo.label)}</p>
         </div>
 
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
