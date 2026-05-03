@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       // Si el cache tiene menos de 30 días, lo usamos
       if (now - cacheTime < 30 * 24 * 60 * 60 * 1000) {
-        console.log('Using YouTube cached result for:', q);
+        console.log('Using YouTube cached result for:', q.replace(/[\n\r]/g, ''));
         return res.status(200).json(data?.result);
       }
     }
