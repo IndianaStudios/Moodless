@@ -14,6 +14,11 @@ const categoryLabels: Record<string, string> = {
 };
 
 function buildAdminEmailHtml(category: string, userName: string, userEmail: string, ticketId: string, message: string) {
+  const safeCategory = escapeHtml(category);
+  const safeUserName = escapeHtml(userName);
+  const safeUserEmail = escapeHtml(userEmail);
+  const safeTicketId = escapeHtml(ticketId);
+  const safeMessage = escapeHtml(message);
   return `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
       <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 32px; text-align: center;">
@@ -21,15 +26,15 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
         <table style="width: 100%; border-collapse: collapse;">
-          <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${category}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">Usuario</td><td style="padding: 8px 0;">${userName}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">Email</td><td style="padding: 8px 0;">${userEmail}</td></tr>
-          <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${ticketId}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${safeCategory}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">Usuario</td><td style="padding: 8px 0;">${safeUserName}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">Email</td><td style="padding: 8px 0;">${safeUserEmail}</td></tr>
+          <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${safeTicketId}</td></tr>
         </table>
         <hr style="border: 1px solid #1e293b; margin: 20px 0;" />
         <h3 style="color: #a78bfa; margin-bottom: 12px;">Mensaje:</h3>
         <div style="background: #1e293b; padding: 20px; border-radius: 12px; border-left: 4px solid #7c3aed; line-height: 1.6; white-space: pre-wrap;">
-          ${message}
+          ${safeMessage}
         </div>
       </div>
       <div style="padding: 16px 32px; text-align: center; border-top: 1px solid #1e293b;">
@@ -39,6 +44,10 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
 }
 
 function buildUserConfirmationHtml(userName: string, category: string, ticketId: string, message: string) {
+  const safeUserName = escapeHtml(userName);
+  const safeCategory = escapeHtml(category);
+  const safeTicketId = escapeHtml(ticketId);
+  const safeMessage = escapeHtml(message);
   return `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
       <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 32px; text-align: center;">
@@ -46,22 +55,22 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Hemos recibido tu mensaje correctamente</p>
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${userName}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${safeUserName}</strong>,</p>
         <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
-          Tu ticket de soporte ha sido registrado y nuestro equipo lo revisará lo antes posible. 
+          Tu ticket de soporte ha sido registrado y nuestro equipo lo revisará lo antes posible.
           A continuación tienes un resumen:
         </p>
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${category}</td></tr>
-            <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${ticketId}</td></tr>
+            <tr><td style="padding: 8px 0; color: #94a3b8; width: 120px;">Categoría</td><td style="padding: 8px 0; font-weight: bold;">${safeCategory}</td></tr>
+            <tr><td style="padding: 8px 0; color: #94a3b8;">ID Ticket</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${safeTicketId}</td></tr>
           </table>
           <hr style="border: 1px solid #334155; margin: 12px 0;" />
           <p style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Tu mensaje:</p>
-          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${message}</p>
+          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${safeMessage}</p>
         </div>
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
-          Si necesitas añadir más información, puedes enviar otro ticket desde la app. 
+          Si necesitas añadir más información, puedes enviar otro ticket desde la app.
           Te responderemos a este mismo correo si necesitamos más datos.
         </p>
       </div>
@@ -122,11 +131,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       to: ADMIN_EMAIL,
       subject: `🎫 Nuevo Ticket [${categoryLabels[category] || category}] - Moodless`,
       html: buildAdminEmailHtml(
-        categoryLabels[category] || escapeHtml(category),
-        escapeHtml(userName || 'Anónimo'),
-        escapeHtml(userEmail || 'No proporcionado'),
-        escapeHtml(ticketId || 'N/A'),
-        escapeHtml(message)
+        categoryLabels[category] || category,
+        userName || 'Anónimo',
+        userEmail || 'No proporcionado',
+        ticketId || 'N/A',
+        message
       ),
     });
 
@@ -138,10 +147,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           to: userEmail,
           subject: `✅ Tu ticket ha sido recibido — Moodless`,
           html: buildUserConfirmationHtml(
-            escapeHtml(userName || 'usuario'),
-            categoryLabels[category] || escapeHtml(category),
-            escapeHtml(ticketId || 'N/A'),
-            escapeHtml(message)
+            userName || 'usuario',
+            categoryLabels[category] || category,
+            ticketId || 'N/A',
+            message
           ),
         });
       } catch (userEmailError) {
