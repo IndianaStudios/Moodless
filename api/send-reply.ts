@@ -19,21 +19,21 @@ function buildReplyHtml(userName: string, ticketId: string, status: string, admi
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Tu ticket ha sido actualizado</p>
       </div>
       <div style="padding: 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${escapeHtml(userName || 'usuario')}</strong>,</p>
+        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${userName}</strong>,</p>
         
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
           <p style="margin: 0 0 8px; color: #94a3b8; font-size: 12px;">Estado actualizado a:</p>
-          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${statusInfo.color};">${statusInfo.emoji} ${escapeHtml(statusInfo.label)}</p>
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${statusInfo.color};">${statusInfo.emoji} ${statusInfo.label}</p>
         </div>
 
         <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px; color: #a78bfa; font-size: 12px; font-weight: bold;">Mensaje del equipo:</p>
-          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${escapeHtml(adminMessage)}</p>
+          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${adminMessage}</p>
         </div>
 
         <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin: 20px 0; opacity: 0.6;">
           <p style="margin: 0 0 8px; color: #94a3b8; font-size: 11px;">Tu mensaje original:</p>
-          <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">${escapeHtml(originalMessage)}</p>
+          <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">${originalMessage}</p>
         </div>
 
         <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
@@ -92,14 +92,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   const FROM_EMAIL = `"Moodless" <${GMAIL_USER}>`;
-  const statusInfo = statusLabels[status] || { emoji: '📋', label: status };
+  const statusInfo = statusLabels[status] || { emoji: '📋', label: status, color: '#94a3b8' };
 
   try {
     const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to: userEmail,
-      subject: `${statusInfo.emoji} Tu ticket ha sido ${statusInfo.label.toLowerCase()} — Moodless`,
-      html: buildReplyHtml(userName, ticketId, status, adminMessage, originalMessage || ''),
+      subject: `${statusInfo.emoji} Actualización de tu Ticket #${ticketId} — Moodless`,
+      html: buildReplyHtml(
+        escapeHtml(userName || 'usuario'),
+        escapeHtml(ticketId || 'N/A'),
+        status,
+        escapeHtml(adminMessage),
+        escapeHtml(originalMessage || '')
+      ),
     });
 
     return res.status(200).json({ success: true, id: info.messageId });
