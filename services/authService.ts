@@ -16,7 +16,7 @@ import {
   User as FirebaseUser
 } from "firebase/auth";
 import { auth, db } from "./firebase";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 
 export interface User {
   id: string;
@@ -128,12 +128,23 @@ export const authService = {
   },
 
   onAuthChange: (callback: (user: User | null) => void) => {
-    return onAuthStateChanged(auth, (firebaseUser) => {
+    return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        let lastSeenChangelog = 0;
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            lastSeenChangelog = userDoc.data().lastSeenChangelog || 0;
+          }
+        } catch (error) {
+          console.error("Error fetching user data from Firestore on auth change:", error);
+        }
+
         callback({
           id: firebaseUser.uid,
           name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-          email: firebaseUser.email || ''
+          email: firebaseUser.email || '',
+          lastSeenChangelog
         });
       } else {
         callback(null);
