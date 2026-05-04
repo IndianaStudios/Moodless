@@ -81,12 +81,12 @@ async function callAI(prompt: string, jsonMode: boolean = false): Promise<string
 
 export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[]): Promise<string> => {
   const prompt = `Analiza este estado emocional SAM: Valencia:${currentEntry.valence}, Activación:${currentEntry.arousal}, Dominancia:${currentEntry.dominance}. 
-  Responde en JSON: {"title": "Nombre poético de la vibra", "explanation": "Breve explicación psicológica de 2 frases"}.`;
+  Responde en JSON: {"title": "Nombre claro y directo del estado", "explanation": "Explicación breve en lenguaje natural y cotidiano (sin metáforas) de máximo 2 frases"}.`;
   try {
     const text = await callAI(prompt, true);
     return cleanJsonResponse(text);
   } catch {
-    return JSON.stringify({ title: "Estado Calibrado", explanation: "Tu energía actual se encuentra en un punto de equilibrio receptivo." });
+    return JSON.stringify({ title: "Estado Estable", explanation: "Tus niveles de energía y ánimo se encuentran en un punto de equilibrio tranquilo." });
   }
 };
 
@@ -288,10 +288,13 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
 };
 
 export const analyzeEmotionalContext = async (userInput: string, chatHistory: string = ''): Promise<any> => {
+  // Limitar historial para no exceder los 2000 caracteres de la API (dejamos margen para el sistema)
+  const limitedHistory = chatHistory.length > 1000 ? '...' + chatHistory.slice(-1000) : chatHistory;
+
   const prompt = `Actúa como un experto en psicología y análisis de contexto para la app Moodless.
   
-  Historial reciente (si lo hay):
-  ${chatHistory}
+  Historial reciente:
+  ${limitedHistory}
 
   El usuario dice ahora: "${userInput}"
   
