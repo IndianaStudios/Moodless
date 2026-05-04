@@ -287,13 +287,16 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
   }
 };
 
-export const analyzeEmotionalContext = async (userInput: string, chatHistory: string = ''): Promise<any> => {
-  // Limitar historial para no exceder los 2000 caracteres de la API (dejamos margen para el sistema)
-  const limitedHistory = chatHistory.length > 1000 ? '...' + chatHistory.slice(-1000) : chatHistory;
+export const analyzeEmotionalContext = async (userInput: string, chatHistory: string = '', pastContext: string = ''): Promise<any> => {
+  // Limitar historial para no exceder los límites máximos de la arquitectura (30k)
+  const limitedHistory = chatHistory.length > 25000 ? '...' + chatHistory.slice(-25000) : chatHistory;
 
   const prompt = `Actúa como un experto en psicología y análisis de contexto para la app Moodless.
   
-  Historial reciente:
+  MEMORIA DE DÍAS PASADOS (Resumen de lo que el usuario ha contado anteriormente):
+  ${pastContext || 'No hay registros anteriores.'}
+
+  Historial de la conversación actual:
   ${limitedHistory}
 
   El usuario dice ahora: "${userInput}"

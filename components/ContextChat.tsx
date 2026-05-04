@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Mic, Sparkles, Loader2, MessageCircle } from 'lucide-react';
 import { analyzeEmotionalContext } from '../services/geminiService';
 import { db } from '../services/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 interface Message {
   role: 'user' | 'ai';
@@ -18,9 +18,31 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: 'Hola, ¿qué ha pasado hoy? Cuéntame un poco para entender mejor cómo te sientes.' }
   ]);
-  const [input, setInput] = useState('');
+   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pastMemory, setPastMemory] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Cargar memoria de días anteriores al abrir el chat
+  useEffect(() => {
+    const fetchPastMemory = async () => {
+      try {
+        const q = query(
+          collection(db, 'users', userId, 'emotional_context_logs'),
+          orderBy('timestamp', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        const logs = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return `[${data.date}] ${data.contexto?.join(', ')}: ${data.userInput}`;
+        }).reverse();
+        setPastMemory(logs.join('\n'));
+      } catch (err) {
+        console.error("Error fetching past memory:", err);
+      }
+    };
+    fetchPastMemory();
+  }, [userId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -38,7 +60,7 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
 
     try {
       const historyStr = messages.slice(1).map(m => `${m.role === 'user' ? 'Usuario' : 'IA'}: ${m.text}`).join('\n');
-      const result = await analyzeEmotionalContext(userText, historyStr);
+      const result = await analyzeEmotionalContext(userText, historyStr, pastMemory);
       
       // Guardar en Firestore SOLO si la IA ya tiene claro el contexto
       if (!result.necesita_aclaracion) {

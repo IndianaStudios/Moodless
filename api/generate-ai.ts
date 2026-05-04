@@ -16,7 +16,7 @@ async function callGroq(prompt: string, jsonMode: boolean = false): Promise<stri
             { role: 'user', content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 2000,
+        max_tokens: 4000,
     };
 
     if (jsonMode) {
@@ -55,7 +55,7 @@ async function callOpenRouter(prompt: string, jsonMode: boolean = false, origin:
             { role: 'user', content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 2000,
+        max_tokens: 4000,
     };
 
     if (jsonMode) {
@@ -118,8 +118,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Prompt is required and must be a string' });
         }
 
-        if (prompt.length > 2000) {
-            return res.status(400).json({ error: 'Prompt is too long (limit: 2000 characters)' });
+        if (prompt.length > 30000) {
+            return res.status(400).json({ error: 'Prompt is too long (limit: 30000 characters)' });
         }
 
         // Aplicar Rate Limit: 100 peticiones por hora (3600 segundos) por usuario
