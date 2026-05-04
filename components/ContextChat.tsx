@@ -37,20 +37,23 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
     setLoading(true);
 
     try {
-      const result = await analyzeEmotionalContext(userText);
+      const historyStr = messages.slice(1).map(m => `${m.role === 'user' ? 'Usuario' : 'IA'}: ${m.text}`).join('\n');
+      const result = await analyzeEmotionalContext(userText, historyStr);
       
-      // Guardar en Firestore
-      const today = new Date().toISOString().split('T')[0];
-      await addDoc(collection(db, 'users', userId, 'emotional_context_logs'), {
-        date: today,
-        timestamp: serverTimestamp(),
-        contexto: result.contexto,
-        emocion: result.emocion,
-        energia: result.energia,
-        intensidad: result.intensidad,
-        userInput: userText,
-        aiResponse: result.respuesta
-      });
+      // Guardar en Firestore SOLO si la IA ya tiene claro el contexto
+      if (!result.necesita_aclaracion) {
+        const today = new Date().toISOString().split('T')[0];
+        await addDoc(collection(db, 'users', userId, 'emotional_context_logs'), {
+          date: today,
+          timestamp: serverTimestamp(),
+          contexto: result.contexto,
+          emocion: result.emocion,
+          energia: result.energia,
+          intensidad: result.intensidad,
+          userInput: userText,
+          aiResponse: result.respuesta
+        });
+      }
 
       setMessages(prev => [...prev, { role: 'ai', text: result.respuesta }]);
     } catch (error) {

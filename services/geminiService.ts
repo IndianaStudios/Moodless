@@ -287,16 +287,21 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
   }
 };
 
-export const analyzeEmotionalContext = async (userInput: string): Promise<any> => {
+export const analyzeEmotionalContext = async (userInput: string, chatHistory: string = ''): Promise<any> => {
   const prompt = `Actúa como un experto en psicología y análisis de contexto para la app Moodless.
-  El usuario dice: "${userInput}"
+  
+  Historial reciente (si lo hay):
+  ${chatHistory}
+
+  El usuario dice ahora: "${userInput}"
   
   Debes:
   1. Extraer un array de contextos (ej: ['trabajo', 'familia', 'estudio', 'amigos', 'pareja', 'salud', 'ocio', 'soledad', 'ejercicio', 'alimentación']).
-  2. Identificar la emoción predominante (ej: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo').
-  3. Identificar el nivel de energía percibido ('baja', 'media', 'alta').
-  4. Identificar la intensidad emocional (número del 1 al 10).
-  5. Responder en máximo 1-2 frases cortas y empáticas, demostrando comprensión y sugiriendo una posible relación causa-efecto si aplica. Evita el lenguaje de terapeuta genérico.
+  2. Si el contexto es AMBIGUO y no estás seguro de la relación (por ejemplo, habla de una persona pero no sabes si es su pareja o un amigo), DEBES pedir aclaración al usuario.
+  3. Identificar la emoción predominante (ej: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo').
+  4. Identificar el nivel de energía percibido ('baja', 'media', 'alta').
+  5. Identificar la intensidad emocional (número del 1 al 10).
+  6. Si "necesita_aclaracion" es true, tu "respuesta" debe ser la pregunta para aclarar la duda de forma natural. Si es false, responde en 1-2 frases cortas y empáticas sugiriendo una posible relación causa-efecto si aplica.
   
   Formato JSON estricto:
   {
@@ -304,7 +309,8 @@ export const analyzeEmotionalContext = async (userInput: string): Promise<any> =
     "emocion": string,
     "energia": "baja" | "media" | "alta",
     "intensidad": number,
-    "respuesta": string
+    "respuesta": string,
+    "necesita_aclaracion": boolean
   }`;
 
   try {
