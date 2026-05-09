@@ -129,7 +129,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
   }, []);
 
   return (
-    <div className="px-6 pt-24 pb-40 w-full flex-1 flex flex-col overflow-y-auto no-scrollbar">
+    <div className="px-6 pt-24 pb-40 w-full flex-1 flex flex-col overflow-y-auto no-scrollbar max-w-4xl mx-auto">
       <header className="mb-6">
         <h2 className="text-3xl font-black">Estado</h2>
         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Balance emocional vivo</p>
@@ -287,8 +287,8 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
         </div>
       </div>
 
-      {/* Charts */}
-      <div ref={containerRef} className="glass p-6 rounded-[2.5rem] border-white/5 overflow-hidden mb-10">
+      {/* Trends Chart */}
+      <div className="glass p-6 sm:p-10 rounded-[2.5rem] border-white/5 overflow-hidden mb-10 w-full">
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
           <TrendingUp size={12} /> Frecuencia Emocional
         </h3>

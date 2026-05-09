@@ -313,6 +313,36 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
 };
 
 export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
+  if (!auth.currentUser) return null;
+  const userId = auth.currentUser.uid;
+
+  // Simple hash function to detect if logs have changed
+  const hashString = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
+  };
+
+  const logHash = hashString(allLogs);
+  
+  // 1. Comprobar si ya existe en Firebase para este mismo historial (hash)
+  try {
+    const docRef = doc(db, 'users', userId, 'insights', 'latest');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const dbData = docSnap.data();
+      if (dbData.logHash === logHash) {
+        return dbData.insightsData;
+      }
+    }
+  } catch (error) {
+    console.error("Error reading insights from Firebase", error);
+  }
+
   const prompt = `Actúa como un analista de datos psicólogo. Analiza el siguiente historial de registros emocionales del usuario:
   
   ${allLogs}
@@ -326,12 +356,25 @@ export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
       { "title": "Título corto", "description": "Descripción del patrón detectado", "confidence": number (1-100) }
     ],
     "summary": "Resumen general de 1 frase sobre su estado actual",
-    "cloudContexts": string[] (Las 10 palabras/contextos más repetidos)
+    "cloudContexts": ["Temática 1", "Temática 2"] // Array de 5 a 10 temáticas o actividades clave (ej. "Familia", "Trabajo", "Deporte", "Pareja"). NUNCA uses adverbios, adjetivos comunes, verbos sueltos ni conectores (evita "muy", "hace", "bueno", "poco").
   }`;
 
   try {
     const text = await callAI(prompt, true);
-    return JSON.parse(cleanJsonResponse(text));
+    const result = JSON.parse(cleanJsonResponse(text));
+    
+    // 2. Guardar en Firebase para persistencia real
+    try {
+      await setDoc(doc(db, 'users', userId, 'insights', 'latest'), {
+        logHash,
+        insightsData: result,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error("Error saving insights to Firebase", e);
+    }
+    
+    return result;
   } catch (error) {
     console.error("Insights Generation Error:", error);
     return { insights: [], summary: "Sigue registrando tus días para que pueda encontrar patrones.", cloudContexts: [] };

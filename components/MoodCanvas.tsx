@@ -68,8 +68,6 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
   const [arousal, setArousal] = useState(3);
   const [dominance, setDominance] = useState(3);
   const [color, setColor] = useState('#94A3B8');
-  const [currentMoodBuddy, setCurrentMoodBuddy] = useState('/mascot_calm_nobg.png');
-  const [currentLabel, setCurrentLabel] = useState('Neutral');
 
   useEffect(() => {
     let cat = MoodCategory.NEUTRAL;
@@ -82,8 +80,6 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
     }
     const def = EMOTIONAL_PALETTE.find(p => p.category === cat) || EMOTIONAL_PALETTE[6];
     setColor(def.hex);
-    setCurrentMoodBuddy(def.moodBuddy || '/mascot_calm_nobg.png');
-    setCurrentLabel(def.label);
   }, [valence, arousal]);
 
   const handleSave = () => {
@@ -130,27 +126,27 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
         style={{ backgroundColor: color }}
       />
 
-      <div className="relative z-10 flex flex-col px-8 pt-20 pb-32 flex-1 max-w-3xl mx-auto w-full">
+      <div className="relative z-10 flex flex-col px-6 pt-12 pb-32 flex-1 max-w-xl mx-auto w-full">
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">¿Cómo estás hoy?</h1>
-          <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Desliza para capturar tu vibe</p>
+          <p className="text-slate-500 text-[10px] uppercase tracking-[0.3em] font-black opacity-60">Desliza para capturar tu vibe</p>
         </header>
 
         <div className="flex flex-col justify-center gap-12">
           {/* VALENCIA */}
           <section className="space-y-4">
-            <div className="flex justify-between items-center text-slate-400">
+            <div className="flex justify-between items-center text-slate-400 px-2">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                 <Smile size={14} /> ¿Cómo te sientes?
               </span>
               <span className="text-xs font-mono">{valence}/5</span>
             </div>
-            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
               {[1, 2, 3, 4, 5].map(v => (
                 <button
                   key={v}
                   onClick={() => setValence(v)}
-                  className={`p-2 transition-all ${valence === v ? 'text-white' : 'text-slate-600'}`}
+                  className={`p-2 transition-all ${valence === v ? 'text-white scale-110' : 'text-slate-600 hover:text-slate-400'}`}
                 >
                   <SAMManikin type="valence" value={v} active={valence === v} />
                 </button>
@@ -160,18 +156,18 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
 
           {/* ACTIVACIÓN */}
           <section className="space-y-4">
-            <div className="flex justify-between items-center text-slate-400">
+            <div className="flex justify-between items-center text-slate-400 px-2">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                 <Zap size={14} /> ¿Cuánta energía tienes?
               </span>
               <span className="text-xs font-mono">{arousal}/5</span>
             </div>
-            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
               {[1, 2, 3, 4, 5].map(v => (
                 <button
                   key={v}
                   onClick={() => setArousal(v)}
-                  className={`p-2 transition-all ${arousal === v ? 'text-white' : 'text-slate-600'}`}
+                  className={`p-2 transition-all ${arousal === v ? 'text-white scale-110' : 'text-slate-600 hover:text-slate-400'}`}
                 >
                   <SAMManikin type="arousal" value={v} active={arousal === v} />
                 </button>
@@ -181,18 +177,18 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
 
           {/* DOMINANCIA */}
           <section className="space-y-4">
-            <div className="flex justify-between items-center text-slate-400">
+            <div className="flex justify-between items-center text-slate-400 px-2">
               <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                 <Maximize2 size={14} /> ¿Cuánto control sientes?
               </span>
               <span className="text-xs font-mono">{dominance}/5</span>
             </div>
-            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5">
+            <div className="flex justify-between items-center bg-white/5 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
               {[1, 2, 3, 4, 5].map(v => (
                 <button
                   key={v}
                   onClick={() => setDominance(v)}
-                  className={`p-2 transition-all ${dominance === v ? 'text-white' : 'text-slate-600'}`}
+                  className={`p-2 transition-all ${dominance === v ? 'text-white scale-110' : 'text-slate-600 hover:text-slate-400'}`}
                 >
                   <SAMManikin type="dominance" value={v} active={dominance === v} />
                 </button>
@@ -201,18 +197,9 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextCh
           </section>
         </div>
 
-        {/* MoodBuddy Interaction */}
-        <div className="mt-8">
-          <InteractiveMoodBuddy 
-            userId={userId} 
-            currentMoodBuddy={currentMoodBuddy} 
-            currentLabel={currentLabel} 
-          />
-        </div>
-
         <button
           onClick={handleSave}
-          className="mt-8 py-5 rounded-3xl font-black text-lg bg-white text-slate-950 shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+          className="mt-12 py-5 rounded-3xl font-black text-lg bg-white text-slate-950 shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-3"
         >
           <Send size={20} />
           GUARDAR MI VIBE

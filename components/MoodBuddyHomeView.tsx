@@ -192,7 +192,7 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries }
         {/* Daily Mission Card */}
         {interaction && (
           <div
-            className="mt-4 p-6 rounded-[2rem] shadow-2xl relative overflow-hidden group border border-white/10 backdrop-blur-sm"
+            className="mt-8 p-6 sm:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden group border border-white/10 backdrop-blur-sm w-full"
             style={{
               background: `linear-gradient(135deg, ${moodColor}25 0%, ${moodColor}08 100%)`,
             }}

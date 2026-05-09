@@ -35,7 +35,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
         </button>
       </header>
 
-      <div className="grid grid-cols-7 gap-2 mb-8 shrink-0 max-w-md mx-auto w-full">
+      <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-8 shrink-0 max-w-2xl mx-auto w-full">
         {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(d => (
           <div key={d} className="text-center text-xs text-slate-500 font-bold mb-1">{d}</div>
         ))}

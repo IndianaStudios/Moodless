@@ -117,7 +117,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
   };
 
   return (
-    <div className="px-5 pt-16 pb-36 flex-1 flex flex-col space-y-5 relative">
+    <div className="px-5 pt-16 pb-36 flex-1 flex flex-col space-y-5 relative max-w-2xl mx-auto w-full">
       <header className="shrink-0 flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-black text-white leading-none">Explora</h2>
@@ -175,15 +175,15 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
                 onClick={() => setActiveVideoId(track.id)}
                 className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${activeVideoId === track.id ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative w-12 h-12 shrink-0">
                     <img src={track.thumbnail} className="w-full h-full object-cover rounded-lg shadow-md" alt="" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
                       <PlayCircle size={16} className="text-white opacity-80" />
                     </div>
                   </div>
-                  <div className="truncate text-left">
-                    <div className="text-[11px] font-bold text-white truncate max-w-[140px] leading-none mb-1">{track.title}</div>
+                  <div className="truncate text-left flex-1 min-w-0">
+                    <div className="text-[11px] font-bold text-white truncate leading-none mb-1">{track.title}</div>
                     <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">{track.channelTitle}</div>
                   </div>
                 </div>

@@ -39,8 +39,7 @@ enum Tab {
   ADMIN = 'ADMIN'
 }
 
-
-const ADMIN_EMAILS = ['indianasainzpalacios@gmail.com']; // REEMPLAZAR CON TU EMAIL REAL
+const ADMIN_EMAILS = ['indianasainzpalacios@gmail.com'];
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -58,47 +57,32 @@ const App: React.FC = () => {
   const [appVersion, setAppVersion] = useState('v2.0.0');
   const [legalViewType, setLegalViewType] = useState<'privacy' | 'terms' | null>(null);
 
-  // Detectar parámetros de reset de contraseña en la URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const oobCode = params.get('oobCode');
-    if (mode === 'resetPassword' && oobCode) {
-      setResetOobCode(oobCode);
-    }
+    if (mode === 'resetPassword' && oobCode) setResetOobCode(oobCode);
   }, []);
 
   useEffect(() => {
     const checkStandalone = () => {
       const standalone = window.matchMedia('(display-mode: standalone)').matches 
-        // @ts-ignore - support older iOS
-        || window.navigator.standalone 
+        || (window.navigator as any).standalone 
         || document.referrer.includes('android-app://');
-      
       setIsStandalone(standalone);
-      if (standalone) {
-        setShowAuth(true); // Default to AuthView in PWA mode
-      }
+      if (standalone) setShowAuth(true);
     };
     checkStandalone();
   }, []);
 
-  // Sync state with URL Hash for back button support
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '').toUpperCase();
-      if (Object.values(Tab).includes(hash as Tab)) {
-        setActiveTab(hash as Tab);
-      } else {
-        // Default to LOG if hash is empty or invalid
-        setActiveTab(Tab.LOG);
-      }
+      if (Object.values(Tab).includes(hash as Tab)) setActiveTab(hash as Tab);
+      else setActiveTab(Tab.LOG);
     };
-
     window.addEventListener('popstate', handleHashChange);
-    // Initial check
     handleHashChange();
-
     return () => window.removeEventListener('popstate', handleHashChange);
   }, []);
 
@@ -109,26 +93,10 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Registrar Service Worker para PWA inmediatamente con configuración dinámica
-    if ('serviceWorker' in navigator) {
-      const swUrl = `/firebase-messaging-sw.js?` + 
-        `apiKey=${import.meta.env.VITE_FIREBASE_API_KEY}&` +
-        `authDomain=${import.meta.env.VITE_FIREBASE_AUTH_DOMAIN}&` +
-        `projectId=${import.meta.env.VITE_FIREBASE_PROJECT_ID}&` +
-        `storageBucket=${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}&` +
-        `messagingSenderId=${import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID}&` +
-        `appId=${import.meta.env.VITE_FIREBASE_APP_ID}`;
-
-      navigator.serviceWorker.register(swUrl)
-        .then(reg => console.log('SW registrado para PWA con configuración dinámica'))
-        .catch(err => console.log('Error registrando SW:', err));
-    }
-
     const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser);
       setIsLoaded(true);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -137,92 +105,30 @@ const App: React.FC = () => {
       if (user) {
         setIsFetchingData(true);
         try {
-          // Pequeño retardo para asegurar que el SW esté listo
-          setTimeout(async () => {
-            // Inicializar FCM para este usuario
-            await notificationService.initFCM(user.id);
-            await notificationService.listenForForegroundMessages();
-          }, 1000);
-
           const entriesRef = collection(db, 'users', user.id, 'entries');
           const q = query(entriesRef, orderBy('date', 'asc'));
           const querySnapshot = await getDocs(q);
           const loadedEntries: MoodEntry[] = [];
-          querySnapshot.forEach((doc) => {
-            loadedEntries.push(doc.data() as MoodEntry);
-          });
+          querySnapshot.forEach((doc) => { loadedEntries.push(doc.data() as MoodEntry); });
           setEntries(loadedEntries);
-        } catch (e) {
-          console.error("Error fetching Firestore data", e);
-        } finally {
-          setIsFetchingData(false);
-        }
-      } else {
-        setEntries([]);
+        } catch (e) { console.error("Error fetching data", e); }
+        finally { setIsFetchingData(false); }
       }
     };
     fetchUserData();
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user) {
-      setContextLogs([]);
-      return;
-    }
-
+    if (!user) { setContextLogs([]); return; }
     const contextRef = collection(db, 'users', user.id, 'emotional_context_logs');
     const qContext = query(contextRef, orderBy('timestamp', 'desc'), limit(50));
-    
     const unsubscribeContext = onSnapshot(qContext, (snapshot) => {
       const loadedContext: any[] = [];
-      snapshot.forEach((doc) => {
-        loadedContext.push({ id: doc.id, ...doc.data() });
-      });
+      snapshot.forEach((doc) => { loadedContext.push({ id: doc.id, ...doc.data() }); });
       setContextLogs(loadedContext);
-    }, (error) => {
-      console.error("Context logs subscription error:", error);
     });
-
     return () => unsubscribeContext();
   }, [user?.id]);
-
-  useEffect(() => {
-    const checkChangelog = async () => {
-      if (!user) return;
-      try {
-        const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
-          const data = docSnap.data();
-          if (data.version) setAppVersion(data.version);
-          const createdAt = data.createdAt?.toMillis() || Date.now();
-          const lastSeen = user.lastSeenChangelog || 0;
-          
-          if (createdAt > lastSeen) {
-            setLatestChangelog({
-              id: docSnap.id,
-              version: data.version,
-              title: data.title,
-              content: data.content,
-              timestamp: createdAt
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching changelog:", err);
-      }
-    };
-    checkChangelog();
-  }, [user]);
-
-  const handleCloseChangelog = async () => {
-    if (latestChangelog && user) {
-      await authService.markChangelogAsSeen(latestChangelog.timestamp);
-      setUser({ ...user, lastSeenChangelog: latestChangelog.timestamp });
-    }
-    setLatestChangelog(null);
-  };
 
   const handleSaveMood = async (newMood: Omit<MoodEntry, 'id' | 'date'>) => {
     if (!user) return;
@@ -230,22 +136,15 @@ const App: React.FC = () => {
     const newId = crypto.randomUUID();
     const entry: MoodEntry = { ...newMood, id: newId, date: today };
     setEntries(prev => [...prev.filter(e => e.date !== today), entry]);
-    
-    // En lugar de ir a STATS directo, mostramos la pregunta de profundizar
     setShowDeepenPrompt(true);
-    
     try {
       await setDoc(doc(db, 'users', user.id, 'entries', newId), entry);
-      
-      // Capturar el contexto más reciente del chat para personalizar el informe
       const latestContext = contextLogs.length > 0 ? contextLogs[0].userInput : '';
       const report = await generateMoodReport(entry, entries, latestContext);
       const updatedEntry = { ...entry, report };
       await setDoc(doc(db, 'users', user.id, 'entries', newId), updatedEntry);
       setEntries(prev => prev.map(e => e.id === newId ? updatedEntry : e));
-    } catch (err) {
-      console.error("Failed to sync", err);
-    }
+    } catch (err) { console.error("Failed to sync", err); }
   };
 
   const handleLogout = async () => {
@@ -255,20 +154,16 @@ const App: React.FC = () => {
 
   if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="text-white animate-spin" size={40} /></div>;
 
-  // Mostrar página de reset si viene con oobCode
   if (resetOobCode) {
     return <ResetPasswordView oobCode={resetOobCode} onDone={() => {
       setResetOobCode(null);
-      // Limpiar los parámetros de la URL
       window.history.replaceState({}, '', '/');
       setShowAuth(true);
     }} />;
   }
 
   if (!user) {
-    if (showAuth || isStandalone) {
-      return <AuthView onAuthSuccess={setUser} onBack={isStandalone ? undefined : () => setShowAuth(false)} />;
-    }
+    if (showAuth || isStandalone) return <AuthView onAuthSuccess={setUser} onBack={isStandalone ? undefined : () => setShowAuth(false)} />;
     return <LandingView onStart={() => setShowAuth(true)} />;
   }
 
@@ -277,78 +172,53 @@ const App: React.FC = () => {
   const hideNav = activeTab === Tab.PROFILE_EDIT || activeTab === Tab.SUPPORT || activeTab === Tab.ADMIN;
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-950 text-white relative overflow-hidden">
-      {!hideNav && activeTab !== Tab.ACCOUNT && (
-        <div className="absolute top-4 left-0 right-0 flex justify-center z-50 animate-in fade-in">
-          <div className="flex items-center gap-2 glass px-4 py-2 rounded-full border border-white/10 shadow-xl">
-            <UserIcon size={12} className="text-purple-400" />
-            <span className="text-[10px] font-black uppercase tracking-widest">{user.name}</span>
-          </div>
-        </div>
-      )}
+    <div className="h-[100dvh] bg-slate-950 text-white flex flex-col selection:bg-purple-500/30 overflow-hidden relative">
       <main className="flex-1 relative overflow-y-auto no-scrollbar scroll-smooth">
-        <div className="min-h-full flex flex-col max-w-5xl mx-auto w-full px-4 sm:px-8">
+        <div className="min-h-full flex flex-col w-full mx-auto">
           {activeTab === Tab.LOG && (
-            <div className="flex-1 flex flex-col">
-              <MoodCanvas 
-                userId={user.id}
-                onSave={handleSaveMood} 
-                onOpenContextChat={() => setShowContextChat(true)}
-                alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} 
-              />
-            </div>
+            <MoodCanvas 
+              userId={user.id}
+              onSave={handleSaveMood} 
+              onOpenContextChat={() => setShowContextChat(true)}
+              alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} 
+            />
           )}
           {activeTab === Tab.HISTORY && (
-            <div className="flex-1 flex flex-col">
-              <HistoryView 
-                entries={entries} 
-                onNavigateToLog={() => changeTab(Tab.LOG)} 
-                onOpenContextChat={() => setShowContextChat(true)}
-              />
-            </div>
+            <HistoryView entries={entries} onNavigateToLog={() => changeTab(Tab.LOG)} onOpenContextChat={() => setShowContextChat(true)} />
           )}
-          {activeTab === Tab.MOODBUDDY && user && (
+          {activeTab === Tab.MOODBUDDY && (
             <MoodBuddyHomeView userId={user.id} entries={entries} />
           )}
-          {activeTab === Tab.STATS && <StatsView entries={entries} contextLogs={contextLogs} />}
-          {activeTab === Tab.INSIGHTS && user && <InsightsView userId={user.id} />}
+          {activeTab === Tab.STATS && (
+            <StatsView entries={entries} contextLogs={contextLogs} />
+          )}
+          {activeTab === Tab.INSIGHTS && (
+            <InsightsView userId={user.id} />
+          )}
           {activeTab === Tab.EXPLORE && (
-            <div className="flex-1 flex flex-col">
-              <ExploreView lastEntry={lastEntry} />
-            </div>
+            <ExploreView lastEntry={lastEntry} />
           )}
           {activeTab === Tab.PROFILE && (
-            <div className="flex-1 flex flex-col">
-              <AccountView
-                user={user}
-                entries={entries}
-                onLogout={handleLogout}
-                onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
-                onSupport={() => changeTab(Tab.SUPPORT)}
-                onAdmin={user?.email === ADMIN_EMAILS[0] ? () => changeTab(Tab.ADMIN) : undefined}
-                onLegal={(type) => setLegalViewType(type)}
-                appVersion={appVersion}
-              />
-            </div>
+            <AccountView
+              user={user}
+              entries={entries}
+              onLogout={handleLogout}
+              onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
+              onSupport={() => changeTab(Tab.SUPPORT)}
+              onAdmin={user?.email === ADMIN_EMAILS[0] ? () => changeTab(Tab.ADMIN) : undefined}
+              onLegal={(type) => setLegalViewType(type)}
+              appVersion={appVersion}
+            />
           )}
-          {activeTab === Tab.PROFILE_EDIT && user && (
-            <div className="flex-1 flex flex-col">
-              <ProfileEditView user={user} onBack={() => changeTab(Tab.PROFILE)} onUserUpdate={setUser} />
-            </div>
+          {activeTab === Tab.PROFILE_EDIT && (
+            <ProfileEditView user={user} onBack={() => changeTab(Tab.PROFILE)} onUserUpdate={setUser} />
           )}
-          {activeTab === Tab.SUPPORT && (
-            <div className="flex-1 flex flex-col">
-              <SupportView user={user} onBack={() => changeTab(Tab.PROFILE)} />
-            </div>
-          )}
-          {activeTab === Tab.ADMIN && isAdmin && (
-            <div className="flex-1 flex flex-col">
-              <AdminView onBack={() => changeTab(Tab.PROFILE)} />
-            </div>
-          )}
+          {activeTab === Tab.SUPPORT && <SupportView user={user} onBack={() => changeTab(Tab.PROFILE)} />}
+          {activeTab === Tab.ADMIN && isAdmin && <AdminView onBack={() => changeTab(Tab.PROFILE)} />}
         </div>
       </main>
-      {!hideNav && (
+
+      {!hideNav && !legalViewType && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50">
           <nav className="glass w-full max-w-lg h-20 rounded-[2.5rem] flex items-center justify-between px-2 border border-white/10 shadow-2xl backdrop-blur-2xl">
             <div className="flex-1 flex justify-around items-center">
@@ -370,26 +240,12 @@ const App: React.FC = () => {
           </nav>
         </div>
       )}
-      <InstallPrompt />
-      {latestChangelog && (
-        <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />
-      )}
-      {showContextChat && user && (
-        <ContextChat userId={user.id} onClose={() => setShowContextChat(false)} />
-      )}
-      {showDeepenPrompt && (
-        <DeepenPromptModal 
-          onConfirm={() => { setShowDeepenPrompt(false); setShowContextChat(true); }}
-          onSkip={() => { setShowDeepenPrompt(false); changeTab(Tab.STATS); }}
-        />
-      )}
 
-      {legalViewType && (
-        <LegalView 
-          type={legalViewType} 
-          onBack={() => setLegalViewType(null)} 
-        />
-      )}
+      {showContextChat && user && <ContextChat userId={user.id} onClose={() => setShowContextChat(false)} />}
+      {showDeepenPrompt && <DeepenPromptModal onConfirm={() => { setShowDeepenPrompt(false); setShowContextChat(true); }} onSkip={() => { setShowDeepenPrompt(false); changeTab(Tab.STATS); }} />}
+      {legalViewType && <LegalView type={legalViewType} onBack={() => setLegalViewType(null)} />}
+      <InstallPrompt />
+      {latestChangelog && <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />}
     </div>
   );
 };
