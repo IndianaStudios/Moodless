@@ -18,6 +18,7 @@ import {
   Loader2,
   TrendingUp,
   Calendar,
+  FileText,
 } from 'lucide-react';
 
 interface AccountViewProps {
@@ -28,10 +29,11 @@ interface AccountViewProps {
   onEditProfile?: () => void;
   onSupport?: () => void;
   onAdmin?: () => void;
+  onLegal?: (type: 'privacy' | 'terms') => void;
   appVersion: string;
 }
 
-const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, appVersion }) => {
+const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, onLegal, appVersion }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -219,6 +221,26 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                 <ChevronRight size={16} className="text-red-900" />
               </button>
             )}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Legal y Transparencia</h3>
+          <div className="glass rounded-[2rem] border-white/5 overflow-hidden">
+            <button onClick={() => onLegal?.('privacy')} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400"><ShieldCheck size={18} /></div>
+                <span className="text-sm font-medium">Política de Privacidad</span>
+              </div>
+              <ChevronRight size={16} className="text-slate-600" />
+            </button>
+            <button onClick={() => onLegal?.('terms')} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400"><FileText size={18} /></div>
+                <span className="text-sm font-medium">Términos y Condiciones</span>
+              </div>
+              <ChevronRight size={16} className="text-slate-600" />
+            </button>
             <div className="w-full px-6 py-4 flex items-center justify-between border-t border-white/5">
               <div className="flex items-center gap-4 opacity-50">
                 <div className="p-2 bg-slate-500/10 rounded-xl text-slate-400"><Zap size={18} /></div>

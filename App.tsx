@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Calendar, BarChart2, Plus, User as UserIcon, Compass, Loader2 } from 'lucide-react';
+import { Calendar, BarChart2, Plus, User as UserIcon, Compass, Loader2, Sparkles, Heart } from 'lucide-react';
 import { MoodEntry } from './types';
 import MoodCanvas from './components/MoodCanvas';
 import HistoryView from './components/HistoryView';
@@ -10,7 +9,9 @@ import AuthView from './components/AuthView';
 import LandingView from './components/LandingView';
 import AccountView from './components/AccountView';
 import ProfileEditView from './components/ProfileEditView';
+import InsightsView from './components/InsightsView';
 import SupportView from './components/SupportView';
+import MoodBuddyHomeView from './components/MoodBuddyHomeView';
 import { authService, User } from './services/authService';
 import { generateMoodReport } from './services/geminiService';
 import { notificationService } from './services/notificationService';
@@ -22,12 +23,15 @@ import { collection, query, getDocs, setDoc, doc, orderBy, limit, onSnapshot } f
 import ChangelogModal from './components/ChangelogModal';
 import ContextChat from './components/ContextChat';
 import DeepenPromptModal from './components/DeepenPromptModal';
-import { Sparkles } from 'lucide-react';
+import LegalView from './components/LegalView';
 
 enum Tab {
   LOG = 'LOG',
   HISTORY = 'HISTORY',
+  MOODBUDDY = 'MOODBUDDY',
   STATS = 'STATS',
+  INSIGHTS = 'INSIGHTS',
+  PROFILE = 'PROFILE',
   EXPLORE = 'EXPLORE',
   ACCOUNT = 'ACCOUNT',
   PROFILE_EDIT = 'PROFILE_EDIT',
@@ -51,7 +55,8 @@ const App: React.FC = () => {
   const [showContextChat, setShowContextChat] = useState(false);
   const [showDeepenPrompt, setShowDeepenPrompt] = useState(false);
   const [contextLogs, setContextLogs] = useState<any[]>([]);
-  const [appVersion, setAppVersion] = useState('v1.0.3');
+  const [appVersion, setAppVersion] = useState('v2.0.0');
+  const [legalViewType, setLegalViewType] = useState<'privacy' | 'terms' | null>(null);
 
   // Detectar parámetros de reset de contraseña en la URL
   useEffect(() => {
@@ -231,7 +236,10 @@ const App: React.FC = () => {
     
     try {
       await setDoc(doc(db, 'users', user.id, 'entries', newId), entry);
-      const report = await generateMoodReport(entry, entries);
+      
+      // Capturar el contexto más reciente del chat para personalizar el informe
+      const latestContext = contextLogs.length > 0 ? contextLogs[0].userInput : '';
+      const report = await generateMoodReport(entry, entries, latestContext);
       const updatedEntry = { ...entry, report };
       await setDoc(doc(db, 'users', user.id, 'entries', newId), updatedEntry);
       setEntries(prev => prev.map(e => e.id === newId ? updatedEntry : e));
@@ -283,6 +291,7 @@ const App: React.FC = () => {
           {activeTab === Tab.LOG && (
             <div className="flex-1 flex flex-col">
               <MoodCanvas 
+                userId={user.id}
                 onSave={handleSaveMood} 
                 onOpenContextChat={() => setShowContextChat(true)}
                 alreadyLogged={entries.some(e => e.date === new Date().toISOString().split('T')[0])} 
@@ -298,17 +307,17 @@ const App: React.FC = () => {
               />
             </div>
           )}
-          {activeTab === Tab.STATS && (
-            <div className="flex-1 flex flex-col">
-              <StatsView entries={entries} contextLogs={contextLogs} />
-            </div>
+          {activeTab === Tab.MOODBUDDY && user && (
+            <MoodBuddyHomeView userId={user.id} entries={entries} />
           )}
+          {activeTab === Tab.STATS && <StatsView entries={entries} contextLogs={contextLogs} />}
+          {activeTab === Tab.INSIGHTS && user && <InsightsView userId={user.id} />}
           {activeTab === Tab.EXPLORE && (
             <div className="flex-1 flex flex-col">
               <ExploreView lastEntry={lastEntry} />
             </div>
           )}
-          {activeTab === Tab.ACCOUNT && (
+          {activeTab === Tab.PROFILE && (
             <div className="flex-1 flex flex-col">
               <AccountView
                 user={user}
@@ -316,24 +325,25 @@ const App: React.FC = () => {
                 onLogout={handleLogout}
                 onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
                 onSupport={() => changeTab(Tab.SUPPORT)}
-                onAdmin={isAdmin ? () => changeTab(Tab.ADMIN) : undefined}
+                onAdmin={user?.email === ADMIN_EMAILS[0] ? () => changeTab(Tab.ADMIN) : undefined}
+                onLegal={(type) => setLegalViewType(type)}
                 appVersion={appVersion}
               />
             </div>
           )}
-          {activeTab === Tab.PROFILE_EDIT && (
+          {activeTab === Tab.PROFILE_EDIT && user && (
             <div className="flex-1 flex flex-col">
-              <ProfileEditView user={user} onBack={() => changeTab(Tab.ACCOUNT)} onUserUpdate={setUser} />
+              <ProfileEditView user={user} onBack={() => changeTab(Tab.PROFILE)} onUserUpdate={setUser} />
             </div>
           )}
           {activeTab === Tab.SUPPORT && (
             <div className="flex-1 flex flex-col">
-              <SupportView user={user} onBack={() => changeTab(Tab.ACCOUNT)} />
+              <SupportView user={user} onBack={() => changeTab(Tab.PROFILE)} />
             </div>
           )}
           {activeTab === Tab.ADMIN && isAdmin && (
             <div className="flex-1 flex flex-col">
-              <AdminView onBack={() => changeTab(Tab.ACCOUNT)} />
+              <AdminView onBack={() => changeTab(Tab.PROFILE)} />
             </div>
           )}
         </div>
@@ -341,11 +351,22 @@ const App: React.FC = () => {
       {!hideNav && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-50">
           <nav className="glass w-full max-w-lg h-20 rounded-[2.5rem] flex items-center justify-between px-2 border border-white/10 shadow-2xl backdrop-blur-2xl">
-            <button onClick={() => changeTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
-            <button onClick={() => changeTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
-            <button onClick={() => changeTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
-            <button onClick={() => changeTab(Tab.STATS)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.STATS ? 'text-white' : 'text-slate-500'}`}><BarChart2 size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
-            <button onClick={() => changeTab(Tab.ACCOUNT)} className={`flex flex-col items-center justify-center flex-1 h-full ${activeTab === Tab.ACCOUNT ? 'text-white' : 'text-slate-500'}`}><UserIcon size={20} /><span className="text-[8px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
+            <div className="flex-1 flex justify-around items-center">
+              <button onClick={() => changeTab(Tab.HISTORY)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.HISTORY ? 'text-white' : 'text-slate-500'}`}><Calendar size={18} /><span className="text-[7px] mt-1 font-bold uppercase tracking-widest">Diario</span></button>
+              <button onClick={() => changeTab(Tab.MOODBUDDY)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.MOODBUDDY ? 'text-purple-400' : 'text-slate-500'}`}>
+                <Heart size={18} fill={activeTab === Tab.MOODBUDDY ? 'currentColor' : 'none'} />
+                <span className="text-[7px] mt-1 font-bold uppercase tracking-widest">MoodBuddy</span>
+              </button>
+              <button onClick={() => changeTab(Tab.EXPLORE)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.EXPLORE ? 'text-white' : 'text-slate-500'}`}><Compass size={18} /><span className="text-[7px] mt-1 font-bold uppercase tracking-widest">Explora</span></button>
+            </div>
+            
+            <button onClick={() => changeTab(Tab.LOG)} className={`flex items-center justify-center w-14 h-14 rounded-full -mt-10 shadow-2xl border-4 border-slate-950 transition-all z-10 ${activeTab === Tab.LOG ? 'bg-white text-slate-950 scale-110' : 'bg-slate-800 text-white'}`}><Plus size={28} /></button>
+
+            <div className="flex-1 flex justify-around items-center">
+              <button onClick={() => changeTab(Tab.STATS)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.STATS ? 'text-blue-400' : 'text-slate-500'}`}><BarChart2 size={18} /><span className="text-[7px] mt-1 font-bold uppercase tracking-widest">Estado</span></button>
+              <button onClick={() => changeTab(Tab.INSIGHTS)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.INSIGHTS ? 'text-purple-400' : 'text-slate-500'}`}><Sparkles size={18} /><span className="text-[7px] mt-1 font-bold uppercase tracking-widest">Patrones</span></button>
+              <button onClick={() => changeTab(Tab.PROFILE)} className={`flex flex-col items-center justify-center transition-all ${activeTab === Tab.PROFILE ? 'text-white' : 'text-slate-500'}`}><UserIcon size={18} /><span className="text-[7px] mt-1 font-bold uppercase tracking-widest">Perfil</span></button>
+            </div>
           </nav>
         </div>
       )}
@@ -358,14 +379,15 @@ const App: React.FC = () => {
       )}
       {showDeepenPrompt && (
         <DeepenPromptModal 
-          onConfirm={() => {
-            setShowDeepenPrompt(false);
-            setShowContextChat(true);
-          }}
-          onSkip={() => {
-            setShowDeepenPrompt(false);
-            changeTab(Tab.STATS);
-          }}
+          onConfirm={() => { setShowDeepenPrompt(false); setShowContextChat(true); }}
+          onSkip={() => { setShowDeepenPrompt(false); changeTab(Tab.STATS); }}
+        />
+      )}
+
+      {legalViewType && (
+        <LegalView 
+          type={legalViewType} 
+          onBack={() => setLegalViewType(null)} 
         />
       )}
     </div>

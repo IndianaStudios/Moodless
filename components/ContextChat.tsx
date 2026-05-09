@@ -20,8 +20,35 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
   ]);
    const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [pastMemory, setPastMemory] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Lógica de Reconocimiento de Voz
+  const startListening = () => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta el reconocimiento de voz.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => (prev ? prev + ' ' + transcript : transcript));
+    };
+
+    recognition.start();
+  };
 
   // Cargar memoria de días anteriores al abrir el chat
   useEffect(() => {
@@ -157,7 +184,11 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 pr-24 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-slate-600"
             />
             <div className="absolute right-2 flex items-center gap-1">
-              <button className="p-2 text-slate-500 hover:text-purple-400 transition-colors">
+              <button 
+                onClick={startListening}
+                className={`p-2 transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-500 hover:text-purple-400'}`}
+                title="Dictar por voz"
+              >
                 <Mic size={20} />
               </button>
               <button 

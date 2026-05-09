@@ -18,16 +18,12 @@ export const youtubeMusicService = {
     const queryList = Array.isArray(queries) ? queries : [queries];
 
     try {
-      const tracks: YouTubeTrack[] = [];
-      const seenChannels = new Set<string>();
-
       // Obtener token de usuario para autenticar la petición al proxy
       const token = await auth.currentUser?.getIdToken();
 
-      for (const query of queryList) {
-        // Llamada a nuestro proxy interno
+      // Realizar todas las búsquedas en paralelo para máxima velocidad
+      const searchPromises = queryList.map(async (query) => {
         const url = `/api/search-youtube?q=${encodeURIComponent(query)}`;
-
         const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
@@ -35,19 +31,19 @@ export const youtubeMusicService = {
           },
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error(`Error en proxy YouTube (${response.status}): ${errorData.error || 'Unknown error'}`);
-          continue;
-        }
+        if (!response.ok) return null;
+        return response.json();
+      });
 
-        const data = await response.json();
+      const results = await Promise.all(searchPromises);
+      const tracks: YouTubeTrack[] = [];
+      const seenChannels = new Set<string>();
 
-        if (data.items && data.items.length > 0) {
+      results.forEach((data) => {
+        if (data && data.items && data.items.length > 0) {
           const item = data.items[0];
           const channel = item.snippet.channelTitle;
 
-          // Evitar duplicados del mismo canal/artista
           if (!seenChannels.has(channel)) {
             seenChannels.add(channel);
             tracks.push({
@@ -58,7 +54,7 @@ export const youtubeMusicService = {
             });
           }
         }
-      }
+      });
 
       return tracks;
     } catch (error) {

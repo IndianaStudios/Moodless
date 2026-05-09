@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { EMOTIONAL_PALETTE } from '../constants';
 import { MoodCategory, MoodEntry } from '../types';
 import { Check, Edit2, Send, Smile, Zap, Maximize2, Sparkles } from 'lucide-react';
+import InteractiveMoodBuddy from './InteractiveMoodBuddy';
 
 interface MoodCanvasProps {
+  userId: string;
   onSave: (entry: Omit<MoodEntry, 'id' | 'date'>) => void;
   onOpenContextChat: () => void;
   alreadyLogged: boolean;
@@ -16,7 +17,6 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
   const scale = active ? 1.2 : 0.8;
 
   if (type === 'valence') {
-    // 1 (Triste) a 5 (Feliz)
     const mouthPath = value === 1 ? "M 8 22 Q 16 15 24 22" :
       value === 2 ? "M 10 20 L 22 20" :
         value === 3 ? "M 10 20 Q 16 20 22 20" :
@@ -33,7 +33,6 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
   }
 
   if (type === 'arousal') {
-    // 1 (Calma) a 5 (Energía)
     const energySize = value * 3;
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" style={{ opacity, transform: `scale(${scale})`, transition: 'all 0.3s' }}>
@@ -51,7 +50,6 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
   }
 
   if (type === 'dominance') {
-    // 1 (Pequeño) a 5 (Grande)
     const bodyScale = 0.5 + (value * 0.12);
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" style={{ opacity, transform: `scale(${scale * bodyScale})`, transition: 'all 0.3s' }}>
@@ -64,16 +62,15 @@ const SAMManikin = ({ type, value, active }: { type: 'valence' | 'arousal' | 'do
   return null;
 };
 
-const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alreadyLogged }) => {
+const MoodCanvas: React.FC<MoodCanvasProps> = ({ userId, onSave, onOpenContextChat, alreadyLogged }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [valence, setValence] = useState(3);
   const [arousal, setArousal] = useState(3);
   const [dominance, setDominance] = useState(3);
   const [color, setColor] = useState('#94A3B8');
-  const [currentMascot, setCurrentMascot] = useState('/mascot_calm.png');
+  const [currentMoodBuddy, setCurrentMoodBuddy] = useState('/mascot_calm_nobg.png');
   const [currentLabel, setCurrentLabel] = useState('Neutral');
 
-  // Lógica de mapeo SAM -> Color y Categoría
   useEffect(() => {
     let cat = MoodCategory.NEUTRAL;
     if (valence >= 4) {
@@ -85,12 +82,11 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alre
     }
     const def = EMOTIONAL_PALETTE.find(p => p.category === cat) || EMOTIONAL_PALETTE[6];
     setColor(def.hex);
-    setCurrentMascot(def.mascot || '/mascot_calm.png');
+    setCurrentMoodBuddy(def.moodBuddy || '/mascot_calm_nobg.png');
     setCurrentLabel(def.label);
   }, [valence, arousal]);
 
   const handleSave = () => {
-    // Determinar categoría final para el guardado
     let category = MoodCategory.NEUTRAL;
     if (valence >= 4) category = arousal >= 4 ? MoodCategory.JOY : MoodCategory.CALM;
     else if (valence <= 2) category = arousal >= 4 ? MoodCategory.ANGER : MoodCategory.SADNESS;
@@ -111,8 +107,8 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alre
   if (alreadyLogged && !isEditing) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-slate-950">
-        <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
-          <Check className="text-green-500 w-12 h-12" />
+        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6 mt-4">
+          <Check className="text-green-500 w-10 h-10" />
         </div>
         <h2 className="text-2xl font-bold mb-2">Vibe registrada ✨</h2>
         <p className="text-slate-400 mb-8">Ya has registrado cómo te sientes hoy.</p>
@@ -128,7 +124,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alre
   }
 
   return (
-    <div className="relative flex-1 flex flex-col bg-slate-950">
+    <div className="relative flex-1 flex flex-col bg-slate-950 overflow-y-auto no-scrollbar">
       <div
         className="absolute inset-0 opacity-20 blur-[120px] transition-all duration-1000 pointer-events-none"
         style={{ backgroundColor: color }}
@@ -140,7 +136,7 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alre
           <p className="text-slate-500 text-xs uppercase tracking-[0.2em] font-bold">Desliza para capturar tu vibe</p>
         </header>
 
-        <div className="flex-1 flex flex-col justify-center gap-12">
+        <div className="flex flex-col justify-center gap-12">
           {/* VALENCIA */}
           <section className="space-y-4">
             <div className="flex justify-between items-center text-slate-400">
@@ -203,6 +199,15 @@ const MoodCanvas: React.FC<MoodCanvasProps> = ({ onSave, onOpenContextChat, alre
               ))}
             </div>
           </section>
+        </div>
+
+        {/* MoodBuddy Interaction */}
+        <div className="mt-8">
+          <InteractiveMoodBuddy 
+            userId={userId} 
+            currentMoodBuddy={currentMoodBuddy} 
+            currentLabel={currentLabel} 
+          />
         </div>
 
         <button

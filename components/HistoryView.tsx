@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MoodEntry } from '../types';
 import { MOOD_ICONS, EMOTIONAL_PALETTE } from '../constants';
@@ -18,11 +17,11 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
   const monthEnd = endOfMonth(today);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const [zoomedMascot, setZoomedMascot] = React.useState<string | null>(null);
+  const [zoomedMoodBuddy, setZoomedMoodBuddy] = React.useState<string | null>(null);
   const [zoomedColor, setZoomedColor] = React.useState('#fff');
 
   return (
-    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col">
+    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col overflow-y-auto no-scrollbar">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold capitalize">{format(today, 'MMMM yyyy', { locale: es })}</h2>
@@ -40,10 +39,13 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
         {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(d => (
           <div key={d} className="text-center text-xs text-slate-500 font-bold mb-1">{d}</div>
         ))}
+        {Array.from({ length: monthStart.getDay() }, (_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
         {days.map(day => {
           const entry = entries.find(e => isSameDay(new Date(e.date + 'T12:00:00'), day));
           const paletteEntry = entry ? EMOTIONAL_PALETTE.find(p => p.category === entry.category) : null;
-          const mascot = paletteEntry?.mascot || '/mascot_calm.png';
+          const moodBuddy = paletteEntry?.moodBuddy || '/mascot_calm_nobg.png';
 
           return (
             <div
@@ -54,12 +56,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
               {entry && (
                 <button
                   onClick={() => {
-                    setZoomedMascot(mascot);
+                    setZoomedMoodBuddy(moodBuddy);
                     setZoomedColor(entry.color);
                   }}
                   className="absolute inset-0 flex items-center justify-center active:scale-95 transition-transform"
                 >
-                  <img src={mascot} alt="Mascot" className="w-full h-full object-cover opacity-80" />
+                  <img src={moodBuddy} alt="MoodBuddy" className="w-full h-full object-cover opacity-80" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                   <span className="absolute bottom-1 right-2 text-[10px] font-black text-white drop-shadow-lg">{format(day, 'd')}</span>
                 </button>
@@ -88,28 +90,35 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
           [...entries].reverse().slice(0, 10).map(entry => {
             const paletteEntry = EMOTIONAL_PALETTE.find(p => p.category === entry.category);
             const moodLabel = paletteEntry?.label || 'Estado';
-            const mascot = paletteEntry?.mascot || '/mascot_calm.png';
-
+            const moodBuddy = paletteEntry?.moodBuddy || '/mascot_calm_nobg.png';
+          
             return (
-              <div key={entry.id} className="glass p-4 rounded-2xl flex items-center gap-4">
-                <button
-                  onClick={() => {
-                    setZoomedMascot(mascot);
-                    setZoomedColor(entry.color);
-                  }}
-                  className="w-12 h-12 rounded-full flex items-center justify-center relative bg-white/5 active:scale-90 transition-transform hover:bg-white/10"
-                >
-                  <img src={mascot} alt="Mood" className="w-10 h-10 object-contain relative z-10 rounded-full" />
-                  <div
-                    className="absolute inset-0 rounded-full blur-md opacity-30"
-                    style={{ backgroundColor: entry.color }}
-                  />
-                </button>
-                <div className="flex-1">
-                  <div className="font-bold capitalize">
-                    {format(new Date(entry.date + 'T12:00:00'), "EEEE, d 'de' MMMM", { locale: es })}
+              <div key={entry.id} className="group relative">
+                <div 
+                  className="absolute inset-0 bg-white/5 rounded-[2.5rem] -z-10 group-hover:bg-white/10 transition-all duration-500"
+                  style={{ backgroundColor: `${entry.color}05` }}
+                />
+                <div className="p-5 flex items-center justify-between gap-4">
+                  <div 
+                    className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center relative overflow-hidden group/moodbuddy cursor-zoom-in active:scale-95 transition-all shadow-inner"
+                    style={{ backgroundColor: `${entry.color}15` }}
+                    onClick={() => {
+                      setZoomedMoodBuddy(moodBuddy);
+                      setZoomedColor(entry.color);
+                    }}
+                  >
+                    <div 
+                      className="absolute inset-0 opacity-20 blur-xl animate-pulse"
+                      style={{ backgroundColor: entry.color }}
+                    />
+                    <img src={moodBuddy} alt="MoodBuddy" className="w-full h-full object-cover opacity-80" />
                   </div>
-                  <div className="text-xs text-slate-400 font-medium">{moodLabel}</div>
+                  <div className="flex-1">
+                    <div className="font-bold capitalize">
+                      {format(new Date(entry.date + 'T12:00:00'), "EEEE, d 'de' MMMM", { locale: es })}
+                    </div>
+                    <div className="text-xs text-slate-400 font-medium">{moodLabel}</div>
+                  </div>
                 </div>
               </div>
             );
@@ -118,10 +127,10 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
       </div>
 
       {/* Image Zoom Modal */}
-      {zoomedMascot && (
+      {zoomedMoodBuddy && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
-          onClick={() => setZoomedMascot(null)}
+          onClick={() => setZoomedMoodBuddy(null)}
         >
           <button className="absolute top-10 right-10 text-white/50 hover:text-white transition-colors">
             <X size={32} />
@@ -132,8 +141,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onNavigateToLog, onO
               style={{ backgroundColor: zoomedColor }}
             />
             <img
-              src={zoomedMascot}
-              alt="Zoomed Mascot"
+              src={zoomedMoodBuddy}
+              alt="MoodBuddy"
               className="w-full h-full object-contain relative z-10 rounded-3xl shadow-2xl"
             />
           </div>

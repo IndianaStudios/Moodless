@@ -41,15 +41,12 @@ async function callGroq(prompt: string, jsonMode: boolean = false): Promise<stri
     return data.choices?.[0]?.message?.content || '';
 }
 
-async function callOpenRouter(prompt: string, jsonMode: boolean = false, origin: string = ''): Promise<string> {
+async function callOpenRouter(prompt: string, jsonMode: boolean = false, origin: string = '', modelOverride?: string): Promise<string> {
     const apiKey = process.env.OPENROUTER_API_KEY;
-
-    if (!apiKey) {
-        throw new Error('OPENROUTER_API_KEY not configured');
-    }
+    if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
     const body: any = {
-        model: OPENROUTER_MODEL,
+        model: modelOverride || OPENROUTER_MODEL,
         messages: [
             { role: 'system', content: 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.' },
             { role: 'user', content: prompt }
@@ -134,8 +131,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
             text = await callGroq(prompt, jsonMode);
         } catch (groqError: any) {
-            console.warn('Groq failed or not configured, falling back to OpenRouter...', groqError.message);
-            text = await callOpenRouter(prompt, jsonMode, origin);
+            console.warn('Groq primary failed, trying OpenRouter fallback...', groqError.message);
+            try {
+                // Pequeña pausa para evitar colisiones
+                await new Promise(resolve => setTimeout(resolve, 500));
+                text = await callOpenRouter(prompt, jsonMode, origin);
+            } catch (orError: any) {
+                console.warn('OpenRouter primary failed, trying super-fast fallback...', orError.message);
+                // PLAN C: Usar un modelo más ligero (70B) que casi nunca falla por rate limit
+                const FAST_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+                text = await callOpenRouter(prompt, jsonMode, origin, FAST_MODEL);
+            }
         }
 
         return res.status(200).json({ result: text });

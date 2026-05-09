@@ -21,8 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Query parameter "q" is required' });
   }
 
-  // 2. Rate limiting (50 búsquedas por hora por usuario para proteger cuota)
-  const isAllowed = await checkRateLimit(`youtube:${authUser.uid}`, 50, 3600);
+  // 2. Rate limiting (200 búsquedas por hora por usuario para proteger cuota)
+  const isAllowed = await checkRateLimit(`youtube:${authUser.uid}`, 200, 3600);
   if (!isAllowed) {
     return res.status(429).json({ error: 'Límite de búsquedas alcanzado. Inténtalo más tarde.' });
   }

@@ -14,11 +14,11 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
   const isPrivacy = type === 'privacy';
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-white relative overflow-hidden">
+    <div className="fixed inset-0 flex flex-col h-screen bg-slate-950 text-white overflow-y-auto overflow-x-hidden custom-scrollbar scroll-smooth z-[600]">
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <header className="w-full flex justify-between items-center p-6 border-b border-white/5 sticky top-0 bg-slate-950/80 backdrop-blur-xl z-50 animate-in fade-in slide-in-from-top-4 duration-500">
+ 
+      <header className="w-full flex justify-between items-center p-6 border-b border-white/5 sticky top-0 bg-slate-950/80 backdrop-blur-xl z-50">
         <button 
           onClick={onBack}
           className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors group"
@@ -29,19 +29,19 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
         <div className="flex items-center gap-2">
           {isPrivacy ? <Shield className="text-purple-400" size={24} /> : <FileText className="text-blue-400" size={24} />}
           <span className="font-black text-xl tracking-tighter">
-            {isPrivacy ? 'Privacidad' : 'Términos'}
+            {isPrivacy ? 'Privacidad' : 'Términos y Condiciones'}
           </span>
         </div>
         <div className="w-24" /> {/* Spacer */}
       </header>
-
-      <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full px-6 py-12">
+ 
+      <main className="flex-1 w-full px-6 py-12">
         <article className="max-w-3xl mx-auto prose prose-invert prose-p:text-slate-400 prose-headings:text-white prose-a:text-purple-400 marker:text-purple-400 animate-in fade-in slide-in-from-bottom-8 duration-700">
           
           {isPrivacy ? (
             <>
               <h1>Política de Privacidad</h1>
-              <p><em>Última actualización: {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</em></p>
+              <p><em>Última actualización: Mayo de 2026 (v2.0.0)</em></p>
               
               <p>En cumplimiento con el <strong>Reglamento (UE) 2016/679 (RGPD)</strong>, creemos que tus emociones son solo tuyas. Esta Política describe de manera transparente cómo manejamos tu información personal.</p>
               
@@ -74,7 +74,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
                 <li><strong>Contexto:</strong> Situaciones sociales, laborales o personales (ej. "trabajo", "familia").</li>
                 <li><strong>Métricas de Energía e Intensidad:</strong> Datos derivados de tu discurso para generar estadísticas avanzadas.</li>
               </ul>
-              <p>Estos datos se almacenan vinculados a tu cuenta con las mismas medidas de seguridad que tus registros SAM.</p>
+              <p>Estos datos se almacenan vinculados a tu cuenta para que MoodBuddy pueda ofrecerte misiones personalizadas y para que el Informe de Aura Global pueda explicar tus niveles SAM en relación con tu vida real.</p>
 
               <h2>8. Seguridad de los Datos</h2>
               <p>Empleamos medidas técnicas e infraestructurales avanzadas para proteger tu intimidad. Esto incluye el <strong>cifrado de datos en tránsito</strong> mediante TLS/SSL, el uso de autenticación segura de Firebase y la implementación de reglas de seguridad a nivel de base de datos que impiden que cualquier persona ajena a ti (incluyendo los administradores) pueda leer tus diarios.</p>
@@ -97,10 +97,10 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
             </>
           ) : (
             <>
-              <h1>Términos de Servicio</h1>
-              <p><em>Última actualización: {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</em></p>
+              <h1>Términos y Condiciones del Servicio</h1>
+              <p><em>Última actualización: Mayo de 2026 (v2.0.0)</em></p>
               
-              <p>Al utilizar <strong>Moodless</strong>, aceptas someterte legalmente a estos Términos de Servicio. La aceptación se realiza de forma expresa mediante el marcado de la casilla de verificación obligatoria durante el proceso de registro ("clickwrap"). Por favor, léelos detenidamente junto a nuestra <strong>Política de Privacidad</strong> antes de comenzar tu viaje emocional con nosotros.</p>
+              <p>Al utilizar <strong>Moodless</strong>, aceptas someterte legalmente a estos Términos y Condiciones. La aceptación se realiza de forma expresa mediante el marcado de la casilla de verificación obligatoria durante el proceso de registro ("clickwrap"). Por favor, léelos detenidamente junto a nuestra <strong>Política de Privacidad</strong> antes de comenzar tu viaje emocional con nosotros.</p>
               
               <h2>1. Identificación del Proveedor</h2>
               <p>El servicio Moodless es provisto por la persona física <strong>Indiana Sainz Palacios</strong>. Puedes contactar conmigo para cualquier duda legal o técnica en el correo electrónico: <strong>moodless@gmail.com</strong>.</p>

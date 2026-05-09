@@ -56,32 +56,57 @@ const setCachedData = (key: string, data: any, entryId: string, expiresIn = 8640
 };
 
 
-async function callAI(prompt: string, jsonMode: boolean = false): Promise<string> {
+async function callAI(prompt: string, jsonMode: boolean = false, retries = 1): Promise<string> {
   // Esperar a que Firebase inicialice la sesión antes de pedir el token en un recargo rápido
   if (auth.authStateReady) await auth.authStateReady();
   
-  const token = await auth.currentUser?.getIdToken();
-  const response = await fetch('/api/generate-ai', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ prompt, jsonMode }),
-  });
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch('/api/generate-ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ prompt, jsonMode }),
+      });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`AI Request failed with status ${response.status}: ${errorData.error || 'Unknown Error'}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // Si es un error de rate limit (429) y tenemos reintentos, esperamos un poco y reintentamos
+        if (response.status === 429 && i < retries) {
+          console.warn(`[AI] Rate limit hit, retrying in 0.5s... (${i + 1}/${retries})`);
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        throw new Error(`AI Request failed with status ${response.status}: ${errorData.error || 'Unknown Error'}`);
+      }
+
+      const data = await response.json();
+      return data.result || '';
+    } catch (error) {
+      if (i === retries) throw error;
+      console.warn(`[AI] Request failed, retrying in 0.5s... (${i + 1}/${retries})`, error);
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
-
-  const data = await response.json();
-  return data.result || '';
+  return '';
 }
 
-export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[]): Promise<string> => {
-  const prompt = `Analiza este estado emocional SAM: Valencia:${currentEntry.valence}, Activación:${currentEntry.arousal}, Dominancia:${currentEntry.dominance}. 
-  Responde en JSON: {"title": "Nombre claro y directo del estado", "explanation": "Explicación breve en lenguaje natural y cotidiano (sin metáforas) de máximo 2 frases"}.`;
+export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'date' | 'report'>, history: MoodEntry[], context?: string): Promise<string> => {
+  const prompt = `Actúa como un experto en psicología emocional para la app Moodless.
+  Analiza este estado emocional SAM: Valencia:${currentEntry.valence}, Activación:${currentEntry.arousal}, Dominancia:${currentEntry.dominance}.
+  
+  CONTEXTO ADICIONAL (lo que el usuario ha contado):
+  "${context || 'No hay contexto adicional.'}"
+  
+  Debes generar un informe que combine los datos técnicos SAM con el contexto real del usuario.
+  Responde en JSON estricto: 
+  {
+    "title": "Nombre claro y directo del estado", 
+    "explanation": "Explicación breve (máximo 2 frases) que relacione sus valores SAM con lo que ha contado, con un tono empático y humano."
+  }`;
   try {
     const text = await callAI(prompt, true);
     return cleanJsonResponse(text);
@@ -284,6 +309,65 @@ IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si
   } catch (error) {
     console.error('Prediction AI Error:', error);
     return null;
+  }
+};
+
+export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
+  const prompt = `Actúa como un analista de datos psicólogo. Analiza el siguiente historial de registros emocionales del usuario:
+  
+  ${allLogs}
+  
+  Tu objetivo es encontrar 3 "insights" o patrones claros y sorprendentes. 
+  Ejemplo: "Te sientes más feliz cuando hablas de deporte", "Tu ansiedad sube los domingos", etc.
+  
+  Formato JSON estricto:
+  {
+    "insights": [
+      { "title": "Título corto", "description": "Descripción del patrón detectado", "confidence": number (1-100) }
+    ],
+    "summary": "Resumen general de 1 frase sobre su estado actual",
+    "cloudContexts": string[] (Las 10 palabras/contextos más repetidos)
+  }`;
+
+  try {
+    const text = await callAI(prompt, true);
+    return JSON.parse(cleanJsonResponse(text));
+  } catch (error) {
+    console.error("Insights Generation Error:", error);
+    return { insights: [], summary: "Sigue registrando tus días para que pueda encontrar patrones.", cloudContexts: [] };
+  }
+};
+
+export const getMoodBuddyInteraction = async (mood: string, pastMemory: string): Promise<any> => {
+  const prompt = `Eres MoodBuddy, el compañero empático de la app Moodless. Tu personalidad es cálida, curiosa, un poco juguetona y siempre positiva.
+  
+  CONTEXTO ACTUAL:
+  El usuario se siente: ${mood}
+  Memoria de chats recientes: ${pastMemory || 'Primera vez que hablamos hoy.'}
+
+  Debes:
+  1. Saludar de forma muy breve (máximo 12 palabras). 
+  2. NO repitas constantemente el nombre de la emoción. Sé natural.
+  3. Menciona algo de su memoria de forma casual si encaja, o simplemente dale ánimos.
+  4. Proponer una "Misión Diaria" (una acción física o mental pequeña, creativa y fácil) para hoy. Evita misiones genéricas como "respira profundo".
+  
+  Formato JSON estricto:
+  {
+    "greeting": "string",
+    "mission": "string"
+  }`;
+
+  try {
+    const text = await callAI(prompt, true);
+    const parsed = JSON.parse(cleanJsonResponse(text));
+    if (!parsed.greeting || !parsed.mission) throw new Error("Incomplete AI response");
+    return parsed;
+  } catch (error) {
+    console.error("MoodBuddy Interaction Error:", error);
+    return { 
+      greeting: "¡Hola! Soy MoodBuddy. Qué alegría verte por aquí hoy.", 
+      mission: "Haz una pausa de 1 minuto para estirarte y sonreír." 
+    };
   }
 };
 

@@ -28,7 +28,7 @@ export interface ColorDefinition {
   hex: string;
   label: string;
   secondary: string;
-  mascot?: string;
+  moodBuddy?: string;
 }
 
 export interface EmotionalContextEntry {
