@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../services/firebase';
-import { collection, query, orderBy, getDocs, doc, updateDoc, Timestamp, setDoc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import {
     ChevronLeft,
     Search,
@@ -27,7 +27,7 @@ interface Ticket {
     category: 'bug' | 'suggestion' | 'help' | 'other';
     message: string;
     status: 'new' | 'in_progress' | 'resolved';
-    createdAt: Timestamp;
+    createdAt: string | Timestamp;
 }
 
 interface AdminViewProps {
@@ -68,14 +68,21 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     const fetchTickets = async () => {
         setLoading(true);
         try {
-            const q = query(collection(db, 'support_tickets'), orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const fetchedTickets: Ticket[] = [];
-            querySnapshot.forEach((doc) => {
-                fetchedTickets.push({ id: doc.id, ...doc.data() } as Ticket);
+            const token = await auth.currentUser?.getIdToken();
+            const response = await fetch('/api/get-support-tickets', {
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                }
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error fetching tickets');
+            }
+
+            const fetchedTickets = await response.json();
             setTickets(fetchedTickets);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching tickets:", error);
         } finally {
             setLoading(false);
@@ -92,11 +99,25 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         setReplyError('');
 
         try {
-            // 1. Actualizar estado en Firestore
-            await updateDoc(doc(db, 'support_tickets', ticketId), {
-                status: newStatus,
-                adminReply: replyMessage.trim(),
+            // 1. Actualizar estado en Firestore mediante API segura
+            const token = await auth.currentUser?.getIdToken();
+            const updateResponse = await fetch('/api/update-ticket-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    ticketId,
+                    status: newStatus,
+                    adminReply: replyMessage.trim(),
+                }),
             });
+
+            if (!updateResponse.ok) {
+                const errorData = await updateResponse.json();
+                throw new Error(errorData.error || 'Error actualizando ticket');
+            }
 
             // 2. Enviar email al usuario
             const ticket = tickets.find(t => t.id === ticketId) || selectedTicket;
@@ -286,7 +307,9 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                                                     </div>
                                                 </div>
                                                 <span className="text-[10px] text-slate-600 font-mono">
-                                                    {ticket.createdAt?.toDate().toLocaleDateString()}
+                                                    {typeof ticket.createdAt === 'string' 
+                                                        ? new Date(ticket.createdAt).toLocaleDateString()
+                                                        : ticket.createdAt?.toDate().toLocaleDateString()}
                                                 </span>
                                             </div>
                                             <p className="text-sm text-slate-300 font-medium line-clamp-2 mb-3">
