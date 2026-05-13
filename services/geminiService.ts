@@ -382,7 +382,14 @@ export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
 };
 
 export const getMoodBuddyInteraction = async (mood: string, pastMemory: string): Promise<any> => {
+  const today = new Date();
+  const dayName = WEEKDAYS_ES[today.getDay()];
+  const dateStr = today.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
   const prompt = `Eres MoodBuddy, el compañero empático de la app Moodless. Tu personalidad es cálida, curiosa, un poco juguetona y siempre positiva.
+  
+  CONTEXTO TEMPORAL:
+  Hoy es ${dayName}, ${dateStr}.
   
   CONTEXTO ACTUAL:
   El usuario se siente: ${mood}

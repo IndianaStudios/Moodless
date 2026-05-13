@@ -130,6 +130,25 @@ const App: React.FC = () => {
     return () => unsubscribeContext();
   }, [user?.id]);
 
+  useEffect(() => {
+    const fetchLatestChangelog = async () => {
+      try {
+        const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const changelogData = snapshot.docs[0].data();
+          const lastSeen = localStorage.getItem('lastSeenVersion');
+          if (lastSeen !== changelogData.version) {
+            setLatestChangelog(changelogData);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching changelog:", err);
+      }
+    };
+    fetchLatestChangelog();
+  }, []);
+
   const handleSaveMood = async (newMood: Omit<MoodEntry, 'id' | 'date'>) => {
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
@@ -150,6 +169,13 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     await authService.logout();
     changeTab(Tab.LOG);
+  };
+
+  const handleCloseChangelog = () => {
+    if (latestChangelog) {
+      localStorage.setItem('lastSeenVersion', latestChangelog.version);
+    }
+    setLatestChangelog(null);
   };
 
   if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-slate-950"><Loader2 className="text-white animate-spin" size={40} /></div>;
