@@ -260,7 +260,6 @@ export const getMoodPrediction = async (entries: MoodEntry[], forceRefresh = fal
   } catch (e) {
     console.warn("Error fetching feedback context", e);
   }
-
   // 2. Tomar los últimos registros para el historial
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   const recent = sorted.slice(-20);
@@ -276,12 +275,38 @@ export const getMoodPrediction = async (entries: MoodEntry[], forceRefresh = fal
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
   const tomorrowDay = WEEKDAYS_ES[tomorrow.getDay()];
 
-  const prompt = `Analiza estos registros SAM y predice el estado de mañana (${tomorrowDay}).
+  const todayEntry = entries.find(e => e.date === todayStr);
+  const todayMoodLabel = todayEntry ? todayEntry.category : null;
+
+  const prompt = `Eres un analista emocional experto. Analiza el historial de registros SAM del usuario y predice su estado emocional para mañana (${tomorrowDay}).
+
 ${feedbackContext}
-Historial Real: ${historyLines}
-Categorías: JOY,CALM,ANGER,SADNESS,ANXIETY,ENERGY,NEUTRAL.
-JSON: {"predictedCategory":"CATEGORIA","confidence":0-100, "pattern":"Patrón detectado en 1 frase", "probabilities":{"JOY":N,"CALM":N,"ANGER":N,"SADNESS":N,"ANXIETY":N,"ENERGY":N,"NEUTRAL":N}, "tip":"Consejo breve"}. 
-IMPORTANTE: Probabilidades 0-100 sumando 100. Considera la RETROALIMENTACIÓN si existe.`;
+
+HISTORIAL RECIENTE (fecha(día):categoría,Valence,Arousal,Dominance):
+${historyLines}
+
+${todayMoodLabel ? `HOY (${todayStr}) el usuario ha registrado: ${todayMoodLabel}. Ten esto en cuenta como el dato MÁS reciente.` : 'El usuario aún no ha registrado su estado de hoy.'}
+
+CATEGORÍAS VÁLIDAS (usa SOLO estas en predictedCategory): JOY, CALM, ANGER, SADNESS, ANXIETY, ENERGY, NEUTRAL.
+
+TRADUCCIONES para el campo "pattern" (OBLIGATORIO usar español):
+- JOY = Alegría
+- CALM = Calma
+- ANGER = Enfado
+- SADNESS = Tristeza
+- ANXIETY = Ansiedad
+- ENERGY = Energía
+- NEUTRAL = Neutral
+
+REGLAS:
+1. El campo "predictedCategory" debe ser una de las 7 categorías en inglés (JOY, CALM, etc.).
+2. El campo "pattern" debe estar COMPLETAMENTE EN ESPAÑOL. Usa los nombres traducidos de arriba. Ejemplo: "Tras varios días de Alegría, es probable que mañana mantengas esa tendencia positiva".
+3. El campo "tip" debe ser un consejo breve y útil en español.
+4. Las probabilidades deben sumar 100.
+5. NO inventes datos. Basa tu análisis SOLO en el historial proporcionado.
+
+Responde SOLO con JSON:
+{"predictedCategory":"CATEGORIA","confidence":0-100,"pattern":"Patrón detectado en 1 frase EN ESPAÑOL","probabilities":{"JOY":N,"CALM":N,"ANGER":N,"SADNESS":N,"ANXIETY":N,"ENERGY":N,"NEUTRAL":N},"tip":"Consejo breve en español"}`;
 
   try {
     const text = await callAI(prompt, true);
