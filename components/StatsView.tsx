@@ -2,7 +2,6 @@ import React from 'react';
 import { MoodEntry } from '../types';
 import { EMOTIONAL_PALETTE, MOOD_ICONS } from '../constants';
 import { getMoodPrediction, MoodPrediction } from '../services/geminiService';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Calendar, Zap, FileText, TrendingUp, Sparkles, X, RefreshCw, Lock, Eye } from 'lucide-react';
 
 interface StatsViewProps {
@@ -114,19 +113,8 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
   };
 
   const reportData = getReportData(lastEntry?.report);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = React.useState(300);
 
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    const updateWidth = () => {
-      if (containerRef.current) setContainerWidth(containerRef.current.offsetWidth);
-    };
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(containerRef.current);
-    updateWidth();
-    return () => observer.disconnect();
-  }, []);
+  const maxCount = Math.max(...stats.map(s => s.count), 1);
 
   return (
     <div className="px-6 pt-24 pb-40 w-full flex-1 flex flex-col overflow-y-auto no-scrollbar max-w-4xl mx-auto">
@@ -292,14 +280,47 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
           <TrendingUp size={12} /> Frecuencia Emocional
         </h3>
-        <div className="w-full h-[240px]">
-          <BarChart width={containerWidth} height={240} data={stats} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
-            <XAxis dataKey="name" axisLine={false} tick={false} />
-            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px' }} />
-            <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-              {stats.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-            </Bar>
-          </BarChart>
+        <div className="w-full mt-8">
+          <div className="flex items-end justify-between h-[220px] gap-1 sm:gap-2 md:gap-4 w-full">
+            {stats.map((stat, i) => {
+              const heightPercent = stat.count > 0 ? Math.max((stat.count / maxCount) * 100, 4) : 0;
+              return (
+                <div key={i} className="flex flex-col items-center flex-1 group h-full justify-end cursor-default">
+                  <div className="w-full flex flex-col justify-end items-center h-full relative">
+                    {/* Tooltip */}
+                    <div className="absolute -top-12 bg-slate-800/90 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none shadow-xl transform translate-y-2 group-hover:translate-y-0 z-10 whitespace-nowrap border border-white/10">
+                      {stat.count} {stat.count === 1 ? 'vez' : 'veces'}
+                    </div>
+                    {/* Bar */}
+                    <div 
+                      className="w-full max-w-[48px] rounded-t-xl transition-all duration-700 ease-out group-hover:brightness-125 relative"
+                      style={{ 
+                        height: `${heightPercent}%`, 
+                        backgroundColor: stat.color,
+                        opacity: stat.count === 0 ? 0.15 : 1,
+                        minHeight: stat.count > 0 ? '16px' : '6px'
+                      }}
+                    >
+                      {/* Glow effect for active bars */}
+                      {stat.count > 0 && (
+                        <div 
+                          className="absolute inset-0 rounded-t-xl opacity-0 group-hover:opacity-40 transition-opacity blur-md"
+                          style={{ backgroundColor: stat.color }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  {/* Label */}
+                  <div className="mt-4 h-6 flex items-center justify-center">
+                    <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:tracking-[0.2em] text-center">
+                      <span className="hidden sm:inline">{stat.name}</span>
+                      <span className="sm:hidden">{stat.name.substring(0, 3)}</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
