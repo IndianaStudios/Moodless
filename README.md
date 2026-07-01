@@ -1,7 +1,7 @@
 # 🌙 Moodless
 
 <p align="center">
-  <img src="./banner.svg" alt="Moodless Banner" />
+  <img src="./Banner.png" alt="Moodless Banner" />
 </p>
 
 <p align="center">
