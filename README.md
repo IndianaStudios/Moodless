@@ -1,5 +1,3 @@
-# 🌙 Moodless
-
 <p align="center">
   <img src="./Banner.png" alt="Moodless Banner" />
 </p>
