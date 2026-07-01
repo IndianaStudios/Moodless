@@ -18,8 +18,6 @@ Escribes → La IA analiza → Se convierte en visualización
 🔒 Privacidad por diseño
 🧱 Stack
 <p align="center"> Next.js • React • Node.js • TailwindCSS • PostgreSQL • IA (LLMs) </p>
-📸 Vista del producto
-<p align="center"> <img src="https://dummyimage.com/900x400/0f172a/ffffff&text=Moodless+Preview" /> </p>
 💡 Filosofía
 <p align="center"> No es un diario.<br/> Es una forma de entenderte. </p>
 🌐 Demo
