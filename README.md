@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://moodless.vercel.app">moodless.vercel.app</a>
+  <a href="https://moodless.app"><b>Empieza tu viaje aquí →</b></a>
 </p>
 
 ---
