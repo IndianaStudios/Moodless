@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'indianasainzpalacios@gmail.com';
+    }
+
+    // Perfil y subcolecciones del usuario
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /entries/{entryId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /emotional_context_logs/{logId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /predictions/{predictionId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /insights/{insightId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /soundtrack/{trackId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /health_metrics/{metricId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /integrations/{integrationId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Changelogs: lectura pública, escritura solo vía Admin SDK (servidor)
+    match /changelogs/{changelogId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Tickets de soporte
+    match /support_tickets/{ticketId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Cache de YouTube: solo Admin SDK (servidor)
+    match /youtube_cache/{cacheId} {
+      allow read, write: if false;
+    }
+  }
+}

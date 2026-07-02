@@ -1,10 +1,17 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAuth } from './_utils/verifyAuth.js';
+import { isAdmin } from './_utils/isAdmin.js';
 
 /**
- * Endpoint de diagnóstico TEMPORAL — borrar tras resolver el 500.
- * GET /api/debug-env → devuelve qué variables de entorno están presentes (no sus valores).
+ * Endpoint de diagnóstico — solo admin.
+ * GET /api/debug-env → indica qué variables están presentes (sin exponer valores).
  */
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    const user = await verifyAuth(req);
+    if (!user || 'error' in user || !isAdmin(user.email)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const vars = [
         'FIREBASE_PROJECT_ID',
         'FIREBASE_CLIENT_EMAIL',
@@ -16,18 +23,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         'UPSTASH_REDIS_REST_TOKEN',
     ];
 
-    const result: Record<string, string> = {};
+    const result: Record<string, boolean> = {};
     for (const v of vars) {
-        const val = process.env[v];
-        if (!val) {
-            result[v] = '❌ MISSING';
-        } else if (v === 'FIREBASE_PRIVATE_KEY') {
-            // Solo mostramos inicio/fin para verificar formato sin exponer la clave
-            const clean = val.replace(/\\n/g, '\n');
-            result[v] = `✅ present | starts: ${clean.slice(0, 28)} | ends: ${clean.slice(-25)} | length: ${clean.length}`;
-        } else {
-            result[v] = `✅ present (${val.length} chars)`;
-        }
+        result[v] = !!process.env[v];
     }
 
     return res.status(200).json(result);

@@ -45,7 +45,14 @@ export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; ema
         const token = authHeader.split('Bearer ')[1];
         if (!token) return { error: 'Token is empty' };
 
-        const adminApp = getFirebaseAdmin();
+        let adminApp;
+        try {
+            adminApp = getFirebaseAdmin();
+        } catch (initError: any) {
+            console.error('Firebase Admin init failed:', initError?.message);
+            return { error: `Firebase Admin init failed: ${initError?.message}` };
+        }
+
         const decoded = await getAuth(adminApp).verifyIdToken(token);
 
         return {

@@ -109,36 +109,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(429).json({ error: 'Límite de peticiones de IA por hora superado. Vuelve más tarde.' });
     }
 
-    // 4. Llamada a IA con fallbacks
+    // 4. Comprobar que hay al menos un proveedor configurado
+    const hasGroq = !!process.env.GROQ_API_KEY;
+    const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
+    if (!hasGroq && !hasOpenRouter) {
+        console.error('[generate-ai] No AI provider keys configured on server');
+        return res.status(503).json({
+            error: 'Servicio de IA no configurado. Faltan GROQ_API_KEY y OPENROUTER_API_KEY en Vercel.',
+        });
+    }
+
+    // 5. Llamada a IA con fallbacks
     const origin = (req.headers.origin as string) || '';
     const errors: string[] = [];
 
-    try {
-        const text = await callGroq(prompt, !!jsonMode);
-        return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`Groq: ${e.message}`);
-        console.warn('[generate-ai] Groq failed:', e.message);
+    if (hasGroq) {
+        try {
+            const text = await callGroq(prompt, !!jsonMode);
+            return res.status(200).json({ result: text });
+        } catch (e: any) {
+            errors.push(`Groq: ${e.message}`);
+            console.warn('[generate-ai] Groq failed:', e.message);
+        }
     }
 
     await new Promise(r => setTimeout(r, 300));
 
-    try {
-        const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_PRIMARY);
-        return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`OpenRouter primary: ${e.message}`);
-        console.warn('[generate-ai] OpenRouter primary failed:', e.message);
-    }
+    if (hasOpenRouter) {
+        try {
+            const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_PRIMARY);
+            return res.status(200).json({ result: text });
+        } catch (e: any) {
+            errors.push(`OpenRouter primary: ${e.message}`);
+            console.warn('[generate-ai] OpenRouter primary failed:', e.message);
+        }
 
-    await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 300));
 
-    try {
-        const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_FALLBACK);
-        return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`OpenRouter fallback: ${e.message}`);
-        console.warn('[generate-ai] OpenRouter fallback failed:', e.message);
+        try {
+            const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_FALLBACK);
+            return res.status(200).json({ result: text });
+        } catch (e: any) {
+            errors.push(`OpenRouter fallback: ${e.message}`);
+            console.warn('[generate-ai] OpenRouter fallback failed:', e.message);
+        }
     }
 
     const finalError = errors.join(' | ');
