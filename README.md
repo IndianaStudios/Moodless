@@ -1,20 +1,90 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+<p align="center">
+  <img src="./Banner.png" alt="Moodless Banner" />
+</p>
 
-# Run and deploy your AI Studio app
+<p align="center">
+  <b>Un diario emocional con IA para entender cómo te sientes.</b>
+</p>
 
-This contains everything you need to run your app locally.
+<p align="center">
+  <a href="https://moodless.vercel.app"><b>Empieza tu viaje aquí →</b></a>
+</p>
 
-View your app in AI Studio: https://ai.studio/apps/drive/1QiJjYaFP_ovc49YAXF2a6mjuYX0_mYRk
+---
 
-## Run Locally
+## Claridad emocional, diseñada con IA.
 
-**Prerequisites:**  Node.js
+Moodless es un diario visual que convierte pensamientos en comprensión.
 
+Escribes.  
+La IA interpreta.  
+Tú entiendes.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+---
+
+## Qué hace
+
+Moodless te ayuda a ver lo que normalmente no ves:
+
+- emociones en el tiempo  
+- patrones en tus pensamientos  
+- evolución de tu estado mental  
+
+---
+
+## Experiencia
+
+### ✍️ Escribir
+Captura pensamientos de forma natural.
+
+### 🧠 Entender
+La IA analiza el tono emocional.
+
+### 🎨 Visualizar
+Cada entrada se convierte en una representación visual.
+
+### 📊 Reflexionar
+Descubre patrones con el tiempo.
+
+---
+
+## Principios
+
+**Menos ruido. Más claridad.**  
+Cada interacción tiene intención.
+
+**La emoción es la interfaz.**  
+No analizas datos. Te entiendes a ti mismo.
+
+**Privacidad por defecto.**  
+Tus pensamientos son tuyos.
+
+---
+
+## Stack
+
+Next.js · React · Node.js · TailwindCSS · PostgreSQL · IA
+
+---
+
+## Estado
+
+En desarrollo activo.
+
+---
+
+## Acceso
+
+https://moodless.app
+
+---
+
+## Visión
+
+Construir una forma más natural de entender cómo pensamos.
+
+---
+
+## Licencia
+
+Todos los derechos reservados.
