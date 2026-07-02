@@ -103,7 +103,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Verificar autenticación
-    const user = await verifyAuth(req);
+    let user: any;
+    try {
+        user = await verifyAuth(req);
+    } catch (authError: any) {
+        console.error('verifyAuth threw:', authError?.message);
+        return res.status(500).json({ error: `Auth init failed: ${authError?.message}` });
+    }
+
     if (!user || 'error' in user) {
         return res.status(401).json({ error: 'Unauthorized', details: (user as any)?.error });
     }

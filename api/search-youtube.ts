@@ -10,7 +10,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 1. Verificar autenticación (Solo usuarios logueados pueden buscar música)
-  const authUser = await verifyAuth(req);
+  let authUser: any;
+  try {
+    authUser = await verifyAuth(req);
+  } catch (authError: any) {
+    console.error('verifyAuth threw:', authError?.message);
+    return res.status(500).json({ error: `Auth init failed: ${authError?.message}` });
+  }
   if (!authUser || 'error' in authUser) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
