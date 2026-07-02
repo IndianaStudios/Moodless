@@ -2,14 +2,13 @@
  * Middleware de autenticación para endpoints API de Vercel.
  * Verifica el token JWT de Firebase Auth enviado en el header Authorization.
  */
-import admin from 'firebase-admin';
-import { cert, getApp } from 'firebase-admin/app';
+import { cert, initializeApp, getApps, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import type { VercelRequest } from '@vercel/node';
 
 function getFirebaseAdmin() {
-    const existingApps = admin.apps ?? [];
-    if (existingApps.length > 0 && existingApps[0]) return existingApps[0];
+    // En firebase-admin v14 la API correcta es getApps() del módulo firebase-admin/app
+    if (getApps().length > 0) return getApp();
 
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -29,16 +28,9 @@ function getFirebaseAdmin() {
         privateKey = privateKey.slice(1, -1);
     }
 
-    try {
-        return admin.initializeApp({
-            credential: cert({ projectId, clientEmail, privateKey }),
-        });
-    } catch (initError: any) {
-        if (initError.message.includes('already exists')) {
-            return getApp();
-        }
-        throw new Error(`Error inicializando Firebase Admin: ${initError.message}`);
-    }
+    return initializeApp({
+        credential: cert({ projectId, clientEmail, privateKey }),
+    });
 }
 
 export { getFirebaseAdmin };
