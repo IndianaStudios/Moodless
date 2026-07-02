@@ -48,8 +48,8 @@ importers:
         specifier: ^14.1.0
         version: 14.1.0
       lucide-react:
-        specifier: 0.294.0
-        version: 0.294.0(react@19.2.7)
+        specifier: 1.23.0
+        version: 1.23.0(react@19.2.7)
       nodemailer:
         specifier: ^9.0.1
         version: 9.0.1
