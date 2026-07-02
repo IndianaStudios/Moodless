@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { getFirebaseAdmin } from './_utils/verifyAuth.js';
+import { getAuth } from 'firebase-admin/auth';
 
 function buildResetEmailHtml(userName: string, resetLink: string) {
     return `
@@ -77,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Obtener info del usuario para personalizar el email
         let userName = 'usuario';
         try {
-            const userRecord = await adminApp.auth().getUserByEmail(email);
+            const userRecord = await getAuth(adminApp).getUserByEmail(email);
             userName = userRecord.displayName || email.split('@')[0];
         } catch {
             // Si no existe el usuario, devolvemos éxito igualmente para no filtrar info
@@ -85,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // Generar el enlace de reset con Firebase Admin
-        const firebaseResetLink = await adminApp.auth().generatePasswordResetLink(email);
+        const firebaseResetLink = await getAuth(adminApp).generatePasswordResetLink(email);
 
         // Extraer el oobCode del enlace de Firebase y redirigir a nuestra app
         const url = new URL(firebaseResetLink);

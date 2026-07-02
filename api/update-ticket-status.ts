@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { isAdmin } from './_utils/isAdmin.js';
+import { getFirestore } from 'firebase-admin/firestore';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -26,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const adminApp = getFirebaseAdmin();
-    const db = adminApp.firestore();
+    const db = getFirestore(adminApp);
 
     // 3. Actualizar el ticket en Firestore
     const ticketRef = db.collection('support_tickets').doc(ticketId);

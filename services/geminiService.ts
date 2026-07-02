@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import { MoodEntry, MoodCategory } from "../types";
 import { auth, db } from "./firebase";
 import { doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
@@ -85,8 +86,15 @@ async function callAI(prompt: string, jsonMode: boolean = false, retries = 1): P
 
       const data = await response.json();
       return data.result || '';
-    } catch (error) {
-      if (i === retries) throw error;
+    } catch (error: any) {
+      if (i === retries) {
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          console.warn("[AI] Request failed due to network error (Failed to fetch).");
+        } else {
+          Sentry.captureException(error);
+        }
+        throw error;
+      }
       console.warn(`[AI] Request failed, retrying in 0.5s... (${i + 1}/${retries})`, error);
       await new Promise(r => setTimeout(r, 500));
     }
@@ -156,6 +164,7 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
     return config;
   } catch (error) {
     console.error("AI Generation Error:", error);
+    Sentry.captureException(error);
     return { type, title: "Aura Zen", description: "Encuentra el equilibrio en el movimiento.", instruction: "Toca suavemente.", themeColor: '#ffffff', intensity: arousal, mantra: "Inhala paz." };
   }
 };
@@ -211,6 +220,7 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
     return musicData;
   } catch (error) {
     console.error("AI Generation Error:", error);
+    Sentry.captureException(error);
     return {
       vibe: "Pop Hits",
       playlistName: "Top Global",
@@ -333,6 +343,7 @@ Responde SOLO con JSON:
     return result;
   } catch (error) {
     console.error('Prediction AI Error:', error);
+    Sentry.captureException(error);
     return null;
   }
 };
@@ -402,6 +413,7 @@ export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
     return result;
   } catch (error) {
     console.error("Insights Generation Error:", error);
+    Sentry.captureException(error);
     return { insights: [], summary: "Sigue registrando tus días para que pueda encontrar patrones.", cloudContexts: [] };
   }
 };
@@ -439,6 +451,7 @@ export const getMoodBuddyInteraction = async (mood: string, pastMemory: string):
     return parsed;
   } catch (error) {
     console.error("MoodBuddy Interaction Error:", error);
+    Sentry.captureException(error);
     return { 
       greeting: "¡Hola! Soy MoodBuddy. Qué alegría verte por aquí hoy.", 
       mission: "Haz una pausa de 1 minuto para estirarte y sonreír." 
@@ -483,6 +496,7 @@ export const analyzeEmotionalContext = async (userInput: string, chatHistory: st
     return JSON.parse(cleanJsonResponse(text));
   } catch (error) {
     console.error("Context Analysis Error:", error);
+    Sentry.captureException(error);
     throw error;
   }
 };

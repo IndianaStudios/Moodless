@@ -18,7 +18,7 @@ import {
   Loader2,
   TrendingUp,
   Calendar,
-  FileText,
+  FileText
 } from 'lucide-react';
 
 interface AccountViewProps {
@@ -223,6 +223,8 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
             )}
           </div>
         </section>
+
+
 
         <section>
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Legal y Transparencia</h3>

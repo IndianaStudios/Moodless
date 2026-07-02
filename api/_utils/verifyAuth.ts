@@ -3,6 +3,8 @@
  * Verifica el token JWT de Firebase Auth enviado en el header Authorization.
  */
 import admin from 'firebase-admin';
+import { cert, getApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import type { VercelRequest } from '@vercel/node';
 
 function getFirebaseAdmin() {
@@ -29,11 +31,11 @@ function getFirebaseAdmin() {
 
     try {
         return admin.initializeApp({
-            credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+            credential: cert({ projectId, clientEmail, privateKey }),
         });
     } catch (initError: any) {
         if (initError.message.includes('already exists')) {
-            return admin.app();
+            return getApp();
         }
         throw new Error(`Error inicializando Firebase Admin: ${initError.message}`);
     }
@@ -52,7 +54,7 @@ export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; ema
         if (!token) return { error: 'Token is empty' };
 
         const adminApp = getFirebaseAdmin();
-        const decoded = await adminApp.auth().verifyIdToken(token);
+        const decoded = await getAuth(adminApp).verifyIdToken(token);
 
         return {
             uid: decoded.uid,

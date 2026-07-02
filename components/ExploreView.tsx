@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MoodEntry, MoodCategory } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MoodEntry, MoodCategory, SoundtrackEntry } from '../types';
 import { EMOTIONAL_PALETTE } from '../constants';
 import { youtubeMusicService, YouTubeTrack } from '../services/youtubeMusicService';
+import { db } from '../services/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import {
   getVibeRecommendation,
   getMoodGameConfig,
@@ -21,15 +23,19 @@ import {
   ExternalLink,
   Sparkles,
   Link2,
-  PlayCircle
+  PlayCircle,
+  Music
 } from 'lucide-react';
 import MoodCanvasGame from './MoodCanvasGame';
 
 interface ExploreViewProps {
   lastEntry?: MoodEntry;
+  userId: string;
+  onPlayQueue: (tracks: YouTubeTrack[], moodColor: string, startIndex?: number) => void;
+  onOpenSoundtrack: () => void;
 }
 
-const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
+const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry, userId, onPlayQueue, onOpenSoundtrack }) => {
   const [recommendation, setRecommendation] = useState<string>("");
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [music, setMusic] = useState<MusicRecommendation | null>(null);
@@ -38,8 +44,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
   const [loadingGame, setLoadingGame] = useState(false);
   const [loadingMusic, setLoadingMusic] = useState(false);
   const [activeGame, setActiveGame] = useState(false);
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+
 
   const [vibeEmojis, setVibeEmojis] = useState<{ id: number, x: number, delay: number, duration: number }[]>([]);
 
@@ -81,6 +87,27 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
         const queries = musicRec.searchQueries || (musicRec.searchQuery ? [musicRec.searchQuery] : []);
         const tracks = await youtubeMusicService.searchTracks(queries);
         setYoutubeTracks(tracks);
+
+        // Auto-guardar banda sonora del día en Firestore
+        if (tracks.length > 0) {
+          const moodPalette = EMOTIONAL_PALETTE.find(p => p.category === currentMood);
+          const soundtrackRef = doc(db, 'users', userId, 'soundtrack', lastEntry.date);
+          const entryData: SoundtrackEntry = {
+            date: lastEntry.date,
+            moodCategory: currentMood,
+            moodColor: moodColor,
+            moodLabel: moodPalette?.label || 'Neutral',
+            vibeName: musicRec.vibe || 'Sintonía del día',
+            songs: tracks.map(t => ({
+              title: t.title,
+              artist: t.channelTitle,
+              youtubeId: t.id,
+              thumbnail: t.thumbnail
+            })),
+            savedAt: new Date().toISOString()
+          };
+          await setDoc(soundtrackRef, entryData);
+        }
       }
     } catch (e) { console.error(e); } finally { setLoadingMusic(false); }
 
@@ -96,7 +123,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
 
     // 3. Vibe (tercera llamada)
     getVibeRecommendation(currentMood).then(setRecommendation).catch(console.error);
-  }, [lastEntry, currentMood, moodColor]);
+  }, [lastEntry, currentMood, moodColor, userId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -105,16 +132,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
   })() : null;
 
   const youtubeReady = youtubeMusicService.isConfigured();
-
-  // Función mejorada para construir la URL del reproductor según YouTube Player API Reference
-  const getEmbedUrl = (videoId: string) => {
-    const origin = window.location.origin;
-    // Según la documentación:
-    // enablejsapi=1 es fundamental para el control programático.
-    // origin es necesario para la seguridad del postMessage.
-    // playsinline=1 evita el modo fullscreen forzado en móviles.
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(origin)}&widget_referrer=${encodeURIComponent(origin)}&playsinline=1&modestbranding=1&rel=0`;
-  };
 
   return (
     <div className="px-5 pt-16 pb-36 flex-1 flex flex-col space-y-5 relative max-w-2xl mx-auto w-full">
@@ -169,11 +186,29 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
           </div>
         ) : youtubeReady && youtubeTracks.length > 0 ? (
           <div className="space-y-3 relative z-10">
-            {youtubeTracks.map((track) => (
+            {/* Play All & Soundtrack History Buttons */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => onPlayQueue(youtubeTracks, moodColor, 0)}
+                className="flex-1 py-3 bg-white text-slate-950 rounded-2xl font-black text-[9px] uppercase tracking-wider hover:scale-[1.02] active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                <PlayCircle size={12} fill="currentColor" />
+                Reproducir todo
+              </button>
+              <button
+                onClick={onOpenSoundtrack}
+                className="flex-1 py-3 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-[9px] uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Music size={12} className="text-purple-400" />
+                Mi Banda Sonora
+              </button>
+            </div>
+
+            {youtubeTracks.map((track, idx) => (
               <button
                 key={track.id}
-                onClick={() => setActiveVideoId(track.id)}
-                className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${activeVideoId === track.id ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                onClick={() => onPlayQueue(youtubeTracks, moodColor, idx)}
+                className="w-full flex items-center justify-between p-3 rounded-2xl border transition-all bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative w-12 h-12 shrink-0">
@@ -191,10 +226,22 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed px-6">
-              {youtubeReady ? "Sin resultados disponibles ahora." : "Configura tu clave de YouTube API."}
-            </p>
+          <div className="space-y-4 relative z-10">
+            {/* Even if there are no tracks, allow opening soundtrack */}
+            <div className="flex justify-center">
+              <button
+                onClick={onOpenSoundtrack}
+                className="w-full py-3 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-[9px] uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Music size={12} className="text-purple-400" />
+                Ver Mi Banda Sonora
+              </button>
+            </div>
+            <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed px-6">
+                {youtubeReady ? "Sin resultados disponibles ahora." : "Configura tu clave de YouTube API."}
+              </p>
+            </div>
           </div>
         )}
 
@@ -271,36 +318,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ lastEntry }) => {
           }
         `}</style>
       </div>
-
-      {/* YouTube Player Overlay */}
-      {activeVideoId && (
-        <div className="fixed inset-x-0 bottom-24 z-[250] animate-in slide-in-from-bottom-8 duration-700 flex justify-center px-4">
-          <div className="glass w-full max-w-2xl p-3 rounded-[2.2rem] border-white/10 shadow-2xl relative overflow-hidden bg-black/80 backdrop-blur-3xl">
-            <div className="absolute inset-0 opacity-30 blur-3xl pointer-events-none" style={{ backgroundColor: moodColor }} />
-            <div className="relative z-10">
-              <header className="flex items-center justify-between mb-2 px-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-lg bg-red-600/20 text-red-500"><Youtube size={12} /></div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">YouTube Music Aura</span>
-                </div>
-                <button onClick={() => setActiveVideoId(null)} className="p-1.5 bg-white/10 rounded-full text-slate-400"><ChevronDown size={18} /></button>
-              </header>
-              <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl">
-                <iframe
-                  id="yt-player"
-                  width="100%"
-                  height="100%"
-                  src={getEmbedUrl(activeVideoId)}
-                  title="YouTube music player"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Game Experience Modal */}
       {activeGame && (

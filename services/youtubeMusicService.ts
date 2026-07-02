@@ -57,8 +57,12 @@ export const youtubeMusicService = {
       });
 
       return tracks;
-    } catch (error) {
-      console.error("Error en búsqueda YouTube:", error);
+    } catch (error: any) {
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.warn("Búsqueda en YouTube falló por red (offline o servidor reiniciando).");
+      } else {
+        console.error("Error en búsqueda YouTube:", error);
+      }
       return [];
     }
   },

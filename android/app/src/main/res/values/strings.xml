@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Moodless</string>
+    <string name="title_activity_main">Moodless</string>
+    <string name="package_name">com.indiana.moodless</string>
+    <string name="custom_url_scheme">com.indiana.moodless</string>
+</resources>

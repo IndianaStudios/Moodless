@@ -1,11 +1,13 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { Receiver } from '@upstash/qstash';
 import { getFirebaseAdmin } from '../_utils/verifyAuth.js';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 
 async function runReminderTask(res: VercelResponse) {
     const adminApp = getFirebaseAdmin();
-    const db = adminApp.firestore();
-    const messaging = adminApp.messaging();
+    const db = getFirestore(adminApp);
+    const messaging = getMessaging(adminApp);
 
     const usersSnapshot = await db.collection('users').get();
     const today = new Date().toISOString().split('T')[0];

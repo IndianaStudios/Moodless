@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { isAdmin } from './_utils/isAdmin.js';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -27,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const adminApp = getFirebaseAdmin();
-    const db = adminApp.firestore();
+    const db = getFirestore(adminApp);
 
     // Guardar el changelog en Firestore (esto también podría hacerse desde el cliente, pero aquí garantizamos coherencia)
     const changelogRef = db.collection('changelogs').doc();
@@ -35,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       version,
       title,
       content,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp()
     };
     await changelogRef.set(changelogData);
 
@@ -61,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let successCount = 0;
     let failureCount = 0;
 
-    const messaging = adminApp.messaging();
+    const messaging = getMessaging(adminApp);
 
     // Chunk array in sizes of 500
     const chunkSize = 500;

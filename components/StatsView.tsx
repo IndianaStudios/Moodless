@@ -7,9 +7,10 @@ import { Calendar, Zap, FileText, TrendingUp, Sparkles, X, RefreshCw, Lock, Eye 
 interface StatsViewProps {
   entries: MoodEntry[];
   contextLogs?: any[];
+  userId: string;
 }
 
-const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
+const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId }) => {
   const stats = EMOTIONAL_PALETTE.map(p => ({
     name: p.label,
     count: entries.filter(e => e.category === p.category).length,
@@ -39,6 +40,8 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
   React.useEffect(() => {
     fetchPrediction();
   }, [fetchPrediction]);
+
+
 
   const lastEntry = [...entries].reverse().find(e => e);
 
@@ -323,6 +326,8 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [] }) => {
           </div>
         </div>
       </div>
+
+
 
       {/* Image Zoom Modal */}
       {zoomedMoodBuddy && (

@@ -3,6 +3,7 @@ import admin from 'firebase-admin';
 import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { getFirebaseAdmin } from './_utils/verifyAuth.js';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -29,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 3. Sistema de Cache en Firestore
   const adminApp = getFirebaseAdmin();
-  const db = adminApp.firestore();
+  const db = getFirestore(adminApp);
   const queryHash = crypto.createHash('md5').update(q.toLowerCase().trim()).digest('hex');
   const cacheRef = db.collection('youtube_cache').doc(queryHash);
 
@@ -71,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await cacheRef.set({
         query: q.toLowerCase().trim(),
         result: data,
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+        timestamp: FieldValue.serverTimestamp()
       });
     } catch (cacheWriteError) {
       console.error('Cache write error:', cacheWriteError);
