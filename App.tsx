@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Sentry from "@sentry/react";
 import { Calendar, BarChart2, Plus, User as UserIcon, Compass, Loader2, Sparkles, Heart } from 'lucide-react';
 import { MoodEntry } from './types';
 import MoodCanvas from './components/MoodCanvas';
@@ -24,6 +25,9 @@ import ChangelogModal from './components/ChangelogModal';
 import ContextChat from './components/ContextChat';
 import DeepenPromptModal from './components/DeepenPromptModal';
 import LegalView from './components/LegalView';
+import MusicPlayer from './components/MusicPlayer';
+import SoundtrackView from './components/SoundtrackView';
+import { YouTubeTrack } from './services/youtubeMusicService';
 
 enum Tab {
   LOG = 'LOG',
@@ -55,7 +59,59 @@ const App: React.FC = () => {
   const [showDeepenPrompt, setShowDeepenPrompt] = useState(false);
   const [contextLogs, setContextLogs] = useState<any[]>([]);
   const [appVersion, setAppVersion] = useState('v2.0.0');
-  const [legalViewType, setLegalViewType] = useState<'privacy' | 'terms' | null>(null);
+  const [legalViewType, setLegalViewType] = useState<'privacy' | 'terms' | null>(() => {
+    // Detectar ruta legal directa al cargar la página (ej. moodless.vercel.app/privacidad)
+    const path = window.location.pathname;
+    if (path === '/privacidad') return 'privacy';
+    if (path === '/terminos') return 'terms';
+    return null;
+  });
+
+  // Global Music Player State
+  const [playerQueue, setPlayerQueue] = useState<YouTubeTrack[]>([]);
+  const [playerCurrentIndex, setPlayerCurrentIndex] = useState<number>(0);
+  const [playerIsPlaying, setPlayerIsPlaying] = useState<boolean>(false);
+  const [playerMoodColor, setPlayerMoodColor] = useState<string>('#ffffff');
+  const [playerVisible, setPlayerVisible] = useState<boolean>(false);
+  const [showSoundtrackModal, setShowSoundtrackModal] = useState<boolean>(false);
+
+  const handlePlayQueue = (tracks: YouTubeTrack[], moodColor: string, startIndex: number = 0) => {
+    setPlayerQueue(tracks);
+    setPlayerCurrentIndex(startIndex);
+    setPlayerMoodColor(moodColor);
+    setPlayerIsPlaying(true);
+    setPlayerVisible(true);
+  };
+
+  const openLegal = (type: 'privacy' | 'terms') => {
+    const path = type === 'privacy' ? '/privacidad' : '/terminos';
+    window.history.pushState({ legal: type }, '', path);
+    setLegalViewType(type);
+  };
+
+  const closeLegal = () => {
+    // Si la URL es una ruta legal, volvemos a /
+    if (window.location.pathname === '/privacidad' || window.location.pathname === '/terminos') {
+      window.history.replaceState(null, '', '/');
+    }
+    setLegalViewType(null);
+  };
+
+  // Cerrar legal cuando el usuario pulsa el botón atrás del navegador
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/privacidad') {
+        setLegalViewType('privacy');
+      } else if (path === '/terminos') {
+        setLegalViewType('terms');
+      } else {
+        setLegalViewType(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -77,6 +133,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleHashChange = () => {
+      // No tocar las tabs si estamos en una ruta legal
+      if (window.location.pathname === '/privacidad' || window.location.pathname === '/terminos') return;
       const hash = window.location.hash.replace('#', '').toUpperCase();
       if (Object.values(Tab).includes(hash as Tab)) setActiveTab(hash as Tab);
       else setActiveTab(Tab.LOG);
@@ -95,6 +153,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        Sentry.setUser({ id: currentUser.id, email: currentUser.email, username: currentUser.name });
+      } else {
+        Sentry.setUser(null);
+      }
       setIsLoaded(true);
     });
     return () => unsubscribe();
@@ -111,7 +174,10 @@ const App: React.FC = () => {
           const loadedEntries: MoodEntry[] = [];
           querySnapshot.forEach((doc) => { loadedEntries.push(doc.data() as MoodEntry); });
           setEntries(loadedEntries);
-        } catch (e) { console.error("Error fetching data", e); }
+        } catch (e) { 
+          console.error("Error fetching data", e); 
+          Sentry.captureException(e);
+        }
         finally { setIsFetchingData(false); }
       }
     };
@@ -144,6 +210,7 @@ const App: React.FC = () => {
         }
       } catch (err) {
         console.error("Error fetching changelog:", err);
+        Sentry.captureException(err);
       }
     };
     fetchLatestChangelog();
@@ -163,7 +230,10 @@ const App: React.FC = () => {
       const updatedEntry = { ...entry, report };
       await setDoc(doc(db, 'users', user.id, 'entries', newId), updatedEntry);
       setEntries(prev => prev.map(e => e.id === newId ? updatedEntry : e));
-    } catch (err) { console.error("Failed to sync", err); }
+    } catch (err) { 
+      console.error("Failed to sync", err); 
+      Sentry.captureException(err);
+    }
   };
 
   const handleLogout = async () => {
@@ -200,7 +270,7 @@ const App: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-slate-950 text-white flex flex-col selection:bg-purple-500/30 overflow-hidden relative">
       <main className="flex-1 relative overflow-y-auto no-scrollbar scroll-smooth">
-        <div className="min-h-full flex flex-col w-full mx-auto">
+        <div className={`min-h-full flex flex-col w-full mx-auto transition-all duration-300 ${playerVisible ? 'pb-28' : 'pb-0'}`}>
           {activeTab === Tab.LOG && (
             <MoodCanvas 
               userId={user.id}
@@ -216,13 +286,18 @@ const App: React.FC = () => {
             <MoodBuddyHomeView userId={user.id} entries={entries} />
           )}
           {activeTab === Tab.STATS && (
-            <StatsView entries={entries} contextLogs={contextLogs} />
+            <StatsView entries={entries} contextLogs={contextLogs} userId={user.id} />
           )}
           {activeTab === Tab.INSIGHTS && (
             <InsightsView userId={user.id} />
           )}
           {activeTab === Tab.EXPLORE && (
-            <ExploreView lastEntry={lastEntry} />
+            <ExploreView 
+              lastEntry={lastEntry} 
+              userId={user.id}
+              onPlayQueue={handlePlayQueue}
+              onOpenSoundtrack={() => setShowSoundtrackModal(true)}
+            />
           )}
           {activeTab === Tab.PROFILE && (
             <AccountView
@@ -232,7 +307,7 @@ const App: React.FC = () => {
               onEditProfile={() => changeTab(Tab.PROFILE_EDIT)}
               onSupport={() => changeTab(Tab.SUPPORT)}
               onAdmin={user?.email === ADMIN_EMAILS[0] ? () => changeTab(Tab.ADMIN) : undefined}
-              onLegal={(type) => setLegalViewType(type)}
+              onLegal={(type) => openLegal(type)}
               appVersion={appVersion}
             />
           )}
@@ -269,9 +344,34 @@ const App: React.FC = () => {
 
       {showContextChat && user && <ContextChat userId={user.id} onClose={() => setShowContextChat(false)} />}
       {showDeepenPrompt && <DeepenPromptModal onConfirm={() => { setShowDeepenPrompt(false); setShowContextChat(true); }} onSkip={() => { setShowDeepenPrompt(false); changeTab(Tab.STATS); }} />}
-      {legalViewType && <LegalView type={legalViewType} onBack={() => setLegalViewType(null)} />}
+      {legalViewType && <LegalView type={legalViewType} onBack={closeLegal} />}
       <InstallPrompt />
       {latestChangelog && <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />}
+
+      {/* Global Music Player */}
+      {playerVisible && playerQueue.length > 0 && (
+        <MusicPlayer
+          queue={playerQueue}
+          currentIndex={playerCurrentIndex}
+          isPlaying={playerIsPlaying}
+          onStateChange={setPlayerIsPlaying}
+          onTrackChange={setPlayerCurrentIndex}
+          onClose={() => {
+            setPlayerVisible(false);
+            setPlayerIsPlaying(false);
+          }}
+          moodColor={playerMoodColor}
+        />
+      )}
+
+      {/* Soundtrack History Modal */}
+      {showSoundtrackModal && user && (
+        <SoundtrackView
+          userId={user.id}
+          onClose={() => setShowSoundtrackModal(false)}
+          onPlayQueue={handlePlayQueue}
+        />
+      )}
     </div>
   );
 };
