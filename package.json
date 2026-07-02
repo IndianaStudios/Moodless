@@ -3,32 +3,38 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
-  "packageManager": "pnpm@11.1.1",
-
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "vite",
     "dev:api": "npx vercel dev",
+    "dev:emulators": "npx firebase emulators:start",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.37.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.2",
+    "@capgo/capacitor-health": "^8.6.6",
+    "@google/genai": "^2.10.0",
+    "@sentry/react": "^10.62.0",
     "@tailwindcss/vite": "^4.2.4",
     "@upstash/qstash": "^2.9.0",
     "@upstash/redis": "^1.37.0",
     "date-fns": "^4.1.0",
-    "firebase": "^12.8.0",
-    "firebase-admin": "^13.7.0",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.1.0",
     "lucide-react": "0.294.0",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "2.10.3"
   },
   "overrides": {
-    "protobufjs": "7.5.5",
+    "protobufjs": "8.6.5",
     "node-forge": "1.4.0",
-    "uuid": "9.0.1",
+    "uuid": "14.0.1",
     "undici": "^6.6.1",
     "ajv": "8.12.0",
     "fast-xml-parser": "4.5.6",
@@ -36,13 +42,15 @@
     "once": "^1.4.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
     "@types/node": "^22.14.0",
     "@types/nodemailer": "^7.0.11",
     "@vercel/node": "^5.5.23",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.13",
-    "tailwindcss": "^4.2.4",
+    "tailwindcss": "^4.3.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
