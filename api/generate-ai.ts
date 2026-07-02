@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Modelo estable de Groq
+const GROQ_MODEL = 'openai/gpt-oss-120b'; // Modelo estable de Groq
 const OPENROUTER_MODEL_PRIMARY = 'openai/gpt-oss-120b:free';
 const OPENROUTER_MODEL_FALLBACK = 'meta-llama/llama-3.3-70b-instruct:free';
 
