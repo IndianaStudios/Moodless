@@ -146,7 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({ result: text });
     } catch (error: any) {
-        console.error('AI Generation Error:', error);
-        return res.status(500).json({ error: error.message || 'Internal Server Error' });
+        const message = error?.message || String(error) || 'Internal Server Error';
+        console.error('AI Generation Error:', message);
+        return res.status(500).json({ error: message });
     }
 }

@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import admin from 'firebase-admin';
-import { verifyAuth } from './_utils/verifyAuth.js';
+import { verifyAuth, getFirebaseAdmin } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
-import { getFirebaseAdmin } from './_utils/verifyAuth.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 
