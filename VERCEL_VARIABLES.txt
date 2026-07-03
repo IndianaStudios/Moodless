@@ -1,0 +1,150 @@
+=============================================================================
+CONFIGURACIÓN DE VARIABLES DE ENTORNO PARA VERCEL
+=============================================================================
+
+INSTRUCCIONES:
+1. Ve a https://vercel.com/tu-usuario/moodless/settings/environment-variables
+2. Haz clic en "Add New" para cada variable
+3. Copia el NOMBRE y VALOR de abajo
+4. Para las SENSIBLES, MARCA el checkbox "Sensitive"
+5. Para las NO SENSIBLES, NO marques el checkbox
+6. Haz clic en "Save"
+7. Repite para todas las variables
+8. Finalmente, haz clic en "Redeploy" en la pestaña Deployments
+
+=============================================================================
+VARIABLES SENSIBLES (MARCAR CHECKBOX "Sensitive") - 9 variables
+=============================================================================
+
+--- VARIABLE 1 ---
+Nombre: FIREBASE_PROJECT_ID
+Valor: moodless-4you
+Sensible: ✅ SÍ
+
+--- VARIABLE 2 ---
+Nombre: FIREBASE_CLIENT_EMAIL
+Valor: firebase-adminsdk-fbsvc@moodless-4you.iam.gserviceaccount.com
+Sensible: ✅ SÍ
+
+--- VARIABLE 3 ---
+Nombre: FIREBASE_PRIVATE_KEY
+Valor: 
+-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCmpwbWxysjV30B
+77sd1ttSz/fjQ3b5jut/SJcrLkm7PQGbgARVxK4VrgTt/w74IENhEkm2udSVT/FN
+QXGlAoG6EN8LS4THLCqnGH64JlAOMi51NCPT3/qiY1BjB2uhM2jql+sqPTeYslY8
+i/Gojkzq3JL7QvQrC8LxdGn+gp7QLhnRQ8vuoO3eButv1Q/W7GR8fCsvJcbTMCcG
+up73ZuZbvXA70aNTMSm1K9bbIeV6DmPy2LryZAFNHoGEjAXIT0dUj9ZQnN92HCi6
+BEfMKLEinu3QpGTQ3Dq25PRZlfqhuyFjT9tO6YQRs24HN5ps2QRoC1KrQhvNGCTR
+EMwBkRyVAgMBAAECggEAFm3vfTO0Kh8Jy5ts1zDGNwiXh+ZaGm9yYaCu+9hQgxtM
+XpXlv3dnqLJRpoiIBrws5WE1O5saMfhe9TNkLL3AIP9JTbddyQK4QOIKmBVL/AUj
+/JFGays/i+CK/rEOetU0/zHwLDCuDWafNanuHe39CzUhsSCLRUnhdGbjJyaEYmdC
+R4yX3ONBsRDPxlYq5tQyFtfyzeIAMyH7jhCX0B2ZwjELq08M/3dU5hIyk6yjwdJy
+4l/B/X9AF+6cfmPQ2F+vpW0HescJaeFSoWPS0Luf69myBhGuwSoa0E0fPl7uC2tU
+P50B9ZCrlE4e7kjoXWJ5b0pFxSKtDi7NkFpGoiyqhwKBgQDc8l3GJ8tHwDd+ynoB
+9bzlokJbfZ6jIq+crNn2YbHpaML8XN2686ymoJeNDg152+LxLsDGLzrZ7nrcjphS
+APHBQtJOWCK6IFQcAR2dnn53DZALtsKpAZ7BOOEOIuk9IRamyEI9HRjk/F9+mx5A
+Mh8d799z1hzjlw0ydZgfeg2i/wKBgQDBF4bUJby+ngVEalLvby3fYf7ne6Mk/dvB
+VZejs+w5Gx+MZlrFmkt0xlRjorMQT8lMzwRIQUZGqoAMqTSTt4+s5jNICbO1P+Bi
+qyjrQvDWCigQh9wM2NYfjUEbrLjUtgUfI/LbOn04Af4XjLnVGwXcByJVpGNHxY11
+Et/PAq4EawKBgQCiu+iRoJG64Tp+qoc+lk5xHBef52BGa6/IyA8pxz8Q2VZ0Jboy
+jnNlrvawr98BGBGI7pSR5AuGpH3doTFThNqLK7pWddfuGw2YKsIza59d9KFZ31x0
+unrBejFZBiGgIpTadrlC5gGF9tQnHf0j70a3+Asu+E8C2iigN7i5xl3w5QKBgHH+
+E6j2xmC6JV3obyHPPwObdMLv6LaT78JJZ4ZLV++2pX9bhccWeelslLFlgdTlZW+k
+32BQuM5LJeFTmyiBu55VIH0szRz5otxdM4EAOfICePiZXD1xXaeu2nseEtfwxUFH
+Fb563yXLd1gryiGXHHRy+cAZlkruw74T8HDjohwVAoGBANkidbicXJXM8QzSHLJz
+/YW7c/RykDHgJ78qkZVSTJ95OtLwpNyNqkK/osalbs+g86p6zWGQ5EyU/cy+s+HR
+qqMVBj1k1wKAAFGVzWrz/tVa5/SStir8ygAWR1sp/b/NgeaXny1HvPBhyHG09TlB
+Bp7Wy74yLbRftVAam5Pj+qc2
+-----END PRIVATE KEY-----
+Sensible: ✅ SÍ
+
+--- VARIABLE 4 ---
+Nombre: MISTRAL_API_KEY
+Valor: LQJ2Rrt8IRhoKsBUtshguq40zpvQultO
+Sensible: ✅ SÍ
+
+--- VARIABLE 5 ---
+Nombre: YOUTUBE_API_KEY
+Valor: AIzaSyDQh369SbmMGSGyLvE2ZrtWBzKKpHdmCrk
+Sensible: ✅ SÍ
+
+--- VARIABLE 6 ---
+Nombre: UPSTASH_REDIS_REST_URL
+Valor: https://cosmic-tortoise-93890.upstash.io
+Sensible: ✅ SÍ
+
+--- VARIABLE 7 ---
+Nombre: UPSTASH_REDIS_REST_TOKEN
+Valor: gQAAAAAAAW7CAAIncDI2ZTQ0ZGY3OGI4NDY0Mzc3OTA1YWQ4ZGU2NDQxZmY4NnAyOTM4OTA
+Sensible: ✅ SÍ
+
+--- VARIABLE 8 ---
+Nombre: QSTASH_CURRENT_SIGNING_KEY
+Valor: sig_5g2ZhXPhk2ezqHJphS7rYT8SMJiU
+Sensible: ✅ SÍ
+
+--- VARIABLE 9 ---
+Nombre: QSTASH_NEXT_SIGNING_KEY
+Valor: sig_5dhbQWmnhFq5FpRVusRFTYEk8YtP
+Sensible: ✅ SÍ
+
+=============================================================================
+VARIABLES NO SENSIBLES (NO MARCAR CHECKBOX "Sensitive") - 7 variables
+=============================================================================
+
+--- VARIABLE 10 ---
+Nombre: VITE_FIREBASE_API_KEY
+Valor: AIzaSyD8RrlU7DWcpqh4RBWrlyevEPR7HTTqINM
+Sensible: ❌ NO
+
+--- VARIABLE 11 ---
+Nombre: VITE_FIREBASE_AUTH_DOMAIN
+Valor: moodless-4you.firebaseapp.com
+Sensible: ❌ NO
+
+--- VARIABLE 12 ---
+Nombre: VITE_FIREBASE_PROJECT_ID
+Valor: moodless-4you
+Sensible: ❌ NO
+
+--- VARIABLE 13 ---
+Nombre: VITE_FIREBASE_STORAGE_BUCKET
+Valor: moodless-4you.firebasestorage.app
+Sensible: ❌ NO
+
+--- VARIABLE 14 ---
+Nombre: VITE_FIREBASE_MESSAGING_SENDER_ID
+Valor: 85765511157
+Sensible: ❌ NO
+
+--- VARIABLE 15 ---
+Nombre: VITE_FIREBASE_APP_ID
+Valor: 1:85765511157:web:ec7be81b029b0b892df2bc
+Sensible: ❌ NO
+
+--- VARIABLE 16 ---
+Nombre: VITE_RECAPTCHA_SITE_KEY
+Valor: 6LdkjKssAAAAAL2QM_jKOT5HmgDGxeWBULyGQpaz
+Sensible: ❌ NO
+
+=============================================================================
+NOTAS IMPORTANTES:
+=============================================================================
+
+1. Las variables con prefijo VITE_ son para el FRONTEND (Vite). 
+   Si las marcas como sensibles, el navegador NO podrá acceder a ellas.
+
+2. Las variables SIN prefijo son para el BACKEND (API routes).
+   Estas DEBEN ser sensibles porque contienen claves privadas.
+
+3. La FIREBASE_PRIVATE_KEY debe copiarse EXACTAMENTE como está arriba,
+   incluyendo todos los saltos de línea y sin espacios extra.
+
+4. Después de agregar todas las variables, haz clic en "Redeploy" para que
+   los cambios surtan efecto.
+
+5. Si usas extensiones como Bitdefender Traffic Light, desactívalas
+   porque pueden bloquear peticiones y dar el error "Search engine null".
+
+=============================================================================
