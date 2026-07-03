@@ -2,45 +2,23 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 
-const GROQ_MODEL = 'openai/gpt-oss-120b'; // Modelo estable de Groq
-const OPENROUTER_MODEL_PRIMARY = 'openai/gpt-oss-120b:free';
-const OPENROUTER_MODEL_FALLBACK = 'meta-llama/llama-3.3-70b-instruct:free';
+// Modelos de Mistral AI - ordenados por prioridad
+// mistral-medium-2505 tiene 375,000 tokens/minuto (el mejor para tu caso)
+const MISTRAL_MODEL_PRIMARY = 'mistral-medium-2505';
+const MISTRAL_MODEL_FALLBACK = 'mistral-medium-2508';
+const MISTRAL_MODEL_LAST_RESORT = 'mistral-small';
 
 const SYSTEM_PROMPT = 'Eres un asistente creativo para una app de bienestar emocional llamada Moodless. Responde siempre en español.';
 
-async function callGroq(prompt: string, jsonMode: boolean): Promise<string> {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error('GROQ_API_KEY not set in Vercel environment variables');
+// Configuración de tokens según el modo
+const MAX_TOKENS_JSON = 1500;
+const MAX_TOKENS_TEXT = 2500;
 
-    const body: any = {
-        model: GROQ_MODEL,
-        messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 4000,
-    };
-    if (jsonMode) body.response_format = { type: 'json_object' };
+async function callMistral(prompt: string, jsonMode: boolean, model: string): Promise<string> {
+    const apiKey = process.env.MISTRAL_API_KEY;
+    if (!apiKey) throw new Error('MISTRAL_API_KEY not set in Vercel environment variables');
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(`Groq ${response.status}: ${err?.error?.message || JSON.stringify(err)}`);
-    }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
-}
-
-async function callOpenRouter(prompt: string, jsonMode: boolean, origin: string, model: string): Promise<string> {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new Error('OPENROUTER_API_KEY not set in Vercel environment variables');
+    const maxTokens = jsonMode ? MAX_TOKENS_JSON : MAX_TOKENS_TEXT;
 
     const body: any = {
         model,
@@ -49,26 +27,27 @@ async function callOpenRouter(prompt: string, jsonMode: boolean, origin: string,
             { role: 'user', content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 4000,
+        max_tokens: maxTokens,
     };
     if (jsonMode) body.response_format = { type: 'json_object' };
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': origin || 'https://moodless.vercel.app',
-            'X-Title': 'Moodless',
+        headers: { 
+            'Authorization': `Bearer ${apiKey}`, 
+            'Content-Type': 'application/json', 
         },
         body: JSON.stringify(body),
     });
 
-    if (response.status === 429) throw new Error(`OpenRouter 429 rate limit (model: ${model})`);
+    if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after');
+        throw new Error(`Mistral 429 rate limit (model: ${model}). Retry after: ${retryAfter || 'unknown'}s`);
+    }
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`OpenRouter ${response.status} (model: ${model}): ${err?.error?.message || JSON.stringify(err)}`);
+        throw new Error(`Mistral ${response.status} (model: ${model}): ${err?.error?.message || JSON.stringify(err)}`);
     }
 
     const data = await response.json();
@@ -107,51 +86,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(429).json({ error: 'Límite de peticiones de IA por hora superado. Vuelve más tarde.' });
     }
 
-    // 4. Comprobar que hay al menos un proveedor configurado
-    const hasGroq = !!process.env.GROQ_API_KEY;
-    const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
-    if (!hasGroq && !hasOpenRouter) {
-        console.error('[generate-ai] No AI provider keys configured on server');
+    // 4. Comprobar que Mistral API Key está configurada
+    const hasMistral = !!process.env.MISTRAL_API_KEY;
+    if (!hasMistral) {
+        console.error('[generate-ai] No Mistral API key configured on server');
         return res.status(503).json({
-            error: 'Servicio de IA no configurado. Faltan GROQ_API_KEY y OPENROUTER_API_KEY en Vercel.',
+            error: 'Servicio de IA no configurado. Falta MISTRAL_API_KEY en Vercel.',
         });
     }
 
-    // 5. Llamada a IA con fallbacks
-    const origin = (req.headers.origin as string) || '';
+    // 5. Llamada a Mistral AI con fallbacks a modelos más pequeños
     const errors: string[] = [];
 
-    if (hasGroq) {
-        try {
-            const text = await callGroq(prompt, !!jsonMode);
-            return res.status(200).json({ result: text });
-        } catch (e: any) {
-            errors.push(`Groq: ${e.message}`);
-            console.warn('[generate-ai] Groq failed:', e.message);
-        }
+    // Intento 1: mistral-medium (modelo principal)
+    try {
+        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_PRIMARY);
+        return res.status(200).json({ result: text });
+    } catch (e: any) {
+        errors.push(`Mistral (${MISTRAL_MODEL_PRIMARY}): ${e.message}`);
+        console.warn('[generate-ai] Mistral medium failed:', e.message);
     }
 
-    if (hasOpenRouter) {
-        await new Promise(r => setTimeout(r, 300));
-        try {
-            const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_PRIMARY);
-            return res.status(200).json({ result: text });
-        } catch (e: any) {
-            errors.push(`OpenRouter primary: ${e.message}`);
-            console.warn('[generate-ai] OpenRouter primary failed:', e.message);
-        }
+    // Esperar antes del fallback
+    await new Promise(r => setTimeout(r, 500));
 
-        await new Promise(r => setTimeout(r, 300));
-        try {
-            const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_FALLBACK);
-            return res.status(200).json({ result: text });
-        } catch (e: any) {
-            errors.push(`OpenRouter fallback: ${e.message}`);
-            console.warn('[generate-ai] OpenRouter fallback failed:', e.message);
-        }
+    // Intento 2: mistral-small (fallback económico)
+    try {
+        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_FALLBACK);
+        return res.status(200).json({ result: text });
+    } catch (e: any) {
+        errors.push(`Mistral (${MISTRAL_MODEL_FALLBACK}): ${e.message}`);
+        console.warn('[generate-ai] Mistral small failed:', e.message);
     }
 
-    const finalError = errors.length > 0 ? errors.join(' | ') : 'All AI providers failed';
+    // Esperar antes del último intento
+    await new Promise(r => setTimeout(r, 500));
+
+    // Intento 3: mistral-tiny (último recurso)
+    try {
+        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_LAST_RESORT);
+        return res.status(200).json({ result: text });
+    } catch (e: any) {
+        errors.push(`Mistral (${MISTRAL_MODEL_LAST_RESORT}): ${e.message}`);
+        console.warn('[generate-ai] Mistral tiny failed:', e.message);
+    }
+
+    const finalError = errors.length > 0 ? errors.join(' | ') : 'All Mistral models failed';
     console.error('[generate-ai] All providers failed:', finalError);
     return res.status(500).json({ error: finalError });
 }
