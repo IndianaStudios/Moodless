@@ -80,18 +80,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // 1. Autenticación — capturamos excepciones por si Firebase Admin falla al inicializar
-    let user: any;
-    try {
-        user = await verifyAuth(req);
-    } catch (authError: any) {
-        const msg = authError?.message || String(authError);
-        console.error('[generate-ai] verifyAuth exception:', msg);
-        return res.status(500).json({ error: `Auth init failed: ${msg}` });
-    }
-
+    // 1. Autenticación
+    const user = await verifyAuth(req);
     if (!user || 'error' in user) {
-        return res.status(401).json({ error: 'Unauthorized', details: (user as any)?.error });
+        // Si el error es de inicialización de Firebase Admin, devolver 500
+        const errorMsg = (user as any)?.error || 'Unauthorized';
+        if (errorMsg.includes('Firebase Admin init failed') || errorMsg.includes('Faltan variables en el servidor')) {
+            console.error('[generate-ai] Firebase Admin init failed:', errorMsg);
+            return res.status(500).json({ error: errorMsg });
+        }
+        return res.status(401).json({ error: 'Unauthorized', details: errorMsg });
     }
 
     // 2. Validar body
