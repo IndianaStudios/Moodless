@@ -3,7 +3,6 @@ import { verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 
 // Modelos de Mistral AI - ordenados por prioridad
-// mistral-medium-2505 tiene 375,000 tokens/minuto (el mejor para tu caso)
 const MISTRAL_MODEL_PRIMARY = 'mistral-medium-2505';
 const MISTRAL_MODEL_FALLBACK = 'mistral-medium-2508';
 const MISTRAL_MODEL_LAST_RESORT = 'mistral-small';
@@ -16,7 +15,7 @@ const MAX_TOKENS_TEXT = 2500;
 
 async function callMistral(prompt: string, jsonMode: boolean, model: string): Promise<string> {
     const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) throw new Error('MISTRAL_API_KEY not set in Vercel environment variables');
+    if (!apiKey) throw new Error('MISTRAL_API_KEY not configured');
 
     const maxTokens = jsonMode ? MAX_TOKENS_JSON : MAX_TOKENS_TEXT;
 
@@ -33,9 +32,9 @@ async function callMistral(prompt: string, jsonMode: boolean, model: string): Pr
 
     const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
         method: 'POST',
-        headers: { 
-            'Authorization': `Bearer ${apiKey}`, 
-            'Content-Type': 'application/json', 
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
     });
@@ -59,10 +58,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // 1. Autenticación
+    // Verificar autenticación
     const user = await verifyAuth(req);
     if (!user || 'error' in user) {
-        // Si el error es de inicialización de Firebase Admin, devolver 500
         const errorMsg = (user as any)?.error || 'Unauthorized';
         if (errorMsg.includes('Firebase Admin init failed') || errorMsg.includes('Faltan variables en el servidor')) {
             console.error('[generate-ai] Firebase Admin init failed:', errorMsg);
@@ -71,22 +69,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Unauthorized', details: errorMsg });
     }
 
-    // 2. Validar body
+    // Validar body
     const { prompt, jsonMode } = req.body || {};
     if (!prompt || typeof prompt !== 'string') {
-        return res.status(400).json({ error: 'prompt is required (string)' });
-    }
-    if (prompt.length > 30000) {
-        return res.status(400).json({ error: 'Prompt too long (max 30000 chars)' });
+        return res.status(400).json({ error: 'Prompt is required and must be a string' });
     }
 
-    // 3. Rate limit
+    if (prompt.length > 30000) {
+        return res.status(400).json({ error: 'Prompt is too long (limit: 30000 characters)' });
+    }
+
+    // Aplicar Rate Limit
     const isAllowed = await checkRateLimit(`ai:${user.uid}`, 100, 3600);
     if (!isAllowed) {
-        return res.status(429).json({ error: 'Límite de peticiones de IA por hora superado. Vuelve más tarde.' });
+        return res.status(429).json({ error: 'Too Many Requests. Has superado tu límite de peticiones de IA por hora. Vuelve a intentarlo en un rato.' });
     }
 
-    // 4. Comprobar que Mistral API Key está configurada
+    // Comprobar que Mistral API Key está configurada
     const hasMistral = !!process.env.MISTRAL_API_KEY;
     if (!hasMistral) {
         console.error('[generate-ai] No Mistral API key configured on server');
@@ -95,44 +94,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     }
 
-    // 5. Llamada a Mistral AI con fallbacks a modelos más pequeños
     const errors: string[] = [];
 
-    // Intento 1: mistral-medium (modelo principal)
     try {
-        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_PRIMARY);
+        const origin = req.headers.origin || '';
+
+        let text = '';
+
+        // Intento 1: Modelo primario (mistral-medium-2505)
+        try {
+            text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_PRIMARY);
+        } catch (primaryError: any) {
+            errors.push(`Mistral (${MISTRAL_MODEL_PRIMARY}): ${primaryError.message}`);
+            console.warn('[generate-ai] Mistral primary failed:', primaryError.message);
+
+            // Esperar antes del fallback
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Intento 2: Modelo fallback (mistral-medium-2508)
+            try {
+                text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_FALLBACK);
+            } catch (fallbackError: any) {
+                errors.push(`Mistral (${MISTRAL_MODEL_FALLBACK}): ${fallbackError.message}`);
+                console.warn('[generate-ai] Mistral fallback failed:', fallbackError.message);
+
+                // Esperar antes del último intento
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Intento 3: Último recurso (mistral-small)
+                try {
+                    text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_LAST_RESORT);
+                } catch (lastResortError: any) {
+                    errors.push(`Mistral (${MISTRAL_MODEL_LAST_RESORT}): ${lastResortError.message}`);
+                    console.warn('[generate-ai] Mistral last resort failed:', lastResortError.message);
+                    throw new Error('All Mistral models failed');
+                }
+            }
+        }
+
         return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`Mistral (${MISTRAL_MODEL_PRIMARY}): ${e.message}`);
-        console.warn('[generate-ai] Mistral medium failed:', e.message);
+    } catch (error: any) {
+        const finalError = errors.length > 0 ? errors.join(' | ') : error.message || 'Internal Server Error';
+        console.error('[generate-ai] All providers failed:', finalError);
+        return res.status(500).json({ error: finalError });
     }
-
-    // Esperar antes del fallback
-    await new Promise(r => setTimeout(r, 500));
-
-    // Intento 2: mistral-small (fallback económico)
-    try {
-        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_FALLBACK);
-        return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`Mistral (${MISTRAL_MODEL_FALLBACK}): ${e.message}`);
-        console.warn('[generate-ai] Mistral small failed:', e.message);
-    }
-
-    // Esperar antes del último intento
-    await new Promise(r => setTimeout(r, 500));
-
-    // Intento 3: mistral-tiny (último recurso)
-    try {
-        const text = await callMistral(prompt, !!jsonMode, MISTRAL_MODEL_LAST_RESORT);
-        return res.status(200).json({ result: text });
-    } catch (e: any) {
-        errors.push(`Mistral (${MISTRAL_MODEL_LAST_RESORT}): ${e.message}`);
-        console.warn('[generate-ai] Mistral tiny failed:', e.message);
-    }
-
-    const finalError = errors.length > 0 ? errors.join(' | ') : 'All Mistral models failed';
-    console.error('[generate-ai] All providers failed:', finalError);
-    return res.status(500).json({ error: finalError });
 }
 
