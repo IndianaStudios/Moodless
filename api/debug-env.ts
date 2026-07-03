@@ -16,11 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'FIREBASE_PROJECT_ID',
         'FIREBASE_CLIENT_EMAIL',
         'FIREBASE_PRIVATE_KEY',
-        'GROQ_API_KEY',
-        'OPENROUTER_API_KEY',
+        'MISTRAL_API_KEY',
         'YOUTUBE_API_KEY',
         'UPSTASH_REDIS_REST_URL',
         'UPSTASH_REDIS_REST_TOKEN',
+        'QSTASH_CURRENT_SIGNING_KEY',
+        'QSTASH_NEXT_SIGNING_KEY',
     ];
 
     const result: Record<string, boolean> = {};
