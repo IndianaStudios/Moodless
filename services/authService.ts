@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -51,7 +50,6 @@ export const authService = {
       };
     } catch (error) {
       console.error("Signup error details:", error);
-      Sentry.captureException(error);
       throw error;
     }
   },
@@ -66,7 +64,6 @@ export const authService = {
       };
     } catch (error) {
       console.error("Login error details:", error);
-      Sentry.captureException(error);
       throw error;
     }
   },
@@ -84,7 +81,6 @@ export const authService = {
       };
     } catch (error: any) {
       console.error("Google login popup error, attempting redirect...", error);
-      Sentry.captureException(error);
       // Fallback a redirect method si el navegador bloquea el popup o iframe (común en Brave)
       if (
         error.code === 'auth/internal-error' ||
@@ -162,7 +158,6 @@ export const authService = {
       await updateDoc(userRef, { lastSeenChangelog: timestamp });
     } catch (error) {
       console.error("Error updating lastSeenChangelog:", error);
-      Sentry.captureException(error);
     }
   },
 

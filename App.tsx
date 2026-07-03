@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import * as Sentry from "@sentry/react";
 import { Calendar, BarChart2, Plus, User as UserIcon, Compass, Loader2, Sparkles, Heart } from 'lucide-react';
 import { MoodEntry } from './types';
 import MoodCanvas from './components/MoodCanvas';
@@ -153,11 +152,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = authService.onAuthChange((currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        Sentry.setUser({ id: currentUser.id, email: currentUser.email, username: currentUser.name });
-      } else {
-        Sentry.setUser(null);
-      }
       setIsLoaded(true);
     });
     return () => unsubscribe();
@@ -175,8 +169,7 @@ const App: React.FC = () => {
           querySnapshot.forEach((doc) => { loadedEntries.push(doc.data() as MoodEntry); });
           setEntries(loadedEntries);
         } catch (e) { 
-          console.error("Error fetching data", e); 
-          Sentry.captureException(e);
+          console.error("Error fetching data", e);
         }
         finally { setIsFetchingData(false); }
       }
@@ -210,7 +203,6 @@ const App: React.FC = () => {
         }
       } catch (err) {
         console.error("Error fetching changelog:", err);
-        Sentry.captureException(err);
       }
     };
     fetchLatestChangelog();
@@ -231,8 +223,7 @@ const App: React.FC = () => {
       await setDoc(doc(db, 'users', user.id, 'entries', newId), updatedEntry);
       setEntries(prev => prev.map(e => e.id === newId ? updatedEntry : e));
     } catch (err) { 
-      console.error("Failed to sync", err); 
-      Sentry.captureException(err);
+      console.error("Failed to sync", err);
     }
   };
 

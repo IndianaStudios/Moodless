@@ -17,7 +17,6 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/status-bar": "^8.0.2",
     "@capgo/capacitor-health": "^8.6.6",
-    "@sentry/react": "^10.62.0",
     "@tailwindcss/vite": "^4.2.4",
     "@upstash/qstash": "^2.9.0",
     "@upstash/redis": "^1.37.0",
