@@ -133,9 +133,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
     }
 
-    await new Promise(r => setTimeout(r, 300));
-
     if (hasOpenRouter) {
+        await new Promise(r => setTimeout(r, 300));
         try {
             const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_PRIMARY);
             return res.status(200).json({ result: text });
@@ -145,7 +144,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         await new Promise(r => setTimeout(r, 300));
-
         try {
             const text = await callOpenRouter(prompt, !!jsonMode, origin, OPENROUTER_MODEL_FALLBACK);
             return res.status(200).json({ result: text });
@@ -155,7 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
     }
 
-    const finalError = errors.join(' | ');
+    const finalError = errors.length > 0 ? errors.join(' | ') : 'All AI providers failed';
     console.error('[generate-ai] All providers failed:', finalError);
     return res.status(500).json({ error: finalError });
 }
