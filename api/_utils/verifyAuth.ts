@@ -49,7 +49,7 @@ export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; ema
         try {
             adminApp = getFirebaseAdmin();
         } catch (initError: any) {
-            console.error('Firebase Admin init failed:', initError?.message);
+            console.error('[verifyAuth] Firebase Admin init failed:', initError?.message);
             return { error: `Firebase Admin init failed: ${initError?.message}` };
         }
 
