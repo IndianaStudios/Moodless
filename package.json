@@ -13,21 +13,21 @@
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
-    "@capacitor/core": "^8.4.0",
+    "@capacitor/core": "^8.4.1",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/status-bar": "^8.0.2",
-    "@capgo/capacitor-health": "^8.6.6",
-    "@tailwindcss/vite": "^4.2.4",
-    "@upstash/qstash": "^2.9.0",
-    "@upstash/redis": "^1.37.0",
-    "@vercel/node": "^5.5.23",
-    "date-fns": "^4.1.0",
+    "@capgo/capacitor-health": "^8.9.0",
+    "@tailwindcss/vite": "^4.3.2",
+    "@upstash/qstash": "^2.11.1",
+    "@upstash/redis": "^1.38.0",
+    "@vercel/node": "^5.8.22",
+    "date-fns": "^4.4.0",
     "firebase": "^12.15.0",
-    "firebase-admin": "^14.1.0",
+    "firebase-admin": "^13.10.0",
     "lucide-react": "1.23.0",
-    "nodemailer": "^9.0.1",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
+    "nodemailer": "^9.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "recharts": "2.10.3"
   },
   "overrides": {
@@ -41,15 +41,15 @@
     "once": "^1.4.0"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/cli": "^8.4.0",
-    "@types/node": "^22.14.0",
-    "@types/nodemailer": "^7.0.11",
-    "@vitejs/plugin-react": "^5.0.0",
-    "autoprefixer": "^10.5.0",
-    "postcss": "^8.5.13",
-    "tailwindcss": "^4.3.1",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@types/node": "^22.20.0",
+    "@types/nodemailer": "^7.0.12",
+    "@vitejs/plugin-react": "^5.2.0",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^4.3.2",
+    "typescript": "~5.8.3",
+    "vite": "^6.4.3"
   }
 }
