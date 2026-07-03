@@ -1,9 +1,0 @@
-Vercel CLI 54.18.7 (Node.js 24.13.1)
-Retrieving project…
-> Downloading `production` environment variables for indianas-projects-729b5275/moodless
-Downloading
-
-✓ Created         .vercel\.env.production.local file
-
-> Downloading project settings
-Downloaded project settings to ~\Downloads\moodless---diario-visual\.vercel\project.json [0ms]
