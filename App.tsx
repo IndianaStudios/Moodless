@@ -66,6 +66,18 @@ const App: React.FC = () => {
     return null;
   });
 
+  // Actualizar título de la página cuando cambie el tipo de vista legal
+  useEffect(() => {
+    const baseTitle = 'Moodless';
+    if (legalViewType === 'privacy') {
+      document.title = `Política de Privacidad | ${baseTitle}`;
+    } else if (legalViewType === 'terms') {
+      document.title = `Términos y Condiciones | ${baseTitle}`;
+    } else {
+      document.title = `${baseTitle} — Diario Emocional Visual con IA | Registra tu Estado de Ánimo`;
+    }
+  }, [legalViewType]);
+
   // Global Music Player State
   const [playerQueue, setPlayerQueue] = useState<YouTubeTrack[]>([]);
   const [playerCurrentIndex, setPlayerCurrentIndex] = useState<number>(0);
