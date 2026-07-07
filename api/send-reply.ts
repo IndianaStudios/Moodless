@@ -102,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html: buildReplyHtml(
         escapeHtml(userName || 'usuario'),
         escapeHtml(ticketId || 'N/A'),
-        status,
+        escapeHtml(status),
         escapeHtml(adminMessage),
         escapeHtml(originalMessage || '')
       ),

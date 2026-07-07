@@ -21,14 +21,14 @@ Si marcas una variable `VITE_*` como sensible, **el frontend NO podrá acceder a
 | Nombre | Valor | ¿Sensible? |
 |--------|-------|------------|
 | `FIREBASE_PROJECT_ID` | `moodless-4you` | ✅ **Sí** |
-| `FIREBASE_CLIENT_EMAIL` | `firebase-adminsdk-fbsvc@moodless-4you.iam.gserviceaccount.com` | ✅ **Sí** |
-| `FIREBASE_PRIVATE_KEY` | (copia todo el bloque de la clave privada) | ✅ **Sí** |
-| `MISTRAL_API_KEY` | `LQJ2Rrt8IRhoKsBUtshguq40zpvQultO` | ✅ **Sí** |
-| `YOUTUBE_API_KEY` | `AIzaSyDQh369SbmMGSGyLvE2ZrtWBzKKpHdmCrk` | ✅ **Sí** |
-| `UPSTASH_REDIS_REST_URL` | `https://cosmic-tortoise-93890.upstash.io` | ✅ **Sí** |
-| `UPSTASH_REDIS_REST_TOKEN` | `gQAAAAAAAW7CAAIncDI2ZTQ0ZGY3OGI4NDY0Mzc3OTA1YWQ4ZGU2NDQxZmY4NnAyOTM4OTA` | ✅ **Sí** |
-| `QSTASH_CURRENT_SIGNING_KEY` | `sig_5g2ZhXPhk2ezqHJphS7rYT8SMJiU` | ✅ **Sí** |
-| `QSTASH_NEXT_SIGNING_KEY` | `sig_5dhbQWmnhFq5FpRVusRFTYEk8YtP` | ✅ **Sí** |
+| `FIREBASE_CLIENT_EMAIL` | `[REDACTED_EMAIL]` | ✅ **Sí** |
+| `FIREBASE_PRIVATE_KEY` | `[REDACTED_PRIVATE_KEY]` | ✅ **Sí** |
+| `MISTRAL_API_KEY` | `[REDACTED_MISTRAL_KEY]` | ✅ **Sí** |
+| `YOUTUBE_API_KEY` | `[REDACTED_YOUTUBE_KEY]` | ✅ **Sí** |
+| `UPSTASH_REDIS_REST_URL` | `[REDACTED_UPSTASH_URL]` | ✅ **Sí** |
+| `UPSTASH_REDIS_REST_TOKEN` | `[REDACTED_UPSTASH_TOKEN]` | ✅ **Sí** |
+| `QSTASH_CURRENT_SIGNING_KEY` | `[REDACTED_QSTASH_KEY1]` | ✅ **Sí** |
+| `QSTASH_NEXT_SIGNING_KEY` | `[REDACTED_QSTASH_KEY2]` | ✅ **Sí** |
 
 ### 🟢 VARIABLES NO SENSIBLES (NO marques "Sensitive") - FRONTEND
 
