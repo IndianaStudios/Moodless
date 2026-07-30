@@ -120,7 +120,7 @@ const App: React.FC = () => {
   const [showContextChat, setShowContextChat] = useState(false);
   const [showDeepenPrompt, setShowDeepenPrompt] = useState(false);
   const [contextLogs, setContextLogs] = useState<any[]>([]);
-  const [appVersion, setAppVersion] = useState('v2.0.0');
+  const [appVersion, setAppVersion] = useState('v3.0.0');
   const [playerQueue, setPlayerQueue] = useState<YouTubeTrack[]>([]);
   const [playerCurrentIndex, setPlayerCurrentIndex] = useState<number>(0);
   const [playerIsPlaying, setPlayerIsPlaying] = useState<boolean>(false);
