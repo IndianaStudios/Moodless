@@ -1,42 +1,25 @@
-import React, { useEffect } from 'react';
-import { Shield, FileText, ArrowLeft } from 'lucide-react';
+import React from 'react';
+import { Shield, FileText, Cookie } from 'lucide-react';
+import PublicPageLayout from './PublicPageLayout';
+import Reveal from './Reveal';
 
 interface LegalViewProps {
-  type: 'privacy' | 'terms';
+  type: 'privacy' | 'terms' | 'cookies';
   onBack: () => void;
 }
 
 const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
-
   const isPrivacy = type === 'privacy';
+  const isTerms = type === 'terms';
+  const page = isPrivacy
+    ? { eyebrow: 'TU INFORMACIÓN, TU CONTROL', title: 'Política de Privacidad', description: 'Cómo cuidamos la información que decides compartir con Moodless.', icon: <Shield size={22} />, pageTitle: 'Política de Privacidad' }
+    : isTerms
+      ? { eyebrow: 'CLARIDAD DESDE EL PRINCIPIO', title: 'Términos y Condiciones', description: 'Las condiciones que hacen posible un espacio seguro y respetuoso para todos.', icon: <FileText size={22} />, pageTitle: 'Términos y Condiciones' }
+      : { eyebrow: 'TRANSPARENCIA ESENCIAL', title: 'Política de Cookies', description: 'La información sobre las tecnologías técnicas necesarias para que Moodless funcione.', icon: <Cookie size={22} />, pageTitle: 'Política de Cookies' };
 
   return (
-    <div className="fixed inset-0 flex flex-col h-screen bg-slate-950 text-white overflow-y-auto overflow-x-hidden custom-scrollbar scroll-smooth z-[600]">
-      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
- 
-      <header className="w-full flex justify-between items-center p-6 border-b border-white/5 sticky top-0 bg-slate-950/80 backdrop-blur-xl z-50">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors group"
-        >
-          <ArrowLeft className="group-hover:-translate-x-1 transition-transform" size={20} />
-          <span className="text-sm font-bold uppercase tracking-widest hidden sm:inline">Volver</span>
-        </button>
-        <div className="flex items-center gap-2">
-          {isPrivacy ? <Shield className="text-purple-400" size={24} /> : <FileText className="text-blue-400" size={24} />}
-          <span className="font-black text-xl tracking-tighter">
-            {isPrivacy ? 'Privacidad' : 'Términos y Condiciones'}
-          </span>
-        </div>
-        <div className="w-24" /> {/* Spacer */}
-      </header>
- 
-      <main className="flex-1 w-full px-6 py-12">
-        <article className="max-w-3xl mx-auto prose prose-invert prose-p:text-slate-400 prose-headings:text-white prose-a:text-purple-400 marker:text-purple-400 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <PublicPageLayout {...page} onBack={onBack}>
+      <Reveal as="article" className="legal-copy mx-auto max-w-3xl text-[15px] leading-7 text-white/55">
           
           {isPrivacy ? (
             <>
@@ -46,7 +29,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <p>En cumplimiento con el <strong>Reglamento (UE) 2016/679 (RGPD)</strong>, creemos que tus emociones son solo tuyas. Esta Política describe de manera transparente cómo manejamos tu información personal.</p>
               
               <h2>1. Identidad del Responsable del Tratamiento</h2>
-              <p>El responsable legal del tratamiento de los datos es la persona física <strong>Indiana Sainz Palacios</strong>. Puedes contactar conmigo mediante el correo electrónico: <strong>moodless@gmail.com</strong>.</p>
+              <p>El responsable legal del tratamiento de los datos es la persona física <strong>Indiana Sainz Palacios</strong>. Puedes contactar conmigo mediante el correo electrónico: <strong>moodlessapp@gmail.com</strong>.</p>
               
               <h2>2. Finalidad y Base Legitimadora</h2>
               <p>Solo procesamos tus datos para ofrecerte el servicio de la aplicación: registrar diarios, mostrar estadísticas y recomendar juegos terapéuticos en pantalla. La base legal bajo la cual procesamos estos datos, incluyendo las anotaciones sobre de tu estado emocional (datos considerados sensibles), es tu <strong>consentimiento explícito</strong> al aceptar esta normativa durante el registro de tu cuenta.</p>
@@ -58,14 +41,14 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <p>Informamos que la aplicación utiliza rutinas e interfaces de programación (APIs) algorítmicas que analizan automáticamente la tendencia de tus anotaciones de estados de ánimo. Este perfilado se emplea <strong>únicamente</strong> como herramienta de auto-reflexión in-app (generando breves insights generativos) y no produce efectos jurídicos, médicos, ni de mercadotecnia en tu contra.</p>
               
               <h2>5. Transferencias Internacionales a Terceros</h2>
-              <p>La base de datos en la nube que utilizamos está alojada en servidores de Google (Firebase) ubicados en <strong>Madrid, España (europe-southwest1)</strong>, cumpliendo con las pautas de residencia de datos europea. Sin embargo, para poder generar respuestas terapéuticas y analizar tu contexto mediante Inteligencia Artificial ("Psicólogo IA" y "Chat de Contexto"), los textos efímeros de tus entradas diarias y chats pueden viajar a servidores de nuestros proveedores <strong>Groq y OpenRouter</strong> ubicados fuera del Espacio Económico Europeo (EE.UU). Estas transferencias se realizan bajo el amparo del <strong>Marco de Privacidad de Datos UE‑EE.UU. (EU‑U.S. Data Privacy Framework)</strong> o, en su defecto, mediante la adhesión a <strong>Cláusulas Contractuales Tipo</strong> de la Comisión Europea, garantizando un nivel de protección equivalente al del RGPD.</p>
+              <p>La base de datos en la nube que utilizamos está alojada en servidores de Google (Firebase) ubicados en <strong>Madrid, España (europe-southwest1)</strong>, cumpliendo con las pautas de residencia de datos europea. Sin embargo, para poder generar respuestas terapéuticas y analizar tu contexto mediante Inteligencia Artificial ("Psicólogo IA" y "Chat de Contexto"), los textos efímeros de tus entradas diarias y chats pueden viajar a servidores de nuestros proveedores <strong>Google (Gemini), Mistral AI y Groq</strong> ubicados fuera del Espacio Económico Europeo (EE.UU.). Estas transferencias se realizan bajo el amparo del <strong>Marco de Privacidad de Datos UE‑EE.UU. (EU‑U.S. Data Privacy Framework)</strong> o, en su defecto, mediante la adhesión a <strong>Cláusulas Contractuales Tipo</strong> de la Comisión Europea, garantizando un nivel de protección equivalente al del RGPD.</p>
               <p>Aparte del análisis efímero mediante Inteligencia artificial, <strong>nunca vendemos ni cedemos tu base de datos a anunciantes u organismos de analítica de marketing comercial.</strong></p>
 
               <h2>6. Procesadores y Subprocesadores</h2>
               <p>Utilizamos los siguientes proveedores externos como encargados de tratamiento estrictamente para las funciones descritas:</p>
               <ul>
                 <li><strong>Google Firebase:</strong> Hosting de infraestructura, autenticación y base de datos (Datos en reposo en región EU).</li>
-                <li><strong>Groq / OpenRouter:</strong> Procesamiento de inferencia de IA para el análisis emocional y extracción de contexto (Acceso efímero sin retención de datos para entrenamiento).</li>
+                <li><strong>Google (Gemini) / Mistral AI / Groq:</strong> Procesamiento de inferencia de IA para el análisis emocional y extracción de contexto (Acceso efímero sin retención de datos para entrenamiento).</li>
               </ul>
 
               <h2>7. Datos Recopilados en el Chat de Contexto</h2>
@@ -95,7 +78,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <h2>13. Autoridad de Control</h2>
               <p>Tienes en todo momento el derecho a presentar una reclamación sobre el tratamiento que realizamos de tus datos en la <strong>Agencia Española de Protección de Datos (AEPD)</strong> (www.aepd.es), autoridad competente y supervisora en la materia.</p>
             </>
-          ) : (
+          ) : isTerms ? (
             <>
               <h1>Términos y Condiciones del Servicio</h1>
               <p><em>Última actualización: Mayo de 2026 (v2.0.0)</em></p>
@@ -103,7 +86,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <p>Al utilizar <strong>Moodless</strong>, aceptas someterte legalmente a estos Términos y Condiciones. La aceptación se realiza de forma expresa mediante el marcado de la casilla de verificación obligatoria durante el proceso de registro ("clickwrap"). Por favor, léelos detenidamente junto a nuestra <strong>Política de Privacidad</strong> antes de comenzar tu viaje emocional con nosotros.</p>
               
               <h2>1. Identificación del Proveedor</h2>
-              <p>El servicio Moodless es provisto por la persona física <strong>Indiana Sainz Palacios</strong>. Puedes contactar conmigo para cualquier duda legal o técnica en el correo electrónico: <strong>moodless@gmail.com</strong>.</p>
+              <p>El servicio Moodless es provisto por la persona física <strong>Indiana Sainz Palacios</strong>. Puedes contactar conmigo para cualquier duda legal o técnica en el correo electrónico: <strong>moodlessapp@gmail.com</strong>.</p>
 
               <h2>2. Descripción del Servicio</h2>
               <p>Moodless es una plataforma digital diseñada para la <strong>auto-reflexión y el bienestar emocional</strong>. Ofrecemos herramientas de diario personal, visualización de estados de ánimo mediante juegos dinámicos ("Canvas Games") y análisis reflexivo potenciado por Inteligencia Artificial.</p>
@@ -123,10 +106,10 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <p>Para la persistencia de datos en la nube, es necesaria la creación de una cuenta. Eres el único responsable de la custodia de tus credenciales de acceso. Moodless no se hace responsable de las pérdidas de datos o accesos no autorizados derivados de una gestión negligente de la seguridad por parte del usuario en sus dispositivos personales.</p>
 
               <h2>6. Inteligencia Artificial y Contenidos Generativos</h2>
-              <p>Las reflexiones y análisis emocionales son generados mediante modelos de lenguaje externos (Groq / OpenRouter). Aceptas que estos contenidos son automáticos y deben ser tomados como meras herramientas de apoyo para la introspección personal, no como verdades clínicas o asesoramiento profesional.</p>
+              <p>Las reflexiones y análisis emocionales son generados mediante modelos de lenguaje externos (Google Gemini / Mistral AI / Groq). Aceptas que estos contenidos son automáticos y deben ser tomados como meras herramientas de apoyo para la introspección personal, no como verdades clínicas o asesoramiento profesional.</p>
 
               <h2>7. Limitación de Responsabilidad y Renuncia Médica</h2>
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 my-6">
+              <div className="app-surface border-red-500/20 rounded-xl p-4 my-6">
                 <strong>ADVERTENCIA MÉDICA:</strong> Moodless <strong>NO es un sustituto de la atención médica profesional</strong>. No somos profesionales de la salud mental ni prestamos servicios de diagnóstico psiquiátrico. Si experimentas una crisis o pensamientos de autolesión, contacta inmediatamente con los servicios oficiales de emergencia (como el 112 en la UE o el 911 en EE.UU.).
               </div>
               <p>En ningún caso Moodless será responsable de daños indirectos, incidentales o derivados de una interpretación errónea de los consejos generados por la IA o de la indisponibilidad temporal del servicio técnico.</p>
@@ -143,19 +126,46 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onBack }) => {
               <h2>11. Ley Aplicable y Jurisdicción</h2>
               <p>Estos términos se rigen por la **legislación española**. Para cualquier disputa derivada de estos términos o del uso de Moodless, las partes se someten a la jurisdicción de los **Juzgados y Tribunales de España**, renunciando expresamente a cualquier otro fuero que pudiera corresponderles.</p>
             </>
+          ) : (
+            <>
+              <h2>1. Qué son las cookies</h2>
+              <p>Las cookies son pequeños archivos que el navegador guarda en tu dispositivo. Sirven para recordar información técnica necesaria para que un sitio web pueda funcionar de forma segura y coherente.</p>
+
+              <h2>2. Cookies y tecnologías que utiliza Moodless</h2>
+              <p>Moodless utiliza únicamente tecnologías técnicas y esenciales relacionadas con la autenticación, la seguridad y la prestación del servicio. En particular, Firebase puede emplear mecanismos de sesión para mantener tu acceso autenticado y proteger la aplicación frente a usos indebidos.</p>
+
+              <h2>3. Finalidad</h2>
+              <ul>
+                <li><strong>Sesión y autenticación:</strong> permitir que accedas a tu cuenta y conservar tu sesión de forma segura.</li>
+                <li><strong>Seguridad:</strong> prevenir fraude, abuso y accesos no autorizados.</li>
+                <li><strong>Funcionamiento:</strong> recordar las preferencias técnicas imprescindibles para utilizar Moodless.</li>
+              </ul>
+
+              <h2>4. Lo que no hacemos</h2>
+              <p>No utilizamos cookies publicitarias, píxeles de seguimiento, perfiles comerciales ni herramientas de analítica invasiva para seguirte dentro o fuera de Moodless. Tampoco vendemos ni compartimos información obtenida a través de estas tecnologías para fines de marketing.</p>
+
+              <h2>5. Gestión desde tu navegador</h2>
+              <p>Puedes eliminar o bloquear cookies desde la configuración de tu navegador. Ten en cuenta que, si bloqueas las cookies estrictamente necesarias, es posible que no puedas iniciar sesión o utilizar determinadas funciones de Moodless correctamente.</p>
+
+              <h2>6. Cambios en esta política</h2>
+              <p>Si incorporamos tecnologías no esenciales o modificamos de forma relevante esta política, actualizaremos esta página antes de aplicarlas y, cuando corresponda, solicitaremos tu consentimiento.</p>
+
+              <h2>7. Contacto</h2>
+              <p>Para cualquier consulta sobre esta política, puedes escribir a <a href="mailto:moodlessapp@gmail.com">moodlessapp@gmail.com</a>.</p>
+            </>
           )}
 
           <div className="mt-16 text-center">
-            <button 
+            <button
+              type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-2 bg-white text-slate-950 px-8 py-3 rounded-full font-bold active:scale-95 transition-transform"
+              className="app-button app-button-primary px-8 py-3"
             >
               He leído y entiendo
             </button>
           </div>
-        </article>
-      </main>
-    </div>
+      </Reveal>
+    </PublicPageLayout>
   );
 };
 

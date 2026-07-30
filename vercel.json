@@ -1,7 +1,9 @@
 {
   "rewrites": [
-    { "source": "/privacidad", "destination": "/index.html" },
-    { "source": "/terminos", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|@vite/|@react-refresh/|node_modules/|[^.]+\\.[^.]+).*)$",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

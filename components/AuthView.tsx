@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { authService, User } from '../services/authService';
 import { UserCircle, Lock, ArrowRight, Sparkles, Loader2, AlertCircle, Mail } from 'lucide-react';
 import LegalView from './LegalView';
@@ -7,9 +7,10 @@ import LegalView from './LegalView';
 interface AuthViewProps {
   onAuthSuccess: (user: User) => void;
   onBack?: () => void;
+  heroEntrance?: boolean;
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, heroEntrance = false }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,8 +30,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
     const trimmedEmail = email.trim();
     const trimmedName = name.trim();
 
-    // Validaciones
-    const validationErrors = [];
+    const validationErrors: string[] = [];
 
     if (isLogin) {
       if (!trimmedEmail) validationErrors.push('Introduce tu correo electrónico.');
@@ -170,39 +170,54 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
 
   if (forgotPassword) {
     return (
-      <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
+      <div className="app-shell relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden p-8 text-white">
+        <div className="app-ambient" aria-hidden="true" />
 
-        <div className="z-10 w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
-              <Lock className="text-purple-400" size={28} />
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 w-full max-w-md px-4"
+        >
+          <div className="mb-10 text-center">
+            <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <Lock className="text-white/80" size={26} strokeWidth={1.8} />
             </div>
-            <h2 className="text-2xl font-black tracking-tight">Recuperar contraseña</h2>
-            <p className="text-sm text-slate-400 mt-2">Te enviaremos un enlace para restablecer tu contraseña.</p>
+            <p className="app-eyebrow mb-2">Cuenta</p>
+            <h2 className="app-title text-2xl tracking-tight">Recuperar contraseña</h2>
+            <p className="mt-2 text-sm text-white/55">Te enviaremos un enlace para restablecer tu contraseña.</p>
           </div>
 
           {resetSent ? (
-            <div className="text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6">
-                <p className="text-emerald-400 font-bold text-lg mb-2">✅ Email enviado</p>
-                <p className="text-sm text-slate-400 leading-relaxed">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 text-center"
+            >
+              <div className="app-surface rounded-2xl border-emerald-400/20 p-6">
+                <p className="mb-2 text-base font-semibold text-emerald-300">Email enviado</p>
+                <p className="text-sm leading-relaxed text-white/55">
                   Hemos enviado un enlace de recuperación a <strong className="text-white">{email.trim()}</strong>.
                   Revisa tu bandeja de entrada (y spam) y sigue las instrucciones.
                 </p>
               </div>
               <button
-                onClick={() => { setForgotPassword(false); setResetSent(false); setError(''); }}
-                className="w-full py-4 bg-white text-slate-950 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95"
+                type="button"
+                onClick={() => {
+                  setForgotPassword(false);
+                  setResetSent(false);
+                  setError('');
+                }}
+                className="app-button app-button-primary w-full py-4 text-[15px]"
               >
                 Volver al inicio de sesión
               </button>
-            </div>
+            </motion.div>
           ) : (
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} className="app-surface-raised space-y-4 rounded-[1.75rem] p-5 sm:p-6">
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                <Mail className="absolute top-1/2 left-4 -translate-y-1/2 text-white/40" size={20} />
                 <input
                   type="email"
                   placeholder="Correo electrónico"
@@ -211,69 +226,85 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
                   disabled={loading}
                   autoComplete="email"
                   autoFocus
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+                  className="app-input disabled:opacity-50"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 animate-shake text-left backdrop-blur-sm">
-                  <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-red-400 text-xs font-medium leading-tight">{error}</p>
+                <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-left backdrop-blur-sm">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-400" />
+                  <p className="text-xs font-medium leading-tight text-red-400">{error}</p>
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-white text-slate-950 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5 disabled:opacity-50"
-              >
+              <button type="submit" disabled={loading} className="app-button app-button-primary w-full py-4 text-[15px] disabled:opacity-50">
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Enviar enlace'}
               </button>
 
               <button
                 type="button"
-                onClick={() => { setForgotPassword(false); setError(''); }}
-                className="w-full text-center text-sm text-slate-500 hover:text-white transition-colors py-2"
+                onClick={() => {
+                  setForgotPassword(false);
+                  setError('');
+                }}
+                className="w-full py-2 text-center text-sm text-white/45 transition-colors hover:text-white"
               >
                 ← Volver al inicio de sesión
               </button>
             </form>
           )}
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-slate-950 text-white relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-purple-600/20 rounded-full blur-[100px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-blue-600/20 rounded-full blur-[100px]" />
+    <div className="app-shell relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden p-8 text-white">
+      <div className="app-ambient" aria-hidden="true" />
 
       {onBack && (
         <button
+          type="button"
           onClick={onBack}
-          className="absolute top-8 left-8 p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors group z-50 animate-in fade-in"
+          className="app-icon-button absolute top-8 left-8 z-50"
+          aria-label="Volver"
         >
-          <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+          <ArrowRight className="rotate-180" />
         </button>
       )}
 
-      <div className="z-10 w-full max-w-md px-4">
-        <header className="text-center mb-10">
-          <div className="inline-block relative group">
-            <div className="absolute inset-0 bg-purple-500/20 blur-3xl group-hover:bg-purple-500/40 transition-all duration-700" />
+      <div className="relative z-10 w-full max-w-md px-4">
+        <header className="mb-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="group relative mx-auto mb-7 inline-block"
+          >
+            <div
+              className="absolute inset-0 scale-110 rounded-[1.75rem] bg-violet-500/20 blur-2xl transition-all duration-700 group-hover:bg-violet-500/30"
+              aria-hidden="true"
+            />
             <img
               src="/logo.jpg"
-              alt="Moodless Logo"
-              className="relative w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-3xl animate-in fade-in zoom-in-95 duration-1000"
+              alt="Moodless"
+              className="relative h-24 w-24 rounded-[1.4rem] object-cover ring-1 ring-white/15 sm:h-28 sm:w-28"
             />
-          </div>
+          </motion.div>
+          <p className="app-eyebrow mt-2">{isLogin ? 'Bienvenido de nuevo' : 'Crea tu espacio'}</p>
+          <h1 className="app-title mt-2 text-3xl text-white sm:text-4xl">{isLogin ? 'Entrar' : 'Empezar'}</h1>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <motion.form
+          onSubmit={handleSubmit}
+          className="app-surface-raised space-y-3.5 rounded-[1.75rem] p-5 sm:p-6"
+          initial={heroEntrance ? { opacity: 0, scale: 0.94, y: 14 } : false}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={heroEntrance ? { type: 'spring', stiffness: 360, damping: 28 } : { duration: 0.24 }}
+        >
           {!isLogin && (
-            <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
-              <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+            <div className="relative">
+              <UserCircle className="absolute top-1/2 left-4 -translate-y-1/2 text-white/40" size={20} />
               <input
                 type="text"
                 placeholder="Nombre completo"
@@ -281,13 +312,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
                 autoComplete="name"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+                className="app-input disabled:opacity-50"
               />
             </div>
           )}
 
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+            <Mail className="absolute top-1/2 left-4 -translate-y-1/2 text-white/40" size={20} />
             <input
               type="email"
               placeholder="Correo electrónico"
@@ -295,25 +326,25 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               autoComplete="email"
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+              className="app-input disabled:opacity-50"
             />
           </div>
 
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+            <Lock className="absolute top-1/2 left-4 -translate-y-1/2 text-white/40" size={20} />
             <input
               type="password"
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              autoComplete={isLogin ? "current-password" : "new-password"}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              className="app-input disabled:opacity-50"
             />
           </div>
 
           {!isLogin && (
-            <div className="flex items-start gap-3 px-1 mt-2 text-left animate-in fade-in duration-300 group">
+            <div className="flex items-start gap-3 px-1 pt-1 text-left group">
               <input
                 type="checkbox"
                 id="terms"
@@ -322,20 +353,20 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="mt-1 w-4 h-4 cursor-pointer accent-purple-500 transition-all"
               />
-              <label htmlFor="terms" className="text-[11px] text-slate-400 leading-relaxed cursor-pointer select-none">
+              <label htmlFor="terms" className="text-[11px] text-white/55 leading-relaxed cursor-pointer select-none">
                 Consiento explícitamente el tratamiento de mis estados emocionales y acepto la <span
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('privacy'); }}
-                  className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
+                  className="text-white font-medium hover:text-purple-300 underline decoration-white/20 underline-offset-2 transition-colors pointer-events-auto"
                 >Política de Privacidad</span> y <span
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLegalPage('terms'); }}
-                  className="text-white font-medium hover:text-purple-400 underline decoration-white/20 transition-colors pointer-events-auto"
+                  className="text-white font-medium hover:text-purple-300 underline decoration-white/20 underline-offset-2 transition-colors pointer-events-auto"
                 >Términos del Servicio</span> de acuerdo al RGPD.
               </label>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3 animate-shake text-left backdrop-blur-sm">
+            <div className="app-surface border-red-500/20 rounded-xl p-3 flex items-start gap-3 text-left">
               <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-1">
                 {error.split('\n').map((line, i) => (
@@ -347,38 +378,34 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 bg-white text-slate-950 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isLogin ? 'Entrar' : 'Crear Cuenta')}
-            {!loading && <ArrowRight size={20} />}
+          <button type="submit" disabled={loading} className="app-button app-button-primary w-full py-4 text-[15px] mt-2 disabled:opacity-50">
+            {loading ? <Loader2 className="animate-spin" size={20} /> : isLogin ? 'Entrar' : 'Crear cuenta'}
+            {!loading && <ArrowRight size={17} />}
           </button>
 
           {isLogin && (
             <button
               type="button"
               onClick={() => { setForgotPassword(true); setError(''); }}
-              className="w-full text-center text-xs text-slate-500 hover:text-purple-400 transition-colors py-1"
+              className="w-full text-center text-xs text-white/45 hover:text-purple-300 transition-colors py-1"
             >
               ¿Has olvidado tu contraseña?
             </button>
           )}
 
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-700"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-500 text-sm">o continúa con</span>
-            <div className="flex-grow border-t border-slate-700"></div>
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-white/[0.08]"></div>
+            <span className="flex-shrink-0 mx-3 text-white/40 text-xs">o continúa con</span>
+            <div className="flex-grow border-t border-white/[0.08]"></div>
           </div>
 
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+            className="app-button app-button-secondary w-full py-4 text-[15px] disabled:opacity-50"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -398,16 +425,16 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack }) => {
             </svg>
             Google
           </button>
-        </form>
+        </motion.form>
 
-        <footer className="mt-8 text-center">
+        <footer className="mt-7 text-center">
           <button
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
             }}
             disabled={loading}
-            className="text-sm text-slate-400 hover:text-white transition-colors py-2 px-4"
+            className="text-sm text-white/55 hover:text-white transition-colors py-2 px-4"
           >
             {isLogin ? '¿No tienes cuenta? Regístrate gratis' : '¿Ya tienes cuenta? Inicia sesión'}
           </button>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
+import ModalShell from './ModalShell';
 
 interface DeepenPromptModalProps {
   onConfirm: () => void;
@@ -8,46 +9,46 @@ interface DeepenPromptModalProps {
 
 const DeepenPromptModal: React.FC<DeepenPromptModalProps> = ({ onConfirm, onSkip }) => {
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-500" />
-      
-      {/* Content */}
-      <div className="relative w-full max-w-sm glass p-8 rounded-[3rem] border-white/10 shadow-2xl text-center animate-in zoom-in-95 duration-300">
-        <button 
+    <ModalShell open ariaLabel="¿Quieres profundizar?" zClass="z-[110]">
+      <div className="app-sheet max-w-sm relative p-8 text-center">
+        <button
+          type="button"
           onClick={onSkip}
-          className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"
+          className="app-icon-button absolute right-5 top-5"
+          aria-label="Cerrar"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
-        <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Sparkles className="text-purple-400 w-10 h-10" />
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+        >
+          <Sparkles className="text-violet-300" size={30} strokeWidth={1.8} />
         </div>
 
-        <h3 className="text-2xl font-black text-white mb-3">¿Quieres profundizar?</h3>
-        <p className="text-slate-400 text-sm leading-relaxed mb-8">
+        <h3 id="deepen-prompt-title" className="text-2xl font-semibold text-white mb-3 tracking-[-0.025em]">¿Quieres profundizar?</h3>
+        <p className="text-white/55 text-sm leading-relaxed mb-7">
           Si me cuentas un poco más sobre lo que te ha pasado hoy, podré darte análisis mucho más precisos y detectar patrones ocultos.
         </p>
 
         <div className="space-y-3">
           <button
             onClick={onConfirm}
-            className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+            className="app-button app-button-primary w-full py-4 text-sm"
           >
-            SÍ, CONTAR MÁS
-            <ArrowRight size={16} />
+            Sí, contar más
+            <ArrowRight size={17} strokeWidth={2} />
           </button>
-          
+
           <button
             onClick={onSkip}
-            className="w-full py-4 bg-white/5 text-slate-500 rounded-2xl font-bold text-sm hover:text-slate-300 transition-all"
+            className="app-button app-button-secondary w-full py-4 text-sm"
           >
             Ahora no, gracias
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 

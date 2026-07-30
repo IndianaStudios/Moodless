@@ -32,34 +32,138 @@ export interface MoodPrediction {
 
 const cleanJsonResponse = (text: string) => {
   if (!text) return "{}";
-  return text.replace(/```json/g, '').replace(/```/g, '').trim();
+  // 1. Eliminar fences de markdown (```json ... ```)
+  let cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  // 2. Si el modelo devolvió JSON inline dentro de un bloque explicativo,
+  //    intentar extraer el primer objeto JSON válido.
+  //    Esto cubre modelos sin `response_format: json_object` (ej. llama-3.1-8b-instant)
+  //    que a veces envuelven el JSON en frases tipo "Aquí está el JSON: {...}".
+  if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+    const firstBrace = cleaned.indexOf('{');
+    const firstBracket = cleaned.indexOf('[');
+    let candidate = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) {
+      candidate = Math.min(firstBrace, firstBracket);
+    } else if (firstBrace !== -1) {
+      candidate = firstBrace;
+    } else if (firstBracket !== -1) {
+      candidate = firstBracket;
+    }
+    if (candidate !== -1) {
+      cleaned = cleaned.slice(candidate).trim();
+    }
+  }
+
+  // 3. Si aún tiene texto después del último }, ], descartar la cola.
+  const lastClose = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
+  if (lastClose !== -1 && lastClose < cleaned.length - 1) {
+    cleaned = cleaned.slice(0, lastClose + 1).trim();
+  }
+
+  return cleaned;
 };
 
 const getCachedData = (key: string) => {
   const cached = localStorage.getItem(key);
   if (!cached) return null;
-  const parsed = JSON.parse(cached);
-  if (Date.now() - parsed.timestamp > parsed.expiresIn) {
+  try {
+    const parsed = JSON.parse(cached);
+    // Migración: si la entrada viene del formato viejo (expiresIn en ms desde timestamp),
+    // la convertimos a expiresAt absoluto. Las del nuevo formato ya tienen expiresAt.
+    if (typeof parsed.expiresAt !== 'number' && typeof parsed.expiresIn === 'number' && typeof parsed.timestamp === 'number') {
+      parsed.expiresAt = parsed.timestamp + parsed.expiresIn;
+    }
+    // expiresAt es un timestamp absoluto en ms. Si Date.now() lo supera,
+    // el caché está expirado.
+    if (typeof parsed.expiresAt === 'number' && Date.now() > parsed.expiresAt) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return parsed;
+  } catch {
     localStorage.removeItem(key);
     return null;
   }
-  return parsed;
 };
 
-const setCachedData = (key: string, data: any, entryId: string, expiresIn = 86400000) => {
+/**
+ * Calcula el timestamp (ms) de las 00:00:00 del día siguiente en hora local.
+ * Útil para caches que deben expirar al iniciar el nuevo día.
+ */
+const nextDayMidnight = (): number => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow.getTime();
+};
+
+const setCachedData = (
+  key: string,
+  data: any,
+  entryId: string,
+  expiresInOrAt: number = 86400000
+) => {
+  // Si el valor es razonable como duración TTL (< 30 días en ms),
+  // lo interpretamos como duración desde ahora. Si es mucho mayor,
+  // lo interpretamos como timestamp absoluto (expiresAt).
+  // Para forzar el modo "hasta medianoche del día siguiente", pasamos
+  // `expiresAt: nextDayMidnight()` directamente.
+  const isTimestamp = expiresInOrAt > 30 * 86400000;
+  const expiresAt = isTimestamp
+    ? expiresInOrAt
+    : Date.now() + expiresInOrAt;
+
   localStorage.setItem(key, JSON.stringify({
     data,
     entryId,
     timestamp: Date.now(),
-    expiresIn
+    expiresAt,
   }));
 };
 
+/**
+ * Helper para caches que deben expirar al iniciar el día siguiente (medianoche local).
+ */
+const setCachedDataUntilMidnight = (key: string, data: any, entryId: string) => {
+  setCachedData(key, data, entryId, nextDayMidnight());
+};
 
-async function callAI(prompt: string, jsonMode: boolean = false, retries = 1): Promise<string> {
+/**
+ * Purga todas las cachés de IA relacionadas con un aura que NO coincida con
+ * el `currentEntryId` (la vibe de hoy). Pensado para llamarse:
+ *   1. Al iniciar la app / login → elimina restos del día anterior
+ *   2. Cuando el usuario registra una nueva vibe → limpia la del día previo
+ *
+ * Después de llamar a esto, getMoodMusicRecommendation/getMoodGameConfig
+ * regenerarán desde cero la próxima vez que se pidan (en la carga de Explora).
+ */
+export const purgeStaleAuraCaches = (currentEntryId: string): void => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  const todayEntryId = currentEntryId;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const isAuraCache =
+        key.startsWith('music_config_') ||
+        key.startsWith('game_config_');
+      if (!isAuraCache) continue;
+      // Si la cache no es de la entryId actual → borrar.
+      if (key !== `music_config_${todayEntryId}` && key !== `game_config_${todayEntryId}`) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (e) {
+    console.warn('purgeStaleAuraCaches failed:', e);
+  }
+};
+
+
+async function callAI(prompt: string, jsonMode: boolean = false, retries = 1, task?: string, systemPrompt?: string, maxTokens?: number, temperature?: number, model?: string): Promise<string> {
   // Esperar a que Firebase inicialice la sesión antes de pedir el token en un recargo rápido
   if (auth.authStateReady) await auth.authStateReady();
-  
+
   for (let i = 0; i <= retries; i++) {
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -69,7 +173,7 @@ async function callAI(prompt: string, jsonMode: boolean = false, retries = 1): P
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ prompt, jsonMode }),
+        body: JSON.stringify({ prompt, jsonMode, task, systemPrompt, maxTokens, temperature, model }),
       });
 
       if (!response.ok) {
@@ -113,7 +217,7 @@ export const generateMoodReport = async (currentEntry: Omit<MoodEntry, 'id' | 'd
     "explanation": "Explicación breve (máximo 2 frases) que relacione sus valores SAM con lo que ha contado, con un tono empático y humano."
   }`;
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(prompt, true, 1, 'mood_report');
     return cleanJsonResponse(text);
   } catch {
     return JSON.stringify({ title: "Estado Estable", explanation: "Tus niveles de energía y ánimo se encuentran en un punto de equilibrio tranquilo." });
@@ -145,7 +249,7 @@ export const getMoodGameConfig = async (mood: MoodCategory, valence: number, aro
   Responde JSON: {"title": "Título evocador (ej: Polvo Cósmico, Cristales Tensión)", "description": "1 frase inspiradora de por qué hacer esto", "mantra": "Instrucción de respiración corta"}`;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(prompt, true, 1, 'game_config');
     const data = JSON.parse(cleanJsonResponse(text));
     const config: GameConfig = {
       type,
@@ -205,14 +309,27 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
   `;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(
+      prompt,
+      true,
+      1,
+      'music_recommendation',
+      undefined,
+      800,
+      0.8,
+      'llama-3.1-8b-instant'
+    );
     const result = JSON.parse(cleanJsonResponse(text));
     // Compatibilidad: si viene searchQuery viejo, convertirlo a array
     if (result.searchQuery && !result.searchQueries) {
       result.searchQueries = [result.searchQuery];
     }
     const musicData = { ...result, groundingSources: [] };
-    setCachedData(cacheKey, musicData, entryId, 14400000);
+    // La caché de música NUNCA expira por tiempo. Solo se purga explícitamente
+    // cuando el usuario registra una nueva vibe (ver MoodCanvas.handleSave
+    // → purgeStaleAuraCaches) o cuando purgaStaleAuraCaches se ejecuta al
+    // iniciar la app (ver App.tsx).
+    setCachedData(cacheKey, musicData, entryId, Number.MAX_SAFE_INTEGER);
     return musicData;
   } catch (error) {
     console.error("AI Generation Error:", error);
@@ -226,7 +343,7 @@ export const getMoodMusicRecommendation = async (mood: MoodCategory, valence: nu
 
 export const getVibeRecommendation = async (mood: MoodCategory): Promise<string> => {
   try {
-    const text = await callAI(`Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`);
+    const text = await callAI(`Escribe una recomendación de 8 palabras para alguien que siente ${mood}.`, false, 1, 'vibe_recommendation');
     return text || "Confía en tu proceso interno.";
   } catch {
     return "Siente el ritmo de tu respiración.";
@@ -314,7 +431,16 @@ Responde SOLO con JSON:
 {"predictedCategory":"CATEGORIA","confidence":0-100,"pattern":"Patrón detectado en 1 frase EN ESPAÑOL","probabilities":{"JOY":N,"CALM":N,"ANGER":N,"SADNESS":N,"ANXIETY":N,"ENERGY":N,"NEUTRAL":N},"tip":"Consejo breve en español"}`;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(
+      prompt,
+      true,
+      1,
+      'mood_prediction',
+      undefined,
+      800,
+      0.3,
+      'gemma-4-12b-it'
+    );
     const result: MoodPrediction = JSON.parse(cleanJsonResponse(text));
 
     const validCategories = ['JOY', 'CALM', 'ANGER', 'SADNESS', 'ANXIETY', 'ENERGY', 'NEUTRAL'];
@@ -390,7 +516,16 @@ export const getEmotionalInsights = async (allLogs: string): Promise<any> => {
   }`;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(
+      prompt,
+      true,
+      1,
+      'emotional_insights',
+      undefined,
+      1500,
+      0.6,
+      'gemma-4-12b-it'
+    );
     const result = JSON.parse(cleanJsonResponse(text));
     
     // 2. Guardar en Firebase para persistencia real
@@ -438,7 +573,16 @@ export const getMoodBuddyInteraction = async (mood: string, pastMemory: string):
   }`;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(
+      prompt,
+      true,
+      1,
+      'mood_buddy_interaction',
+      undefined,
+      512,
+      0.7,
+      'gemma-4-12b-it'
+    );
     const parsed = JSON.parse(cleanJsonResponse(text));
     if (!parsed.greeting || !parsed.mission) throw new Error("Incomplete AI response");
     return parsed;
@@ -455,39 +599,54 @@ export const analyzeEmotionalContext = async (userInput: string, chatHistory: st
   // Limitar historial para no exceder los límites máximos de la arquitectura (30k)
   const limitedHistory = chatHistory.length > 25000 ? '...' + chatHistory.slice(-25000) : chatHistory;
 
-  const prompt = `Actúa como un experto en psicología y análisis de contexto para la app Moodless.
-  
-  MEMORIA DE DÍAS PASADOS (Resumen de lo que el usuario ha contado anteriormente):
-  ${pastContext || 'No hay registros anteriores.'}
+  const prompt = `Eres un experto en psicología emocional que trabaja para la app Moodless. Tu tarea es analizar lo que el usuario cuenta y devolver SOLO un JSON estructurado.
 
-  Historial de la conversación actual:
-  ${limitedHistory}
+CONTEXTO DEL DÍA (resumen de lo que el usuario ya ha contado en días anteriores en esta app):
+${pastContext || 'No hay registros de días anteriores todavía.'}
 
-  El usuario dice ahora: "${userInput}"
-  
-  Debes:
-  1. Extraer un array de contextos (ej: ['trabajo', 'familia', 'estudio', 'amigos', 'pareja', 'salud', 'ocio', 'soledad', 'ejercicio', 'alimentación']).
-  2. Si el contexto es AMBIGUO y no estás seguro de la relación (por ejemplo, habla de una persona pero no sabes si es su pareja o un amigo), DEBES pedir aclaración al usuario.
-  3. Identificar la emoción predominante (ej: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo').
-  4. Identificar el nivel de energía percibido ('baja', 'media', 'alta').
-  5. Identificar la intensidad emocional (número del 1 al 10).
-  6. Si "necesita_aclaracion" es true, tu "respuesta" debe ser la pregunta para aclarar la duda de forma natural. Si es false, responde en 1-2 frases cortas y empáticas sugiriendo una posible relación causa-efecto si aplica.
-  
-  Formato JSON estricto:
-  {
-    "contexto": string[],
-    "emocion": string,
-    "energia": "baja" | "media" | "alta",
-    "intensidad": number,
-    "respuesta": string,
-    "necesita_aclaracion": boolean
-  }`;
+HISTORIAL DE ESTA CONVERSACIÓN (turnos previos en orden cronológico):
+${limitedHistory || 'Es el primer turno de esta conversación; no hay historial previo.'}
+
+NUEVA INTERVENCIÓN DEL USUARIO (lo que acaba de escribir ahora):
+"${userInput}"
+
+REGLAS DE COHERENCIA IMPORTANTES:
+- NO repitas preguntas que ya hayas hecho en turnos anteriores del historial. Si ya pediste aclaración sobre algo, no lo pidas de nuevo a menos que el usuario haya dado información nueva que siga siendo ambigua.
+- Mantén el foco en entender la intervención ACTUAL del usuario usando el contexto previo.
+- Si en el historial ya identificaste un contexto claro (pareja, trabajo, etc.), no lo cuestiones de nuevo.
+- Las preguntas de aclaración solo se permiten cuando el usuario introduce información genuinamente nueva y ambigua.
+
+INSTRUCCIONES DE ANÁLISIS:
+1. Extrae un array de contextos presentes en el mensaje (ejemplos válidos: ['trabajo', 'familia', 'estudio', 'amigos', 'pareja', 'salud', 'ocio', 'soledad', 'ejercicio', 'alimentación', 'sueño', 'dinero', 'creatividad', 'identidad']).
+2. Identifica la emoción predominante (ejemplos válidos: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo', 'ansiedad', 'agotamiento', 'nostalgia', 'gratitud', 'soledad', 'euforia', 'apatía').
+3. Identifica el nivel de energía percibido: 'baja', 'media' o 'alta'.
+4. Identifica la intensidad emocional como número entero del 1 al 10.
+5. Si la nueva intervención es genuinamente ambigua (por ejemplo, habla de una persona sin especificar relación Y no se ha aclarado antes en el historial), necesitas_aclaracion=true y "respuesta" debe ser una pregunta empática de aclaración. Si NO es ambigua o ya fue aclarada antes, "necesita_aclaracion"=false y "respuesta" debe ser 1-2 frases cortas y empáticas que reconozcan el contexto del usuario.
+
+FORMATO JSON ESTRICTO (sin texto adicional, sin markdown, sin comillas triples):
+{
+  "contexto": string[],
+  "emocion": string,
+  "energia": "baja" | "media" | "alta",
+  "intensidad": number,
+  "respuesta": string,
+  "necesita_aclaracion": boolean
+}`;
 
   try {
-    const text = await callAI(prompt, true);
+    const text = await callAI(
+      prompt,
+      true,
+      2,
+      'context_analysis',
+      undefined,
+      512,
+      0.4,
+      'llama-3.1-8b-instant'
+    );
     return JSON.parse(cleanJsonResponse(text));
   } catch (error) {
     console.error("Context Analysis Error:", error);
     throw error;
   }
-};
+};

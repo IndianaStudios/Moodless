@@ -1,0 +1,47 @@
+# ─── iOS splash screens ──────────────────────────────────────────
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1320x2868-iphone-16-pro-max.png" media="(width: 440px) and (height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1290x2796-iphone-15-pro-max.png" media="(width: 430px) and (height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1290x2796-iphone-14-pro-max.png" media="(width: 430px) and (height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1206x2622-iphone-16-pro.png" media="(width: 402px) and (height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1179x2556-iphone-15-pro.png" media="(width: 393px) and (height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1179x2556-iphone-14-pro.png" media="(width: 393px) and (height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1290x2868-iphone-16-plus.png" media="(width: 430px) and (height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1290x2796-iphone-15-plus.png" media="(width: 430px) and (height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1284x2778-iphone-14-plus.png" media="(width: 428px) and (height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1179x2556-iphone-16.png" media="(width: 393px) and (height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1179x2556-iphone-15.png" media="(width: 393px) and (height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1170x2532-iphone-14.png" media="(width: 390px) and (height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1284x2778-iphone-13-pro-max.png" media="(width: 428px) and (height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1170x2532-iphone-13-pro.png" media="(width: 390px) and (height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1170x2532-iphone-13.png" media="(width: 390px) and (height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1170x2532-iphone-12-pro.png" media="(width: 390px) and (height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1170x2532-iphone-12.png" media="(width: 390px) and (height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1080x2340-iphone-13-mini.png" media="(width: 360px) and (height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1080x2340-iphone-12-mini.png" media="(width: 360px) and (height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1242x2688-iphone-11-pro-max.png" media="(width: 414px) and (height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1242x2688-iphone-xs-max.png" media="(width: 414px) and (height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1125x2436-iphone-11-pro.png" media="(width: 375px) and (height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1125x2436-iphone-x.png" media="(width: 375px) and (height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-828x1792-iphone-11.png" media="(width: 414px) and (height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-828x1792-iphone-xr.png" media="(width: 414px) and (height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1242x2208-iphone-8-plus.png" media="(width: 414px) and (height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1242x2208-iphone-7-plus.png" media="(width: 414px) and (height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-750x1334-iphone-8.png" media="(width: 375px) and (height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-750x1334-iphone-se-3rd.png" media="(width: 375px) and (height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-750x1334-iphone-se-2nd.png" media="(width: 375px) and (height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-2064x2752-ipad-pro-13-m4.png" media="(width: 1032px) and (height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-2048x2732-ipad-pro-12-9.png" media="(width: 1024px) and (height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1668x2420-ipad-pro-11-m4.png" media="(width: 834px) and (height: 1210px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1668x2388-ipad-pro-11.png" media="(width: 834px) and (height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1640x2360-ipad-air-13-m2.png" media="(width: 820px) and (height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1640x2360-ipad-air-11-m2.png" media="(width: 820px) and (height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1640x2360-ipad-10.png" media="(width: 820px) and (height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-launch-1488x2266-ipad-mini-6.png" media="(width: 744px) and (height: 1133px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+
+# ─── Android Chrome PWA icon variants (used for splash composition) ─
+# These are referenced from manifest.json + for native Android WebAPK splash
+    <link rel="icon" type="image/png" sizes="192x192" href="/splash/android-splash-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/splash/android-splash-512x512.png" />
+    <link rel="icon" type="image/png" sizes="1080x1920" href="/splash/android-splash-1080x1920-phone-1x.png" />
+    <link rel="icon" type="image/png" sizes="2160x3840" href="/splash/android-splash-2160x3840-phone-2x.png" />
+    <link rel="icon" type="image/png" sizes="1920x1080" href="/splash/android-splash-1920x1080-phone-landscape-1x.png" />

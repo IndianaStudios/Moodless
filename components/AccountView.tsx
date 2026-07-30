@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { User, authService } from '../services/authService';
 import { notificationService } from '../services/notificationService';
 import { MoodEntry } from '../types';
-import { EMOTIONAL_PALETTE } from '../constants';
+import { EMOTIONAL_PALETTE, haptic } from '../constants';
+import { useToast } from './ToastProvider';
+import Reveal from './Reveal';
+import ModalShell from './ModalShell';
 import {
-  User as UserIcon,
-  Trash2,
-  LogOut,
-  ChevronRight,
-  Award,
   Zap,
   Mail,
   Bell,
@@ -18,7 +16,10 @@ import {
   Loader2,
   TrendingUp,
   Calendar,
-  FileText
+  FileText,
+  ChevronRight,
+  LogOut,
+  Trash2,
 } from 'lucide-react';
 
 interface AccountViewProps {
@@ -33,11 +34,17 @@ interface AccountViewProps {
   appVersion: string;
 }
 
+const getInitials = (name: string): string => {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map(p => p.charAt(0).toUpperCase()).join('');
+};
+
 const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, onLegal, appVersion }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [notifsEnabled, setNotifsEnabled] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const loadPrefs = async () => {
@@ -55,22 +62,26 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
       if (notifsEnabled) {
         setNotifsEnabled(false);
         await notificationService.savePreference(user.id, false);
+        haptic('success');
+        toast.success('Recordatorios desactivados');
       } else {
         const permission = await notificationService.requestPermission();
         if (permission === 'granted') {
           setNotifsEnabled(true);
           await notificationService.savePreference(user.id, true);
-          // Inicializar FCM inmediatamente para capturar el token en la PWA
           await notificationService.initFCM(user.id);
+          haptic('success');
+          toast.success('Recordatorios activados');
         } else {
-          alert("Necesitas dar permiso en el navegador para activar los recordatorios.");
+          haptic('error');
+          toast.error('Necesitas dar permiso en el navegador para activar los recordatorios.');
         }
       }
     } catch (error: any) {
-      console.error("Error saving preference:", error);
-      // Revertir estado si falla
+      console.error('Error saving preference:', error);
       setNotifsEnabled(previousState);
-      alert(`No se pudo guardar la preferencia: ${error.message || 'Error desconocido'}. Revisa tu conexión.`);
+      haptic('error');
+      toast.error(`No se pudo guardar la preferencia: ${error.message || 'Error desconocido'}.`);
     } finally {
       setIsSyncing(false);
     }
@@ -82,29 +93,36 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
       await authService.deleteAccount();
       onLogout();
     } catch (error: any) {
-      alert("Error al borrar cuenta. Es posible que necesites re-autenticarte.");
+      haptic('error');
+      toast.error('Error al borrar cuenta. Es posible que necesites re-autenticarte.');
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
   };
 
   return (
-    <div className="px-6 pt-20 pb-40 flex-1 flex flex-col max-w-2xl mx-auto w-full">
-      <header className="mb-8 flex flex-col items-center text-center">
-        <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-purple-600 to-blue-500 p-1 mb-4 shadow-2xl">
-          <div className="w-full h-full rounded-[2.3rem] bg-slate-950 flex items-center justify-center">
-            <UserIcon size={40} className="text-white" />
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 pb-40 pt-16">
+      <Reveal className="mb-8 flex flex-col items-center text-center">
+        {user.photoURL ? (
+          <img
+            src={user.photoURL}
+            alt={user.name}
+            className="mb-4 h-24 w-24 rounded-full object-cover ring-1 ring-white/15 shadow-[0_8px_28px_rgba(0,0,0,0.36)]"
+          />
+        ) : (
+          <div className="apple-avatar mb-4 h-24 w-24 text-3xl tracking-[-0.04em]">
+            {getInitials(user.name) || 'M'}
           </div>
-        </div>
-        <h2 className="text-2xl font-black text-white capitalize">{user.name}</h2>
-        <div className="flex items-center gap-1 text-slate-500 text-[10px] uppercase tracking-widest mt-1 font-bold">
-          <Mail size={10} />
+        )}
+        <p className="app-eyebrow mb-2">Perfil</p>
+        <h2 className="app-title text-[clamp(1.5rem,4.5vw,1.875rem)] capitalize text-white">{user.name}</h2>
+        <div className="mt-2 flex items-center gap-1.5 app-text-meta">
+          <Mail size={12} strokeWidth={1.8} />
           <span>{user.email}</span>
         </div>
-      </header>
+      </Reveal>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {/* Racha */}
+      <Reveal className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {(() => {
           const loggedDates = new Set(entries.map(e => e.date));
           const today = new Date(); today.setHours(0,0,0,0);
@@ -114,48 +132,45 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
           else { checkDate.setDate(checkDate.getDate()-1); if (!loggedDates.has(fmt(checkDate))) { streak = 0; } else { streak = 1; checkDate.setDate(checkDate.getDate()-1); } }
           if (streak > 0) { while(loggedDates.has(fmt(checkDate))) { streak++; checkDate.setDate(checkDate.getDate()-1); } }
           return (
-            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-              <Zap className="text-yellow-400 mb-1" size={16} />
-              <span className="text-xl font-black">{streak}</span>
-              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Racha</span>
+            <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+              <Zap className="text-yellow-400 mb-1.5" size={15} strokeWidth={1.8} />
+              <span className="text-xl font-semibold tracking-[-0.025em]">{streak}</span>
+              <span className="app-text-eyebrow">Racha</span>
             </div>
           );
         })()}
-        {/* Capturas */}
-        <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-          <Calendar className="text-blue-400 mb-1" size={16} />
-          <span className="text-xl font-black">{entries.length}</span>
-          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Vibes</span>
+        <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+          <Calendar className="text-blue-400 mb-1.5" size={15} strokeWidth={1.8} />
+          <span className="text-xl font-semibold tracking-[-0.025em]">{entries.length}</span>
+          <span className="app-text-eyebrow">Vibes</span>
         </div>
-        {/* Tendencia */}
         {(() => {
           if (entries.length < 3) return (
-            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-              <TrendingUp className="text-slate-500 mb-1" size={16} />
-              <span className="text-xl font-black text-slate-500">—</span>
-              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Pocas</span>
+            <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+              <TrendingUp className="text-white/40 mb-1.5" size={15} strokeWidth={1.8} />
+              <span className="text-xl font-semibold tracking-[-0.025em] text-white/40">—</span>
+              <span className="app-text-eyebrow">Pocas</span>
             </div>
           );
           const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
           const recent = sorted.slice(-7); const previous = sorted.slice(-14,-7);
           const avg = (arr: MoodEntry[]) => arr.reduce((s,e) => s + (e.valence||3), 0) / (arr.length||1);
           const diff = avg(recent) - (previous.length > 0 ? avg(previous) : avg(recent));
-          const t = diff > 0.3 ? { s: '↑', c: 'text-green-400', l: 'Sube' } : diff < -0.3 ? { s: '↓', c: 'text-red-400', l: 'Baja' } : { s: '→', c: 'text-blue-400', l: 'Estable' };
+          const t = diff > 0.3 ? { s: '↑', c: 'text-emerald-400', l: 'Sube' } : diff < -0.3 ? { s: '↓', c: 'text-red-400', l: 'Baja' } : { s: '→', c: 'text-blue-400', l: 'Estable' };
           return (
-            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-              <TrendingUp className={`${t.c} mb-1`} size={16} />
-              <span className={`text-xl font-black ${t.c}`}>{t.s}</span>
-              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">{t.l}</span>
+            <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+              <TrendingUp className={`${t.c} mb-1.5`} size={15} strokeWidth={1.8} />
+              <span className={`text-xl font-semibold tracking-[-0.025em] ${t.c}`}>{t.s}</span>
+              <span className="app-text-eyebrow">{t.l}</span>
             </div>
           );
         })()}
-        {/* Aura */}
         {(() => {
           if (entries.length === 0) return (
-            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-              <span className="text-base mb-1">🌫️</span>
-              <span className="text-xs font-black text-slate-500">---</span>
-              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+            <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+              <Bell className="text-white/35 mb-1.5" size={15} strokeWidth={1.8} />
+              <span className="text-xs font-semibold tracking-[-0.01em] text-white/40">Sin datos</span>
+              <span className="app-text-eyebrow">Aura</span>
             </div>
           );
           const recent = [...entries].sort((a,b) => b.date.localeCompare(a.date)).slice(0,7);
@@ -163,117 +178,147 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
           recent.forEach(e => { counts[e.category] = (counts[e.category]||0)+1; });
           const dominant = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
           const palette = EMOTIONAL_PALETTE.find(p => p.category === dominant);
-          const emojiMap: Record<string,string> = { JOY:'☀️', CALM:'🍃', ANGER:'🔥', SADNESS:'🌧️', ANXIETY:'👻', ENERGY:'⚡', NEUTRAL:'☁️' };
+          const label = palette?.label || 'Neutral';
+          const color = palette?.hex || '#94A3B8';
           return (
-            <div className="glass p-4 rounded-2xl border-white/5 flex flex-col items-center">
-              <span className="text-base mb-1">{emojiMap[dominant]||'🌫️'}</span>
-              <span className="text-xs font-black" style={{color: palette?.hex||'#94A3B8'}}>{palette?.label||'Neutral'}</span>
-              <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Aura</span>
+            <div className="app-surface flex flex-col items-center rounded-2xl p-4">
+              <span className="mb-1.5 inline-block h-3 w-3 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 12px ${color}80` }} />
+              <span className="text-[13px] font-semibold tracking-[-0.015em]" style={{ color }}>{label}</span>
+              <span className="app-text-eyebrow">Aura</span>
             </div>
           );
         })()}
-      </div>
+      </Reveal>
 
       <div className="space-y-6">
-        <section>
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Ajustes de Cuenta</h3>
-          <div className="glass rounded-[2rem] border-white/5 overflow-hidden">
-            <button
-              onClick={handleToggleNotifs}
-              disabled={isSyncing}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5 disabled:opacity-50"
-            >
-              <div className="flex items-center gap-4">
-                <div className={`p-2 rounded-xl ${notifsEnabled ? 'bg-green-500/10 text-green-400' : 'bg-slate-500/10 text-slate-400'}`}>
-                  {isSyncing ? <Loader2 size={18} className="animate-spin" /> : (notifsEnabled ? <Bell size={18} /> : <BellOff size={18} />)}
-                </div>
-                <div className="text-left">
-                  <span className="text-sm font-medium block">Recordatorios</span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                    {isSyncing ? 'Guardando...' : (notifsEnabled ? 'Activos' : 'Inactivos')}
-                  </span>
-                </div>
-              </div>
-              <div className={`w-10 h-5 rounded-full relative transition-colors ${notifsEnabled ? 'bg-green-500' : 'bg-slate-700'}`}>
-                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${notifsEnabled ? 'right-1' : 'left-1'}`} />
-              </div>
-            </button>
-            <button onClick={onEditProfile} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400"><UserIcon size={18} /></div>
-                <span className="text-sm font-medium">Información Personal</span>
-              </div>
-              <ChevronRight size={16} className="text-slate-600" />
-            </button>
-            <button onClick={onSupport} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400"><AlertTriangle size={18} /></div>
-                <span className="text-sm font-medium">Ayuda y Soporte</span>
-              </div>
-              <ChevronRight size={16} className="text-slate-600" />
-            </button>
-            {onAdmin && (
-              <button onClick={onAdmin} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-t border-white/5 bg-red-500/5">
+        <Reveal>
+          <section>
+            <h3 className="app-text-eyebrow mb-4 ml-2">Ajustes de Cuenta</h3>
+            <div className="app-group">
+              <div className="app-list-row">
                 <div className="flex items-center gap-4">
-                  <div className="p-2 bg-red-500/10 rounded-xl text-red-400"><ShieldCheck size={18} /></div>
-                  <span className="text-sm font-medium text-red-200">Panel Admin</span>
+                  <div className={`app-list-icon ${notifsEnabled ? 'bg-emerald-500/10 text-emerald-300' : 'text-white/50'}`}>
+                    {isSyncing ? <Loader2 size={17} className="animate-spin" /> : (notifsEnabled ? <Bell size={17} strokeWidth={1.8} /> : <BellOff size={17} strokeWidth={1.8} />)}
+                  </div>
+                  <div className="text-left">
+                    <span className="text-sm font-medium block">Recordatorios</span>
+                    <span className="app-text-eyebrow">
+                      {isSyncing ? 'Guardando...' : (notifsEnabled ? 'Activos' : 'Inactivos')}
+                    </span>
+                  </div>
                 </div>
-                <ChevronRight size={16} className="text-red-900" />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={notifsEnabled}
+                  aria-label="Activar recordatorios"
+                  onClick={isSyncing ? undefined : handleToggleNotifs}
+                  className="switch"
+                  data-on={notifsEnabled}
+                  data-disabled={isSyncing}
+                />
+              </div>
+              <button onClick={() => { haptic('select'); onEditProfile?.(); }} className="app-list-row">
+                <div className="flex items-center gap-4">
+                  <div className="app-list-icon bg-blue-500/10 text-blue-300">
+                    <ShieldCheck size={17} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-sm font-medium">Información Personal</span>
+                </div>
+                <ChevronRight size={16} className="apple-chevron" strokeWidth={1.8} />
               </button>
-            )}
-          </div>
-        </section>
-
-
-
-        <section>
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 ml-2">Legal y Transparencia</h3>
-          <div className="glass rounded-[2rem] border-white/5 overflow-hidden">
-            <button onClick={() => onLegal?.('privacy')} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors border-b border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-400"><ShieldCheck size={18} /></div>
-                <span className="text-sm font-medium">Política de Privacidad</span>
-              </div>
-              <ChevronRight size={16} className="text-slate-600" />
-            </button>
-            <button onClick={() => onLegal?.('terms')} className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400"><FileText size={18} /></div>
-                <span className="text-sm font-medium">Términos y Condiciones</span>
-              </div>
-              <ChevronRight size={16} className="text-slate-600" />
-            </button>
-            <div className="w-full px-6 py-4 flex items-center justify-between border-t border-white/5">
-              <div className="flex items-center gap-4 opacity-50">
-                <div className="p-2 bg-slate-500/10 rounded-xl text-slate-400"><Zap size={18} /></div>
-                <span className="text-sm font-medium">Versión</span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{appVersion}</span>
+              <button onClick={() => { haptic('select'); onSupport?.(); }} className="app-list-row">
+                <div className="flex items-center gap-4">
+                  <div className="app-list-icon bg-purple-500/10 text-purple-300">
+                    <AlertTriangle size={17} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-sm font-medium">Ayuda y Soporte</span>
+                </div>
+                <ChevronRight size={16} className="apple-chevron" strokeWidth={1.8} />
+              </button>
+              {onAdmin && (
+                <button onClick={() => { haptic('select'); onAdmin(); }} className="app-list-row app-list-row-danger">
+                  <div className="flex items-center gap-4">
+                    <div className="app-list-icon bg-red-500/10 text-red-300">
+                      <ShieldCheck size={17} strokeWidth={1.8} />
+                    </div>
+                    <span className="text-sm font-medium">Panel Admin</span>
+                  </div>
+                  <ChevronRight size={16} className="text-red-400/60" strokeWidth={1.8} />
+                </button>
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+        </Reveal>
 
-        <button onClick={onLogout} className="w-full py-5 rounded-[2rem] glass border-red-500/10 text-red-400 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-all">
-          <LogOut size={16} /> CERRAR SESIÓN
-        </button>
+        <Reveal delay={0.05}>
+          <section>
+            <h3 className="app-text-eyebrow mb-4 ml-2">Legal y Transparencia</h3>
+            <div className="app-group">
+              <button onClick={() => { haptic('select'); onLegal?.('privacy'); }} className="app-list-row">
+                <div className="flex items-center gap-4">
+                  <div className="app-list-icon bg-purple-500/10 text-purple-300">
+                    <ShieldCheck size={17} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-sm font-medium">Política de Privacidad</span>
+                </div>
+                <ChevronRight size={16} className="apple-chevron" strokeWidth={1.8} />
+              </button>
+              <button onClick={() => { haptic('select'); onLegal?.('terms'); }} className="app-list-row">
+                <div className="flex items-center gap-4">
+                  <div className="app-list-icon bg-blue-500/10 text-blue-300">
+                    <FileText size={17} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-sm font-medium">Términos y Condiciones</span>
+                </div>
+                <ChevronRight size={16} className="apple-chevron" strokeWidth={1.8} />
+              </button>
+              <div className="app-list-row">
+                <div className="flex items-center gap-4 opacity-55">
+                  <div className="app-list-icon text-white/45">
+                    <Zap size={17} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-sm font-medium">Versión</span>
+                </div>
+                <span className="app-text-eyebrow">{appVersion}</span>
+              </div>
+            </div>
+          </section>
+        </Reveal>
 
-        <button onClick={() => setShowDeleteConfirm(true)} className="w-full py-4 mt-4 rounded-[2rem] bg-red-500/10 border border-red-500/20 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
-          <Trash2 size={16} /> ELIMINAR CUENTA DEFINITIVAMENTE
-        </button>
+        <Reveal delay={0.1}>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="app-button app-button-secondary w-full py-4 text-sm"
+          >
+            <LogOut size={16} strokeWidth={1.8} /> Cerrar sesión
+          </button>
+        </Reveal>
+
+        <Reveal delay={0.12}>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="app-button app-button-danger mt-4 w-full py-4 text-sm"
+          >
+            <Trash2 size={16} strokeWidth={1.8} /> Eliminar cuenta definitivamente
+          </button>
+        </Reveal>
       </div>
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="glass p-8 rounded-[2.5rem] border-red-500/20 max-w-xs w-full text-center space-y-6">
-            <AlertTriangle size={32} className="mx-auto text-red-500 animate-bounce" />
-            <h4 className="text-lg font-bold">¿Eliminar cuenta?</h4>
-            <div className="flex flex-col gap-3">
-              <button onClick={handleDeleteAccount} className="py-4 bg-red-500 text-white rounded-2xl font-bold">Sí, borrar todo</button>
-              <button onClick={() => setShowDeleteConfirm(false)} className="py-4 bg-white/5 text-slate-300 rounded-2xl font-bold">Cancelar</button>
-            </div>
+      <ModalShell open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} ariaLabel="Eliminar cuenta" zClass="z-[300]">
+        <div className="app-sheet max-w-xs border-red-500/20 p-8 text-center">
+          <AlertTriangle size={28} className="mx-auto text-red-400" strokeWidth={1.8} />
+          <h4 id="delete-account-title" className="mt-5 text-lg font-semibold tracking-[-0.02em]">¿Eliminar cuenta?</h4>
+          <div className="mt-6 flex flex-col gap-3">
+            <button type="button" onClick={handleDeleteAccount} className="app-button app-button-danger w-full" disabled={isDeleting}>
+              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : 'Sí, borrar todo'}
+            </button>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className="app-button app-button-secondary w-full">Cancelar</button>
           </div>
         </div>
-      )}
+      </ModalShell>
     </div>
   );
 };

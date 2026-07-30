@@ -2,17 +2,27 @@
   "name": "Moodless - Diario Visual",
   "short_name": "Moodless",
   "gcm_sender_id": "103953800507",
-  "description": "Tu diario de emociones visual sin texto.",
+  "description": "Tu diario emocional visual con IA. Registra tu vibe diaria, descubre patrones y cuida tu bienestar.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
+  "categories": ["health", "lifestyle", "productivity"],
+  "lang": "es",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/logo.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/splash/android-splash-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -22,10 +32,37 @@
       "purpose": "any"
     },
     {
+      "src": "/splash/android-splash-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/logo.jpg",
       "sizes": "1024x1024",
       "type": "image/jpeg",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/splash/android-splash-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "edge_sideload": false,
+  "launch_handler": { "client_mode": "focus-existing" },
+  "prefer_related_applications": false,
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Registrar vibe",
+      "short_name": "Registrar",
+      "description": "Captura tu estado emocional de hoy",
+      "url": "/app",
+      "icons": [
+        { "src": "/splash/android-splash-192x192.png", "sizes": "192x192", "type": "image/png" }
+      ]
     }
   ]
 }

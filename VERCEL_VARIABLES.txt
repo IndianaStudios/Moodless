@@ -39,6 +39,18 @@ Nombre: MISTRAL_API_KEY
 Valor: [REDACTED]
 Sensible: ✅ SÍ
 
+--- VARIABLE 4b ---
+Nombre: GEMINI_API_KEY
+Valor: [REDACTED] (Gemini API key con restricciones de aplicación en Google Cloud Console → APIs & Services → Credentials → API keys)
+Sensible: ✅ SÍ
+
+Nota: el backend acepta también GOOGLE_API_KEY como alias. GEMINI_API_KEY tiene prioridad.
+
+--- VARIABLE 4c ---
+Nombre: GROQ_API_KEY
+Valor: [REDACTED] (Groq API key, conseguir en https://console.groq.com/keys)
+Sensible: ✅ SÍ
+
 --- VARIABLE 5 ---
 Nombre: YOUTUBE_API_KEY
 Valor: [REDACTED]

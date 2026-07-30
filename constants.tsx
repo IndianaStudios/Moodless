@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
   Sun,
   CloudRain,
@@ -15,6 +16,57 @@ import {
   Droplets
 } from 'lucide-react';
 import { MoodCategory, ColorDefinition } from './types';
+
+export const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
+  try {
+    Haptics.impact({ style }).catch(() => {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(style === ImpactStyle.Heavy ? 25 : 12);
+      }
+    });
+  } catch {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(12);
+    }
+  }
+};
+
+export type HapticKind = 'select' | 'success' | 'error' | 'tap';
+
+const webPatterns: Record<HapticKind, number | number[]> = {
+  select: 8,
+  tap: 12,
+  success: [10, 30, 10],
+  error: [25, 50, 25],
+};
+
+export const haptic = (kind: HapticKind = 'tap') => {
+  try {
+    if (kind === 'success') {
+      Haptics.notification({ type: 'SUCCESS' as any }).catch(() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(webPatterns.success);
+        }
+      });
+    } else if (kind === 'error') {
+      Haptics.notification({ type: 'ERROR' as any }).catch(() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(webPatterns.error);
+        }
+      });
+    } else {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(webPatterns[kind]);
+        }
+      });
+    }
+  } catch {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(webPatterns[kind]);
+    }
+  }
+};
 
 export const EMOTIONAL_PALETTE: ColorDefinition[] = [
   { category: MoodCategory.JOY, hex: '#FACC15', secondary: '#FEF08A', label: 'Alegría', moodBuddy: '/mascot_joy_nobg.png' },

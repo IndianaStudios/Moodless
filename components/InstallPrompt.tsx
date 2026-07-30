@@ -45,10 +45,10 @@ const PWAInstallPrompt: React.FC = () => {
 
     return (
         <div className="fixed bottom-24 left-0 right-0 z-[1000] animate-in slide-in-from-bottom-10 fade-in duration-700 flex justify-center px-6">
-            <div className="glass w-full max-w-sm p-5 rounded-[2rem] border-white/20 shadow-2xl relative overflow-hidden bg-slate-900/90 backdrop-blur-2xl">
+            <div className="app-surface-raised w-full max-w-sm p-5 rounded-[2rem] border-white/20 shadow-2xl relative overflow-hidden">
                 <button
                     onClick={() => { setIsVisible(false); setIsIOS(false); }}
-                    className="absolute top-4 right-4 p-1 rounded-full bg-white/5 text-slate-400"
+                    className="absolute top-4 right-4 p-1 rounded-full bg-white/5 text-white/50"
                 >
                     <X size={14} />
                 </button>
@@ -60,7 +60,7 @@ const PWAInstallPrompt: React.FC = () => {
 
                     <div className="flex-1">
                         <h3 className="text-sm font-black text-white leading-tight">Moodless App</h3>
-                        <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                        <p className="text-[10px] text-white/50 font-medium leading-tight mt-0.5">
                             {isIOS
                                 ? "Añádela a tu inicio para una mejor experiencia."
                                 : "Instala la app para acceso rápido y offline."}
@@ -69,13 +69,13 @@ const PWAInstallPrompt: React.FC = () => {
                 </div>
 
                 {isIOS ? (
-                    <div className="mt-4 pt-4 border-t border-white/10 text-[10px] text-slate-300 font-medium flex items-center justify-center gap-2">
+                    <div className="mt-4 pt-4 border-t border-white/10 text-[10px] text-white/65 font-medium flex items-center justify-center gap-2">
                         Pulsa <Share size={14} className="text-blue-400" /> y luego <span className="font-black text-white">"Añadir a la pantalla de inicio"</span>
                     </div>
                 ) : (
                     <button
                         onClick={handleInstallClick}
-                        className="mt-4 w-full py-3 bg-white text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl"
+                        className="mt-4 w-full app-button app-button-primary py-3 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
                     >
                         <Download size={14} />
                         Instalar App

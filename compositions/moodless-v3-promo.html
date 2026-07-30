@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Moodless 3.0 — Diario emocional visual con IA</title>
+<style>
+  /* ═════════════ Brand tokens (Moodless 3.0) ═════════════ */
+  :root {
+    --app-bg: #000000;
+    --app-glass-1: rgba(255, 255, 255, 0.045);
+    --app-glass-2: rgba(255, 255, 255, 0.09);
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-border-strong: rgba(255, 255, 255, 0.12);
+    --app-text: #ffffff;
+    --app-muted: rgba(255, 255, 255, 0.55);
+    --app-faint: rgba(255, 255, 255, 0.35);
+    --app-violet: #a78bfa;
+    --app-cyan: #5eead4;
+    --app-amber: #fbbf24;
+    --app-emerald: #34c759;
+    --app-joy: #facc15;
+    --app-calm: #2dd4bf;
+    --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ═════════════ Composition canvas (1080×1920) ═════════════ */
+  [data-composition-id="moodless-v3-promo"] {
+    position: relative;
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: radial-gradient(ellipse 70% 50% at 50% 35%, rgba(167, 139, 250, 0.18) 0%, transparent 65%), #000;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: var(--app-text);
+  }
+
+  /* ═════════════ Ambient background blobs ═════════════ */
+  .ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ambient::before,
+  .ambient::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(160px);
+  }
+  .ambient::before {
+    top: -10%;
+    left: -15%;
+    width: 600px;
+    height: 600px;
+    background: rgba(139, 92, 246, 0.20);
+  }
+  .ambient::after {
+    right: -12%;
+    bottom: 18%;
+    width: 520px;
+    height: 520px;
+    background: rgba(45, 212, 191, 0.12);
+  }
+
+  /* ═════════════ Scenes share a base layout container ═════════════ */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 140px 110px;
+    box-sizing: border-box;
+    z-index: 1;
+  }
+
+  .scene-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+  }
+
+  /* ═════════════ Glass primitive (Moodless design system) ═════════════ */
+  .glass {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.018) 100%);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--app-border);
+    border-radius: 36px;
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+  .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 50%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ═════════════ Typography ═════════════ */
+  .eyebrow {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--app-violet);
+    margin: 0;
+  }
+  .hero-title {
+    font-size: 168px;
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+    color: var(--app-text);
+    text-align: center;
+    margin: 0;
+  }
+  .hero-subtitle {
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+    color: var(--app-muted);
+    text-align: center;
+    max-width: 820px;
+    margin: 0;
+  }
+  .display-2 {
+    font-size: 96px;
+    font-weight: 700;
+    line-height: 1.0;
+    letter-spacing: -0.035em;
+    color: var(--app-text);
+    margin: 0;
+  }
+  .label-eyebrow {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--app-faint);
+  }
+  .meta {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--app-muted);
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+  .gradient-text {
+    background: linear-gradient(105deg, #f5d0fe 0%, #c4b5fd 40%, #67e8f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ═════════════ Scene 1 — Hero cold open ═════════════ */
+  #scene-hero .logo-mark {
+    width: 240px;
+    height: 240px;
+    border-radius: 56px;
+    overflow: hidden;
+    box-shadow:
+      0 0 80px rgba(168, 85, 247, 0.55),
+      0 24px 60px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+  }
+  #scene-hero .logo-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #scene-hero .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    border-radius: 60px;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.35) 0%, transparent 65%);
+    z-index: -1;
+  }
+  #scene-hero .badge-version {
+    margin-top: 8px;
+    padding: 16px 32px;
+    border-radius: 999px;
+    background: rgba(167, 139, 250, 0.14);
+    border: 1px solid rgba(167, 139, 250, 0.40);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--app-violet);
+  }
+
+  /* ═════════════ Scene 2 — Captura sliders ═════════════ */
+  #scene-capture .card {
+    width: 100%;
+    max-width: 860px;
+    padding: 56px 48px;
+    gap: 32px;
+  }
+  #scene-capture .slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  #scene-capture .slider-track {
+    flex: 1;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  #scene-capture .slider-fill {
+    height: 100%;
+    border-radius: 999px;
+    transform-origin: left center;
+  }
+  #scene-capture .slider-fill.violet {
+    background: linear-gradient(90deg, #c4b5fd, #a78bfa);
+    width: 90%;
+  }
+  #scene-capture .slider-fill.amber {
+    background: linear-gradient(90deg, #fdba74, #fb923c);
+    width: 70%;
+  }
+  #scene-capture .slider-fill.cyan {
+    background: linear-gradient(90deg, #67e8f9, #5eead4);
+    width: 80%;
+  }
+  #scene-capture .slider-label {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--app-text);
+    letter-spacing: -0.015em;
+    min-width: 200px;
+  }
+  #scene-capture .slider-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--app-text);
+  }
+  #scene-capture .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 32px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.14);
+    border: 1px solid rgba(250, 204, 21, 0.45);
+    color: var(--app-joy);
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  #scene-capture .result-badge .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--app-joy);
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.7);
+  }
+
+  /* ═════════════ Scene 3 — MoodBuddy ═════════════ */
+  #scene-buddy .mascot {
+    width: 320px;
+    height: 320px;
+    position: relative;
+  }
+  #scene-buddy .mascot::before {
+    content: '';
+    position: absolute;
+    inset: -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.40) 0%, transparent 60%);
+    z-index: -1;
+  }
+  #scene-buddy .mascot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 24px 40px rgba(250, 204, 21, 0.30));
+  }
+  #scene-buddy .mood-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 36px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.40);
+    color: var(--app-joy);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  #scene-buddy .mood-pill .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--app-joy);
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.7);
+  }
+
+  /* ═════════════ Scene 4 — Chat contextual ═════════════ */
+  #scene-chat .bubble-row {
+    display: flex;
+    width: 100%;
+    max-width: 800px;
+  }
+  #scene-chat .bubble-row.user { justify-content: flex-end; }
+  #scene-chat .bubble-row.ai { justify-content: flex-start; }
+  #scene-chat .bubble {
+    max-width: 80%;
+    padding: 28px 36px;
+    border-radius: 32px;
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.005em;
+  }
+  #scene-chat .bubble.user {
+    background: rgba(167, 139, 250, 0.85);
+    color: white;
+    border-top-right-radius: 12px;
+    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.30);
+  }
+  #scene-chat .bubble.ai {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.85);
+    border-top-left-radius: 12px;
+  }
+  #scene-chat .bubble.ai .sparkle {
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    color: var(--app-cyan);
+  }
+
+  /* ═════════════ Scene 5 — Predicción + música ═════════════ */
+  #scene-prediction .card {
+    width: 100%;
+    max-width: 860px;
+    padding: 48px 56px;
+    gap: 20px;
+  }
+  #scene-prediction .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  #scene-prediction .card-subtitle {
+    font-size: 24px;
+    color: var(--app-muted);
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+  #scene-prediction .prediction-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  #scene-prediction .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: none;
+    box-shadow: 0 0 24px rgba(94, 234, 212, 0.40);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  #scene-prediction .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #scene-prediction .prediction-label {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--app-calm);
+    letter-spacing: -0.015em;
+  }
+  #scene-prediction .prediction-pattern {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 4px;
+  }
+
+  /* ═════════════ Scene 6 — Finale / CTA ═════════════ */
+  #scene-finale .version-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 32px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+  #scene-finale .version-mark .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--app-emerald);
+    box-shadow: 0 0 12px rgba(52, 199, 89, 0.8);
+  }
+  #scene-finale .version-mark span {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--app-text);
+  }
+  #scene-finale .platform-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  #scene-finale .platform-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    font-size: 24px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.80);
+  }
+  #scene-finale .platform-chip svg {
+    flex: none;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+
+<!-- ═════════════ Sub-composition template ═════════════ -->
+<template id="moodless-v3-promo-template">
+
+  <div
+    data-composition-id="moodless-v3-promo"
+    data-width="1080"
+    data-height="1920"
+    data-start="0"
+    data-duration="18"
+  >
+    <div class="ambient" aria-hidden="true"></div>
+
+    <!-- ═════════════ SCENE 1 — HERO COLD OPEN (0–2.8s) ═════════════ -->
+    <div class="scene" id="scene-hero">
+      <div class="scene-content">
+        <p class="eyebrow" id="hero-eyebrow">MOODLESS · v3.0</p>
+        <div class="logo-mark" id="hero-logo" style="margin-top: 18px;">
+          <img src="../public/logo.jpg" alt="Moodless logo" />
+        </div>
+        <p class="badge-version" id="hero-version">Disponible ahora</p>
+        <h1 class="hero-title" id="hero-title" style="margin-top: 28px;">
+          <span class="gradient-text">Diario emocional</span><br/>
+          <span>visual con IA</span>
+        </h1>
+        <p class="hero-subtitle" id="hero-subtitle">Tu vibe diaria, en privado, con tu Buddy.</p>
+      </div>
+    </div>
+
+    <!-- ═════════════ SCENE 2 — CAPTURA (2.8–5.8s) ═════════════ -->
+    <div class="scene" id="scene-capture">
+      <div class="scene-content">
+        <p class="eyebrow" id="capture-eyebrow">Captura</p>
+        <h2 class="display-2" id="capture-title">¿Cómo estás hoy?</h2>
+
+        <div class="card glass" id="capture-card">
+          <div class="slider-row">
+            <div class="slider-icon" style="background: rgba(244, 114, 182, 0.18); color: #f472b6;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </div>
+            <span class="slider-label" id="capture-sl1">¿Cómo te sientes?</span>
+            <div class="slider-track"><div class="slider-fill violet"></div></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-icon" style="background: rgba(251, 146, 60, 0.18); color: #fb923c;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <span class="slider-label" id="capture-sl2">¿Cuánta energía?</span>
+            <div class="slider-track"><div class="slider-fill amber"></div></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-icon" style="background: rgba(94, 234, 212, 0.18); color: #5eead4;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </div>
+            <span class="slider-label" id="capture-sl3">¿Cuánto control?</span>
+            <div class="slider-track"><div class="slider-fill cyan"></div></div>
+          </div>
+        </div>
+
+        <span class="result-badge" id="capture-result">
+          <span class="dot"></span>Alegría
+        </span>
+      </div>
+    </div>
+
+    <!-- ═════════════ SCENE 3 — MOODBUDDY (5.8–8.6s) ═════════════ -->
+    <div class="scene" id="scene-buddy">
+      <div class="scene-content">
+        <p class="eyebrow" id="buddy-eyebrow">MoodBuddy</p>
+        <h2 class="display-2" id="buddy-title">Tu compañero<br/>empático</h2>
+
+        <div class="mascot" id="buddy-mascot" style="margin-top: 24px;">
+          <img src="../public/mascot_joy_nobg.png" alt="MoodBuddy Joy" />
+        </div>
+
+        <span class="mood-pill" id="buddy-pill">
+          <span class="dot"></span>Alegría
+        </span>
+      </div>
+    </div>
+
+    <!-- ═════════════ SCENE 4 — CHAT CONTEXTUAL (8.6–11.4s) ═════════════ -->
+    <div class="scene" id="scene-chat">
+      <div class="scene-content">
+        <p class="eyebrow" id="chat-eyebrow">Contexto emocional</p>
+        <h2 class="display-2" id="chat-title">Habla con tu Buddy</h2>
+
+        <div class="bubble-row user" style="margin-top: 24px;">
+          <div class="bubble user" id="chat-bubble-user">Hoy dormí fatal y el trabajo me agobia</div>
+        </div>
+
+        <div class="bubble-row ai">
+          <div class="bubble ai" id="chat-bubble-ai">
+            <svg class="sparkle" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <path d="M12 2 L13.5 9 L20 10 L13.5 11 L12 18 L10.5 11 L4 10 L10.5 9 Z"/>
+            </svg>
+            Suena a una mezcla de cansancio y presión. ¿Pasó algo concreto hoy en el trabajo?
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════════════ SCENE 5 — PREDICCIÓN + MÚSICA (11.4–14.6s) ═════════════ -->
+    <div class="scene" id="scene-prediction">
+      <div class="scene-content">
+        <p class="eyebrow" id="pred-eyebrow">Predicción de mañana</p>
+        <h2 class="display-2" id="pred-title">Aprende tu ritmo</h2>
+
+        <div class="card glass" id="pred-card">
+          <div class="card-header">
+            <p class="card-subtitle">Basado en tu racha reciente</p>
+            <span class="label-eyebrow" style="color: var(--app-cyan);">87%</span>
+          </div>
+
+          <div class="prediction-row">
+            <div class="avatar">
+              <img src="../public/mascot_calm_nobg.png" alt="Calm mascot" />
+            </div>
+            <div>
+              <div class="prediction-label">Calma</div>
+              <div class="prediction-pattern">Tras varios días de Alegría, mañana sostienes esa tendencia.</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="meta" id="pred-meta">+ Banda sonora adaptativa cada día</p>
+      </div>
+    </div>
+
+    <!-- ═════════════ SCENE 6 — FINALE / CTA (14.6–18s) ═════════════ -->
+    <div class="scene" id="scene-finale">
+      <div class="scene-content">
+        <p class="eyebrow" id="finale-eyebrow">Disponible ahora</p>
+        <h2 class="hero-title" id="finale-title" style="font-size: 144px;">
+          v3.0<br/>
+          <span class="gradient-text">disponible</span>
+        </h2>
+
+        <div class="version-mark" id="finale-mark" style="margin-top: 12px;">
+          <span class="dot"></span>
+          <span>Moodless 3.0 · Gratis</span>
+        </div>
+
+        <div class="platform-row" id="finale-platforms">
+          <span class="platform-chip">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            iOS
+          </span>
+          <span class="platform-chip">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 5 21 19 12 5 3"/></svg>
+            Android
+          </span>
+          <span class="platform-chip">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Web
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════════════ GSAP Timeline ═════════════ -->
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ──────────── Scene 1: HERO (0–2.8s) ──────────── */
+      tl.from('#hero-eyebrow',  { y: 24, opacity: 0, duration: 0.5, ease: 'power3.out' }, 0.15);
+      tl.from('#hero-logo',     { scale: 0.7, opacity: 0, duration: 0.9, ease: 'back.out(1.4)' }, 0.30);
+      tl.from('#hero-version',  { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out' }, 0.65);
+      tl.from('#hero-title',    { y: 60, opacity: 0, duration: 0.7, ease: 'power3.out' }, 0.80);
+      tl.from('#hero-subtitle', { y: 30, opacity: 0, duration: 0.5, ease: 'power2.out' }, 1.10);
+
+      /* ──────────── Scene 2: CAPTURA (2.8–5.8s) ──────────── */
+      tl.from('#capture-eyebrow', { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 2.95);
+      tl.from('#capture-title',   { y: 40, opacity: 0, duration: 0.55, ease: 'expo.out' }, 3.10);
+      tl.from('#capture-card',    { y: 60, scale: 0.96, opacity: 0, duration: 0.7, ease: 'power3.out' }, 3.40);
+      tl.from('#capture-sl1',     { x: -30, opacity: 0, duration: 0.4, ease: 'power2.out' }, 3.75);
+      tl.from('#capture-sl2',     { x:  30, opacity: 0, duration: 0.4, ease: 'power2.out' }, 3.95);
+      tl.from('#capture-sl3',     { x: -30, opacity: 0, duration: 0.4, ease: 'power2.out' }, 4.15);
+      tl.from('#capture-result',  { scale: 0.7, opacity: 0, duration: 0.5, ease: 'back.out(1.6)' }, 4.55);
+
+      /* ──────────── Scene 3: MOODBUDDY (5.8–8.6s) ──────────── */
+      tl.from('#buddy-eyebrow', { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 5.95);
+      tl.from('#buddy-title',   { y: 40, opacity: 0, duration: 0.55, ease: 'expo.out' }, 6.10);
+      tl.from('#buddy-mascot',  { y: 60, scale: 0.6, opacity: 0, duration: 0.9, ease: 'elastic.out(1, 0.6)' }, 6.40);
+      tl.from('#buddy-pill',    { y: 24, opacity: 0, duration: 0.45, ease: 'power2.out' }, 7.10);
+
+      /* ──────────── Scene 4: CHAT (8.6–11.4s) ──────────── */
+      tl.from('#chat-eyebrow',     { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 8.75);
+      tl.from('#chat-title',       { y: 40, opacity: 0, duration: 0.55, ease: 'expo.out' }, 8.90);
+      tl.from('#chat-bubble-user', { x:  40, scale: 0.92, opacity: 0, duration: 0.55, ease: 'power3.out' }, 9.30);
+      tl.from('#chat-bubble-ai',   { x: -40, scale: 0.92, opacity: 0, duration: 0.55, ease: 'power3.out' }, 9.80);
+
+      /* ──────────── Scene 5: PREDICCIÓN (11.4–14.6s) ──────────── */
+      tl.from('#pred-eyebrow', { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 11.55);
+      tl.from('#pred-title',   { y: 40, opacity: 0, duration: 0.55, ease: 'expo.out' }, 11.70);
+      tl.from('#pred-card',    { y: 60, scale: 0.96, opacity: 0, duration: 0.7, ease: 'power3.out' }, 12.00);
+      tl.from('#pred-meta',    { y: 18, opacity: 0, duration: 0.5, ease: 'power2.out' }, 13.10);
+
+      /* ──────────── Scene 6: FINALE (14.6–18s) ──────────── */
+      tl.from('#finale-eyebrow',    { y: 20, opacity: 0, duration: 0.4, ease: 'power2.out' }, 14.75);
+      tl.from('#finale-title',      { y: 60, opacity: 0, duration: 0.7, ease: 'power3.out' }, 14.95);
+      tl.from('#finale-mark',      { y: 24, scale: 0.9, opacity: 0, duration: 0.5, ease: 'back.out(1.4)' }, 15.55);
+      tl.from('#finale-platforms',  { y: 30, opacity: 0, duration: 0.6, ease: 'power2.out' }, 15.85);
+
+      /* Final fade-out (only allowed in last scene) */
+      tl.to('#finale-title',      { opacity: 0.92, duration: 0.3, ease: 'sine.inOut' }, 17.5);
+      tl.to('#finale-platforms',  { opacity: 0.85, duration: 0.3, ease: 'sine.inOut' }, 17.6);
+
+      window.__timelines['moodless-v3-promo'] = tl;
+    </script>
+  </div>
+
+</template>
+
+</body>
+</html>

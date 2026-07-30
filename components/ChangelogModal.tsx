@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { PartyPopper, ArrowRight, X } from 'lucide-react';
+import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import ModalShell from './ModalShell';
 
 interface ChangelogData {
   id: string;
@@ -14,7 +16,6 @@ interface ChangelogModalProps {
 }
 
 const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) => {
-  // Evitar scroll en el body mientras el modal está abierto
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -23,59 +24,73 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({ changelog, onClose }) =
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop con blur */}
-      <div
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
-      />
+    <ModalShell open ariaLabel="Novedades" zClass="z-[120]">
+      <div className="app-sheet max-w-md relative overflow-hidden">
+        {/* Gradient top line */}
+        <div
+          className="absolute inset-x-0 top-0 h-[2px]"
+          style={{
+            background: 'linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.95) 30%, rgba(94, 234, 212, 0.95) 70%, transparent)',
+          }}
+          aria-hidden="true"
+        />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-md bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
-
-        {/* Decoración Superior */}
-        <div className="absolute top-0 left-0 right-0 h-[10rem] bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
+        {/* Soft ambient glow */}
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-[80px] opacity-25 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(167, 139, 250, 0.6), rgba(94, 234, 212, 0.3), transparent 70%)' }}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 6, repeat: Infinity, ease: [0.16, 1, 0.3, 1] }}
+          aria-hidden="true"
+        />
 
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 bg-white/5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors z-10"
+          className="app-icon-button absolute right-4 top-4 z-10 h-9 w-9"
+          aria-label="Cerrar novedades"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
-        <div className="relative pt-12 px-6 pb-4 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/30 mb-3 shadow-lg shadow-blue-500/20 flex items-center justify-center">
-            <PartyPopper className="text-blue-400" size={32} />
+        <div className="relative pt-[max(2.75rem,env(safe-area-inset-top),3rem)] px-6 pb-4 flex flex-col items-center text-center">
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28, ease: [0.16, 1, 0.3, 1] }}
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-cyan-400/15 border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center justify-center"
+          >
+            <Sparkles className="text-white/85" size={28} strokeWidth={1.8} />
+          </motion.div>
+
+          <div className="app-surface px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/55 mb-5">
+            Versión {changelog.version}
           </div>
 
-          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">
-            VERSIÓN {changelog.version}
-          </div>
-
-          <h2 className="text-2xl font-black text-white mb-2 leading-tight">
+          <h2 id="changelog-title" className="text-2xl font-semibold text-white mb-2 leading-tight tracking-[-0.025em]">
             {changelog.title}
           </h2>
         </div>
 
-        <div className="px-6 pb-8">
-          <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-5 max-h-64 overflow-y-auto custom-scrollbar">
-            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+        <div className="px-6 pb-7">
+          <div className="app-surface rounded-2xl p-5 max-h-64 overflow-y-auto custom-scrollbar">
+            <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
               {changelog.content}
             </p>
           </div>
         </div>
 
-        <div className="px-6 pb-6">
+        <div className="px-6 pb-7">
           <button
             onClick={onClose}
-            className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5"
+            className="app-button app-button-primary w-full py-4 text-sm"
           >
             ¡Genial, gracias!
-            <ArrowRight size={18} />
+            <ArrowRight size={17} strokeWidth={2} />
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 };
 

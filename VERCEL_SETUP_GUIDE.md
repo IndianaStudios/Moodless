@@ -24,6 +24,8 @@ Si marcas una variable `VITE_*` como sensible, **el frontend NO podrá acceder a
 | `FIREBASE_CLIENT_EMAIL` | `[REDACTED_EMAIL]` | ✅ **Sí** |
 | `FIREBASE_PRIVATE_KEY` | `[REDACTED_PRIVATE_KEY]` | ✅ **Sí** |
 | `MISTRAL_API_KEY` | `[REDACTED_MISTRAL_KEY]` | ✅ **Sí** |
+| `GOOGLE_API_KEY` | `[REDACTED_GEMINI_KEY]` (https://aistudio.google.com/apikey) | ✅ **Sí** |
+| `GROQ_API_KEY` | `[REDACTED_GROQ_KEY]` (https://console.groq.com/keys) | ✅ **Sí** |
 | `YOUTUBE_API_KEY` | `[REDACTED_YOUTUBE_KEY]` | ✅ **Sí** |
 | `UPSTASH_REDIS_REST_URL` | `[REDACTED_UPSTASH_URL]` | ✅ **Sí** |
 | `UPSTASH_REDIS_REST_TOKEN` | `[REDACTED_UPSTASH_TOKEN]` | ✅ **Sí** |
