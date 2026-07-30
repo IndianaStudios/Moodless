@@ -303,6 +303,9 @@ const App: React.FC = () => {
 
   const publicPaths = ['/landing', '/privacidad', '/terminos', '/cookies', '/contacto'];
   if (publicPaths.some(p => location.pathname.startsWith(p))) {
+    if (isStandalone && location.pathname === '/landing') {
+      return <Navigate to={user ? '/app' : '/'} replace />;
+    }
     return (
       <Suspense fallback={<ScreenLoader />}>
         <Routes>
@@ -386,7 +389,7 @@ const App: React.FC = () => {
   }
 
   if (location.pathname === '/') {
-    return <Navigate to={user ? '/landing' : '/landing'} replace />;
+    return <Navigate to={user ? '/app' : '/landing'} replace />;
   }
 
   return (

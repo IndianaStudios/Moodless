@@ -130,7 +130,7 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries, 
           </header>
         </Reveal>
 
-        <div className="flex flex-col items-center justify-center py-6 relative">
+        <div className="flex-1 flex flex-col items-center justify-center py-6 relative my-auto">
           <div className="relative">
             <div
               className="absolute inset-[-16px] rounded-full opacity-25 blur-2xl"
@@ -179,8 +179,8 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries, 
                     borderColor: `${moodColor}25`,
                   }}
                 />
-                <div className="flex items-start gap-3">
-                  <MessageCircle size={14} className="shrink-0 mt-0.5 opacity-50" style={{ color: moodColor }} strokeWidth={1.8} />
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={14} className="shrink-0 opacity-50" style={{ color: moodColor }} strokeWidth={1.8} />
                   <p className="text-sm font-semibold text-white/90 leading-relaxed italic">
                     "{interaction.greeting}"
                   </p>
@@ -205,9 +205,9 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries, 
                   borderColor: `${moodColor}25`,
                 }}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <div
-                    className="app-skeleton h-3.5 w-3.5 rounded-full shrink-0 mt-0.5"
+                    className="app-skeleton h-3.5 w-3.5 rounded-full shrink-0"
                     style={{ backgroundColor: `${moodColor}30` }}
                   />
                   <div className="flex-1 space-y-2">
@@ -322,7 +322,7 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries, 
         </div>
       </div>
 
-      <ModalShell open={loading} ariaLabel="Cargando" zClass="z-50">
+      <ModalShell open={loading} ariaLabel="Cargando" zClass="z-50 !items-center">
         <div className="flex flex-col items-center gap-5">
           <div
             className="w-14 h-14 border-[3px] border-t-transparent rounded-full animate-spin"
@@ -333,7 +333,7 @@ const MoodBuddyHomeView: React.FC<MoodBuddyHomeViewProps> = ({ userId, entries, 
       </ModalShell>
 
       {!loggedToday && (
-        <ModalShell open ariaLabel="Buddy bloqueado" zClass="z-40">
+        <ModalShell open ariaLabel="Buddy bloqueado" zClass="z-40 !items-center">
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-white/10"
             style={{ backgroundColor: `${moodColor}15`, color: moodColor }}
