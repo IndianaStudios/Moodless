@@ -80,8 +80,15 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error fetching tickets');
+        let errorMsg = `Error (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {
+          const rawText = await response.text().catch(() => '');
+          errorMsg = rawText ? `Servidor (${response.status}): ${rawText.slice(0, 100)}` : `Error de servidor (${response.status})`;
+        }
+        throw new Error(errorMsg);
       }
 
       const fetchedTickets = await response.json();
@@ -118,8 +125,12 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
       });
 
       if (!updateResponse.ok) {
-        const errorData = await updateResponse.json();
-        throw new Error(errorData.error || 'Error actualizando ticket');
+        let errorMsg = 'Error actualizando ticket';
+        try {
+          const errorData = await updateResponse.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       const ticket = tickets.find(t => t.id === ticketId) || selectedTicket;
@@ -189,7 +200,13 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        const text = await response.text().catch(() => '');
+        throw new Error(text ? `Error servidor (${response.status}): ${text.slice(0, 100)}` : `Error publicando changelog (${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Error publicando changelog');
