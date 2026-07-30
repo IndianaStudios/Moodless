@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { isAdmin } from './_utils/isAdmin.js';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .orderBy('createdAt', 'desc')
       .get();
 
-    const tickets = ticketsSnapshot.docs.map(doc => {
+    const tickets = ticketsSnapshot.docs.map((doc: QueryDocumentSnapshot) => {
       const data = doc.data();
       return {
         id: doc.id,

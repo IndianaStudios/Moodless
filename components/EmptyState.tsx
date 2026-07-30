@@ -50,7 +50,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           className={`${iconBox} mb-5 flex items-center justify-center rounded-2xl bg-white/[0.04] text-white/55 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
         >
           {React.isValidElement(icon)
-            ? React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: iconSize, strokeWidth: 1.6 })
+            ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, { size: iconSize, strokeWidth: 1.6 })
             : icon}
         </div>
       ) : null}

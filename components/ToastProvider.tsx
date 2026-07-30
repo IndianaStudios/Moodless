@@ -23,7 +23,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const ICONS: Record<ToastTone, React.ComponentType<{ size?: number; className?: string }>> = {
+const ICONS: Record<ToastTone, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>> = {
   info: Info,
   success: CheckCircle2,
   error: AlertCircle,

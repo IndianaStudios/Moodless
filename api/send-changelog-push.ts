@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { isAdmin } from './_utils/isAdmin.js';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const usersSnapshot = await db.collection('users').get();
 
     const tokens: string[] = [];
-    usersSnapshot.forEach((doc) => {
+    usersSnapshot.forEach((doc: QueryDocumentSnapshot) => {
       const data = doc.data();
       // Si el usuario tiene tokens y (no tiene preferencias o notificationsEnabled es true)
       if (data.fcmTokens && Array.isArray(data.fcmTokens) && data.fcmTokens.length > 0) {
