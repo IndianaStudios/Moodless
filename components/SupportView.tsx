@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../services/authService';
 import { db, auth } from '../services/firebase';
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import {
   ChevronLeft,
   Send,
@@ -23,6 +23,17 @@ interface SupportViewProps {
 }
 
 type SupportCategory = 'bug' | 'suggestion' | 'help' | 'other';
+
+const CATEGORY_PREFIX: Record<SupportCategory, string> = {
+  bug: 'B',
+  suggestion: 'S',
+  help: 'A',
+  other: 'O',
+};
+
+const formatTicketId = (category: SupportCategory, n: number): string => {
+  return `${CATEGORY_PREFIX[category]}${n}`;
+};
 
 const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
   const [category, setCategory] = useState<SupportCategory>('bug');
@@ -62,15 +73,48 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
     setError('');
 
 try {
-        const docRef = await addDoc(collection(db, 'support_tickets'), {
-          userId: user.id,
-          userName: user.name,
-          userEmail: user.email,
-          category,
-          message: message.trim(),
-          createdAt: serverTimestamp(),
-          status: 'new',
-        });
+        // Generamos un ID legible tipo "B11", "S3", "O1", "A7" usando un
+        // counter transaccional por categoría. El doc del ticket y el counter
+        // se incrementan en la MISMA transacción para garantizar consistencia.
+        let ticketId: string;
+        try {
+          const counterRef = doc(db, 'support_ticket_counters', CATEGORY_PREFIX[category]);
+          const ticketRef = doc(db, 'support_tickets', '__pending__'); // placeholder
+          ticketId = await runTransaction(db, async (tx) => {
+            const counterSnap = await tx.get(counterRef);
+            const current = counterSnap.exists() ? Number((counterSnap.data() as any).n) || 0 : 0;
+            const next = current + 1;
+            const id = formatTicketId(category, next);
+            const realTicketRef = doc(db, 'support_tickets', id);
+            tx.set(counterRef, { n: next, updatedAt: serverTimestamp() }, { merge: true });
+            tx.set(realTicketRef, {
+              userId: user.id,
+              userName: user.name,
+              userEmail: user.email,
+              category,
+              message: message.trim(),
+              createdAt: serverTimestamp(),
+              status: 'new',
+              ticketRef: false,
+            });
+            return id;
+          });
+        } catch (counterErr) {
+          console.warn('[SupportView] Counter transaction failed, using UUID:', counterErr);
+          const fallbackRef = await addDoc(collection(db, 'support_tickets'), {
+            userId: user.id,
+            userName: user.name,
+            userEmail: user.email,
+            category,
+            message: message.trim(),
+            createdAt: serverTimestamp(),
+            status: 'new',
+            ticketRef: true,
+          });
+          ticketId = fallbackRef.id;
+        }
+
+        const docRef = { id: ticketId } as any;
 
         let emailSent = false;
         let emailError: string | null = null;

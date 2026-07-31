@@ -65,6 +65,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Counters atómicos para generar IDs legibles tipo "B11", "S3".
+    // Solo almacenan un entero `n` por categoría (B/S/O/A). Cualquier
+    // usuario autenticado puede incrementar para crear su ticket.
+    match /support_ticket_counters/{category} {
+      allow read, write: if isSignedIn()
+        && category in ['B', 'S', 'O', 'A']
+        && request.resource.data.keys().hasOnly(['n', 'updatedAt']);
+    }
+
     // Cache de YouTube: solo Admin SDK (servidor)
     match /youtube_cache/{cacheId} {
       allow read, write: if false;
