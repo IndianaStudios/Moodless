@@ -640,13 +640,57 @@ FORMATO JSON ESTRICTO (sin texto adicional, sin markdown, sin comillas triples):
       2,
       'context_analysis',
       undefined,
-      512,
-      0.4,
-      'llama-3.1-8b-instant'
+      1000,
+      0.5,
+      'openai/gpt-oss-120b'
     );
     return JSON.parse(cleanJsonResponse(text));
   } catch (error) {
     console.error("Context Analysis Error:", error);
     throw error;
+  }
+};
+
+export const summarizeChatHistory = async (turnsText: string): Promise<string> => {
+  if (!turnsText || turnsText.trim().length < 200) {
+    // Historial muy corto: no merece resumir; devolvemos lo que hay.
+    return turnsText.trim();
+  }
+
+  const prompt = `Eres un asistente que resume conversaciones de apoyo emocional para preservar contexto entre turnos.
+
+OBJETIVO:
+Genera un resumen COMPACTO y OPERATIVO de la siguiente conversación entre un usuario y un asistente emocional. El resumen se inyectará en el prompt de otra IA que debe continuar la conversación sin repetir preguntas ya hechas y sin perder el hilo temático.
+
+REGLAS ESTRICTAS:
+- Máximo 700 palabras. Prioriza densidad sobre exhaustividad.
+- NO inventes información que no esté en los turnos.
+- Identifica y lista: temas centrales discutidos, emociones predominantes detectadas, hechos clave revelados por el usuario (nombres, situaciones, relaciones), preguntas de aclaración que el asistente YA hizo y a las que el usuario respondió, y el estado emocional actual.
+- Usa formato estructurado con bullets cortos y secciones claras.
+- Mantén en español el mismo tono empático (no resumas el tono, solo el contenido).
+- Si el usuario reveló algo importante (ej: "soy desarrollador en una startup"), consérvalo literalmente entre comillas.
+- NO uses markdown complejo (sin headings de nivel 3+). Usa bullets simples y líneas cortas.
+
+CONVERSACIÓN A RESUMIR:
+${turnsText}
+
+RESUMEN ESTRUCTURADO:`;
+
+  try {
+    const text = await callAI(
+      prompt,
+      false,
+      1,
+      'context_summarization',
+      undefined,
+      900,
+      0.3,
+      'openai/gpt-oss-120b'
+    );
+    return text.trim();
+  } catch (error) {
+    console.error('[summarizeChatHistory] Error:', error);
+    // Si falla el resumen, devolvemos los turnos crudos como fallback.
+    return turnsText;
   }
 };

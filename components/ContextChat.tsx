@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { X, Send, Mic, Sparkles, Loader2, MessageCircle } from 'lucide-react';
-import { analyzeEmotionalContext } from '../services/geminiService';
+import { analyzeEmotionalContext, summarizeChatHistory } from '../services/geminiService';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, getDocs } from 'firebase/firestore';
 import ModalShell from './ModalShell';
@@ -9,6 +10,12 @@ interface Message {
   role: 'user' | 'ai';
   text: string;
 }
+
+// Umbral: si el historial acumulado supera este tamaño (en caracteres), lo resumimos.
+const HISTORY_LIMIT_CHARS = 25000;
+// Mantener estos últimos N turnos en crudo (no se resumen) para preservar
+// la inmediatez de la conversación reciente.
+const RECENT_TURNS_TO_KEEP = 8;
 
 interface ContextChatProps {
   userId: string;
@@ -23,6 +30,10 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [pastMemory, setPastMemory] = useState('');
+  // Resumen de los turnos antiguos cuando la conversación crece mucho.
+  // Lo regeneramos solo cuando es estrictamente necesario (ver handleSend).
+  const [historySummary, setHistorySummary] = useState('');
+  const [summarizing, setSummarizing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const startListening = () => {
@@ -93,7 +104,34 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
       const historyStr = previousTurns
         .map(m => `${m.role === 'user' ? 'Usuario' : 'IA'}: ${m.text}`)
         .join('\n');
-      const result = await analyzeEmotionalContext(userText, historyStr, pastMemory);
+
+      // Si el historial acumulado supera el umbral, comprimimos los turnos
+      // antiguos en un resumen para no perder coherencia ni calidad.
+      let effectiveHistory = historyStr;
+      if (historyStr.length > HISTORY_LIMIT_CHARS && previousTurns.length > RECENT_TURNS_TO_KEEP) {
+        const cutoff = previousTurns.length - RECENT_TURNS_TO_KEEP;
+        const olderTurns = previousTurns.slice(0, cutoff);
+        const recentTurns = previousTurns.slice(cutoff);
+        const olderStr = olderTurns.map(m => `${m.role === 'user' ? 'Usuario' : 'IA'}: ${m.text}`).join('\n');
+        if (olderStr !== historySummary) {
+          setSummarizing(true);
+          try {
+            const summary = await summarizeChatHistory(olderStr);
+            setHistorySummary(summary);
+          } catch (e) {
+            console.warn('[ContextChat] No se pudo resumir el historial, usando crudo:', e);
+            setHistorySummary('');
+          } finally {
+            setSummarizing(false);
+          }
+        }
+        const recentStr = recentTurns.map(m => `${m.role === 'user' ? 'Usuario' : 'IA'}: ${m.text}`).join('\n');
+        effectiveHistory = historySummary
+          ? `[Resumen de turnos anteriores — no repetir preguntas ya hechas, mantener el foco temático]\n${historySummary}\n\n[Turnos recientes]\n${recentStr}`
+          : recentStr;
+      }
+
+      const result = await analyzeEmotionalContext(userText, effectiveHistory, pastMemory);
 
       if (!result.necesita_aclaracion) {
         const today = new Date().toISOString().split('T')[0];
@@ -169,12 +207,40 @@ const ContextChat: React.FC<ContextChatProps> = ({ userId, onClose }) => {
               </div>
             </div>
           ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="app-surface px-4 py-3 rounded-2xl rounded-tl-md flex items-center gap-2.5">
-                <Loader2 size={14} className="text-purple-300 animate-spin" />
-                <span className="text-xs app-text-meta">Analizando contexto…</span>
-              </div>
+          {(loading || summarizing) && (
+            <div className="flex flex-col gap-2 items-start">
+              {summarizing && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  className="app-surface border-violet-400/20 px-4 py-2.5 rounded-2xl rounded-tl-md flex items-center gap-2.5 max-w-[85%]"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Resumiendo conversación"
+                >
+                  <Sparkles size={13} className="text-violet-300 animate-pulse shrink-0" strokeWidth={1.8} />
+                  <span className="text-xs app-text-meta">
+                    Resumiendo conversación para mantener el contexto…
+                  </span>
+                </motion.div>
+              )}
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  className="app-surface px-4 py-3 rounded-2xl rounded-tl-md flex items-center gap-2.5 max-w-[85%]"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Analizando contexto"
+                >
+                  <Loader2 size={14} className="text-purple-300 animate-spin shrink-0" />
+                  <span className="text-xs app-text-meta">
+                    {summarizing ? 'Pensando tu respuesta…' : 'Analizando contexto…'}
+                  </span>
+                </motion.div>
+              )}
             </div>
           )}
         </div>

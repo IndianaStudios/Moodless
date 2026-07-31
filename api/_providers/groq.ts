@@ -5,6 +5,7 @@ const GROQ_MODELS = {
   llama8b: 'llama-3.1-8b-instant',
   mixtral: 'mixtral-8x7b-32768',
   gemma9b: 'gemma2-9b-it',
+  gptOss120b: 'openai/gpt-oss-120b',
 };
 
 // Solo estos modelos soportan `response_format: { type: "json_object" }` en Groq.
@@ -37,8 +38,8 @@ export class GroqProvider implements AIProvider {
     }
 
     const effectiveModel = this.listModels().includes(model) ? model : GROQ_MODELS.llama70b;
-    const maxTokens = req.maxTokens ?? (req.jsonMode ? 1500 : 800);
-    const temperature = req.temperature ?? 0.8;
+    const maxTokens = req.maxTokens ?? (req.jsonMode ? 1500 : 1000);
+    const temperature = req.temperature ?? 0.6;
 
     const body: any = {
       model: effectiveModel,

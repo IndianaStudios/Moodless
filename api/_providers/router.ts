@@ -30,9 +30,16 @@ export const ROUTES: Record<TaskType, RouteStep[]> = {
     { provider: 'mistral', model: 'mistral-small-latest' },
   ],
   context_analysis: [
-    { provider: 'groq', model: 'llama-3.1-8b-instant' },
+    { provider: 'groq', model: 'openai/gpt-oss-120b' },
+    { provider: 'groq', model: 'llama-3.3-70b-versatile' },
     { provider: 'gemini', model: 'gemma-4-26b-a4b-it' },
     { provider: 'gemini', model: 'gemma-4-31b-it' },
+    { provider: 'mistral', model: 'mistral-small-latest' },
+  ],
+  context_summarization: [
+    { provider: 'groq', model: 'openai/gpt-oss-120b' },
+    { provider: 'groq', model: 'llama-3.1-8b-instant' },
+    { provider: 'gemini', model: 'gemma-4-26b-a4b-it' },
     { provider: 'mistral', model: 'mistral-small-latest' },
   ],
   mood_buddy_interaction: [

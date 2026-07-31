@@ -61,49 +61,62 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
     setLoading(true);
     setError('');
 
-    try {
-      const docRef = await addDoc(collection(db, 'support_tickets'), {
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        category,
-        message: message.trim(),
-        createdAt: serverTimestamp(),
-        status: 'new',
-      });
-
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            category,
-            message: message.trim(),
-            userEmail: user.email,
-            userName: user.name,
-            ticketId: docRef.id,
-          }),
+try {
+        const docRef = await addDoc(collection(db, 'support_tickets'), {
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          category,
+          message: message.trim(),
+          createdAt: serverTimestamp(),
+          status: 'new',
         });
-      } catch (emailError) {
-        console.error('Email notification failed:', emailError);
-      }
 
-      setSuccess(true);
-      haptic('success');
-      toast.success('Mensaje enviado. ¡Gracias por ayudar a mejorar Moodless!');
-    } catch (err: any) {
-      console.error('Error sending support ticket', err);
-      haptic('error');
-      toast.error('No se pudo enviar el mensaje');
-      setError(`No se pudo guardar el ticket: ${err.message || 'Error desconocido'}. Revisa tu conexión.`);
-    } finally {
-      setLoading(false);
-    }
-  };
+        let emailSent = false;
+        let emailError: string | null = null;
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          const res = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              category,
+              message: message.trim(),
+              userEmail: user.email,
+              userName: user.name,
+              ticketId: docRef.id,
+            }),
+          });
+          if (res.ok) {
+            emailSent = true;
+          } else {
+            const errBody = await res.json().catch(() => ({}));
+            emailError = errBody?.error || `HTTP ${res.status}`;
+            console.warn('[SupportView] send-email failed:', emailError);
+          }
+        } catch (emailError: any) {
+          console.error('[SupportView] Email notification threw:', emailError);
+          emailError = emailError?.message || 'Network error';
+        }
+
+        setSuccess(true);
+        haptic('success');
+        toast.success('Mensaje enviado. ¡Gracias por ayudar a mejorar Moodless!');
+        if (!emailSent) {
+          console.warn(`[SupportView] Ticket ${docRef.id} guardado en Firestore pero el email falló: ${emailError}`);
+        }
+      } catch (err: any) {
+        console.error('Error sending support ticket', err);
+        haptic('error');
+        toast.error('No se pudo enviar el mensaje');
+        setError(`No se pudo guardar el ticket: ${err.message || 'Error desconocido'}. Revisa tu conexión.`);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   if (success) {
     return (
