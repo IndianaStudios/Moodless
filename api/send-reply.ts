@@ -11,37 +11,72 @@ const statusLabels: Record<string, { emoji: string; label: string; color: string
 
 function buildReplyHtml(userName: string, ticketId: string, status: string, adminMessage: string, originalMessage: string) {
   const statusInfo = statusLabels[status] || { emoji: '📋', label: status, color: '#94a3b8' };
+  const statusAccent = statusInfo.color || '#a78bfa';
 
   return `
-    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
-      <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 32px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 22px;">${statusInfo.emoji} Actualización de tu Ticket</h1>
-        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Tu ticket ha sido actualizado</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+      <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+          <tr>
+            <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td width="26" height="26" bgcolor="#7c3aed" style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless · Soporte</td>
+                </tr>
+              </table>
+            </td>
+            <td align="right" valign="middle" style="padding: 0 0 0 16px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: ${statusAccent}1A; border: 1px solid ${statusAccent}40; color: ${statusAccent}; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">${statusInfo.emoji} ${statusInfo.label}</span>
+            </td>
+          </tr>
+        </table>
       </div>
-      <div style="padding: 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.6;">Hola <strong>${userName}</strong>,</p>
-        
-        <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid ${statusInfo.color};">
-          <p style="margin: 0 0 8px; color: #94a3b8; font-size: 12px;">Estado actualizado a:</p>
-          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${statusInfo.color};">${statusInfo.emoji} ${statusInfo.label}</p>
-        </div>
 
-        <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 20px 0;">
-          <p style="margin: 0 0 8px; color: #a78bfa; font-size: 12px; font-weight: bold;">Mensaje del equipo:</p>
-          <p style="margin: 0; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${adminMessage}</p>
-        </div>
+      <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, ${statusAccent}66 50%, transparent 100%);"></div>
 
-        <div style="background: #1e293b; border-radius: 12px; padding: 16px; margin: 20px 0; opacity: 0.6;">
-          <p style="margin: 0 0 8px; color: #94a3b8; font-size: 11px;">Tu mensaje original:</p>
-          <p style="margin: 0; line-height: 1.5; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">${originalMessage}</p>
-        </div>
+      <div style="padding: 40px 32px 8px;">
+        <p style="color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 10px;">Tu ticket ha sido actualizado</p>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2;">Hola ${escapeHtml(userName)}</h1>
+        <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin: 8px 0 0;">Nuestro equipo ha revisado tu caso y queremos mantenerte al tanto.</p>
+      </div>
 
-        <p style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
-          Si tienes más dudas, puedes enviar un nuevo ticket desde la app.
+      <div style="padding: 24px 32px 8px;">
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 18px; padding: 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); border-left: 3px solid ${statusAccent};">
+          <p style="color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 8px;">Estado</p>
+          <p style="margin: 0; font-size: 16px; font-weight: 600; color: ${statusAccent};">${statusInfo.emoji} ${statusInfo.label}</p>
+        </div>
+      </div>
+
+      <div style="padding: 8px 32px 8px;">
+        <div style="background: linear-gradient(180deg, rgba(124,58,237,0.08) 0%, rgba(255,255,255,0.02) 100%); border: 1px solid rgba(167,139,250,0.18); border-left: 3px solid #a78bfa; border-radius: 18px; padding: 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
+          <p style="color: rgba(167,139,250,0.85); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 10px;">Mensaje del equipo</p>
+          <p style="color: rgba(255,255,255,0.92); font-size: 14px; line-height: 1.55; margin: 0; white-space: pre-wrap;">${escapeHtml(adminMessage)}</p>
+        </div>
+      </div>
+
+      ${originalMessage ? `
+      <div style="padding: 8px 32px 8px;">
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 18px; padding: 14px 18px;">
+          <p style="color: rgba(255,255,255,0.35); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 6px;">Tu mensaje original</p>
+          <p style="color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.5; margin: 0; white-space: pre-wrap;">${escapeHtml(originalMessage)}</p>
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="padding: 20px 32px 12px; text-align: center;">
+        <p style="color: rgba(255,255,255,0.55); font-size: 13px; line-height: 1.5; margin: 0;">
+          Si necesitas añadir más información, puedes responder a este correo o enviar un nuevo ticket desde la app.
         </p>
       </div>
-      <div style="padding: 16px 32px; text-align: center; border-top: 1px solid #1e293b;">
-        <p style="font-size: 11px; color: #64748b; margin: 0;">Moodless — Tu diario visual</p>
+
+      <div style="padding: 12px 32px 32px; text-align: center;">
+        <a href="https://moodless.vercel.app/app/perfil" style="display: inline-block; padding: 12px 28px; background: #ffffff; color: #0b0911; border-radius: 999px; font-weight: 600; font-size: 13px; text-decoration: none; letter-spacing: -0.005em; box-shadow: 0 4px 18px rgba(255,255,255,0.18);">Abrir Moodless</a>
+      </div>
+
+      <div style="padding: 16px 32px 24px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+        <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin: 0; letter-spacing: 0.02em;">Moodless — Tu diario emocional visual con IA</p>
       </div>
     </div>`;
 }

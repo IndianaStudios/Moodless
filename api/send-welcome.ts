@@ -5,59 +5,83 @@ import { checkRateLimit } from './_utils/rateLimit.js';
 
 function buildWelcomeHtml(userName: string) {
   return `
-    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
-      <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 40px 32px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 800;">¡Bienvenid@ a Moodless!</h1>
-        <p style="color: rgba(255,255,255,0.85); margin: 12px 0 0; font-size: 15px;">Tu diario emocional visual te espera</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+      <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+          <tr>
+            <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td width="26" height="26" bgcolor="#7c3aed" style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless</td>
+                </tr>
+              </table>
+            </td>
+            <td align="right" valign="middle" style="padding: 0 0 0 16px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(94,234,212,0.10); border: 1px solid rgba(94,234,212,0.25); color: #5eead4; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Bienvenida</span>
+            </td>
+          </tr>
+        </table>
       </div>
-      <div style="padding: 36px 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.7; margin-top: 0;">
-          Hola <strong>${escapeHtml(userName)}</strong>,
-        </p>
-        <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
-          Nos alegra mucho que te hayas unido a Moodless. A partir de ahora tienes un espacio seguro y privado para explorar tus emociones día a día.
-        </p>
 
-        <div style="background: #1e293b; border-radius: 12px; padding: 24px; margin: 24px 0;">
-          <h3 style="color: #a78bfa; margin: 0 0 16px; font-size: 15px;">✨ ¿Qué puedes hacer?</h3>
-          <table style="width: 100%; border-collapse: collapse;">
+      <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(167,139,250,0.5) 50%, transparent 100%);"></div>
+
+      <div style="padding: 48px 32px 8px; text-align: center;">
+        <div style="width: 76px; height: 76px; border-radius: 26px; background: linear-gradient(135deg, rgba(167,139,250,0.28) 0%, rgba(167,139,250,0.08) 100%); border: 1px solid rgba(167,139,250,0.42); margin: 0 auto 22px; box-shadow: 0 12px 36px rgba(167,139,250,0.22), inset 0 1px 0 rgba(255,255,255,0.12); position: relative;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+        </div>
+        <p style="color: rgba(167,139,250,0.85); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 12px;">¡Bienvenid@!</p>
+        <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2;">Tu diario emocional te espera</h1>
+        <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin: 10px 0 0;">Hola <strong style="color: rgba(255,255,255,0.92); font-weight: 600;">${escapeHtml(userName)}</strong>, tu espacio seguro y privado está listo.</p>
+      </div>
+
+      <div style="padding: 28px 32px 8px;">
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 18px; padding: 22px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);">
+          <p style="color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 14px;">Lo que puedes hacer</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
             <tr>
-              <td style="padding: 10px 0; vertical-align: top; width: 32px; font-size: 18px;">🎨</td>
-              <td style="padding: 10px 0; vertical-align: top;">
-                <strong style="color: #e2e8f0;">Registra tu estado de ánimo</strong>
-                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Usa el canvas visual para expresar cómo te sientes sin necesidad de escribir.</p>
+              <td width="36" valign="top" style="padding: 6px 12px 6px 0; font-size: 18px; line-height: 1;">🎨</td>
+              <td valign="top" style="padding: 6px 0;">
+                <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600;">Registra tu estado de ánimo</p>
+                <p style="margin: 4px 0 0; color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.45;">Usa el canvas visual para expresar cómo te sientes sin necesidad de escribir.</p>
               </td>
             </tr>
+            <tr><td colspan="2" style="height: 1px; padding: 8px 0;"><div style="height: 1px; background: rgba(255,255,255,0.06);"></div></td></tr>
             <tr>
-              <td style="padding: 10px 0; vertical-align: top; font-size: 18px;">🧠</td>
-              <td style="padding: 10px 0; vertical-align: top;">
-                <strong style="color: #e2e8f0;">Recibe reflexiones con IA</strong>
-                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Nuestro psicólogo de inteligencia artificial te ayudará a entender tus patrones emocionales.</p>
+              <td width="36" valign="top" style="padding: 6px 12px 6px 0; font-size: 18px; line-height: 1;">🧠</td>
+              <td valign="top" style="padding: 6px 0;">
+                <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600;">Recibe reflexiones con IA</p>
+                <p style="margin: 4px 0 0; color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.45;">Nuestro asistente emocional te ayuda a entender tus patrones día a día.</p>
               </td>
             </tr>
+            <tr><td colspan="2" style="height: 1px; padding: 8px 0;"><div style="height: 1px; background: rgba(255,255,255,0.06);"></div></td></tr>
             <tr>
-              <td style="padding: 10px 0; vertical-align: top; font-size: 18px;">🎮</td>
-              <td style="padding: 10px 0; vertical-align: top;">
-                <strong style="color: #e2e8f0;">Juega y relájate</strong>
-                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Explora los juegos canvas terapéuticos que se adaptan a tu estado de ánimo.</p>
+              <td width="36" valign="top" style="padding: 6px 12px 6px 0; font-size: 18px; line-height: 1;">🎮</td>
+              <td valign="top" style="padding: 6px 0;">
+                <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600;">Juega y relájate</p>
+                <p style="margin: 4px 0 0; color: rgba(255,255,255,0.55); font-size: 12px; line-height: 1.45;">Explora los juegos canvas terapéuticos adaptados a tu estado.</p>
               </td>
             </tr>
           </table>
         </div>
-
-        <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
-          Tu primer paso: abre la app y registra cómo te sientes hoy. ¡Solo te tomará un momento!
-        </p>
-
-        <div style="text-align: center; margin: 32px 0 16px;">
-          <a href="https://moodless.vercel.app" style="display: inline-block; background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; padding: 14px 36px; border-radius: 100px; text-decoration: none; font-weight: 700; font-size: 15px;">
-            Abrir Moodless
-          </a>
-        </div>
       </div>
-      <div style="padding: 20px 32px; text-align: center; border-top: 1px solid #1e293b;">
-        <p style="font-size: 11px; color: #64748b; margin: 0;">Moodless — Entiende tu mente. Transforma tu energía.</p>
-        <p style="font-size: 10px; color: #475569; margin: 8px 0 0;">Recibes este email porque acabas de crear una cuenta en Moodless.</p>
+
+      <div style="padding: 16px 32px 12px; text-align: center;">
+        <p style="color: rgba(255,255,255,0.55); font-size: 13px; line-height: 1.5; margin: 0;">
+          Tu primer paso: abre la app y registra cómo te sientes hoy. Solo te tomará un momento.
+        </p>
+      </div>
+
+      <div style="padding: 12px 32px 32px; text-align: center;">
+        <a href="https://moodless.vercel.app" style="display: inline-block; padding: 12px 28px; background: #ffffff; color: #0b0911; border-radius: 999px; font-weight: 600; font-size: 13px; text-decoration: none; letter-spacing: -0.005em; box-shadow: 0 4px 18px rgba(255,255,255,0.18);">Abrir Moodless</a>
+      </div>
+
+      <div style="padding: 16px 32px 24px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+        <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin: 0; letter-spacing: 0.02em;">Moodless — Entiende tu mente. Transforma tu energía.</p>
+        <p style="font-size: 10px; color: rgba(255,255,255,0.2); margin: 8px 0 0;">Recibes este email porque acabas de crear una cuenta en Moodless.</p>
       </div>
     </div>`;
 }
