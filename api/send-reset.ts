@@ -1,48 +1,85 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 import { getFirebaseAdmin } from './_utils/verifyAuth.js';
 import { getAuth } from 'firebase-admin/auth';
 
+const LOGO_PATH = join(process.cwd(), 'public', 'logo.jpg');
+let _logoBuffer: Buffer | null = null;
+const getLogoBuffer = (): Buffer | null => {
+  if (_logoBuffer) return _logoBuffer;
+  try {
+    _logoBuffer = readFileSync(LOGO_PATH);
+    return _logoBuffer;
+  } catch (e) {
+    console.warn('[send-reset] No se pudo cargar public/logo.jpg:', (e as Error).message);
+    return null;
+  }
+};
+
 function buildResetEmailHtml(userName: string, resetLink: string) {
     return `
-    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; border-radius: 16px; overflow: hidden;">
-      <div style="background: linear-gradient(135deg, #7c3aed, #6366f1); padding: 40px 32px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 800;">🔑 Recupera tu contraseña</h1>
-        <p style="color: rgba(255,255,255,0.85); margin: 12px 0 0; font-size: 14px;">Hemos recibido tu solicitud de restablecimiento</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+      <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+          <tr>
+            <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td width="26" height="26" valign="middle" style="width: 26px; height: 26px; border-radius: 8px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;"><img src="cid:logo@moodless" alt="Moodless" width="26" height="26" style="display: block; width: 26px; height: 26px;" /></td>
+                  <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless · Seguridad</td>
+                </tr>
+              </table>
+            </td>
+            <td align="right" valign="middle" style="padding: 0 0 0 16px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(234,179,8,0.10); border: 1px solid rgba(234,179,8,0.30); color: #fbbf24; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Restablecer</span>
+            </td>
+          </tr>
+        </table>
       </div>
-      <div style="padding: 36px 32px; color: #e2e8f0;">
-        <p style="font-size: 16px; line-height: 1.7; margin-top: 0;">
-          Hola <strong>${escapeHtml(userName)}</strong>,
-        </p>
-        <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1;">
-          Alguien (esperamos que tú) ha solicitado restablecer la contraseña de tu cuenta en Moodless. 
-          Haz clic en el botón de abajo para crear una nueva contraseña:
-        </p>
 
-        <div style="text-align: center; margin: 32px 0;">
-          <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed, #6366f1); color: white; padding: 16px 40px; border-radius: 100px; text-decoration: none; font-weight: 700; font-size: 16px;">
-            Restablecer contraseña
-          </a>
+      <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(234,179,8,0.45) 50%, transparent 100%);"></div>
+
+      <div style="padding: 48px 32px 8px; text-align: center;">
+        <div style="width: 76px; height: 76px; border-radius: 26px; background: linear-gradient(135deg, rgba(234,179,8,0.22) 0%, rgba(234,179,8,0.06) 100%); border: 1px solid rgba(234,179,8,0.32); margin: 0 auto 22px; box-shadow: 0 12px 36px rgba(234,179,8,0.18), inset 0 1px 0 rgba(255,255,255,0.12); position: relative;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
         </div>
+        <p style="color: rgba(251,191,36,0.85); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 12px;">Recuperación de contraseña</p>
+        <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2;">Restaura tu acceso</h1>
+        <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin: 10px 0 0;">Hola <strong style="color: rgba(255,255,255,0.92); font-weight: 600;">${escapeHtml(userName)}</strong>, alguien (esperamos que tú) ha solicitado restablecer tu contraseña.</p>
+      </div>
 
-        <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin: 24px 0;">
-          <p style="font-size: 12px; color: #94a3b8; margin: 0 0 8px; font-weight: 600;">⚠️ Información de seguridad</p>
-          <ul style="font-size: 13px; color: #94a3b8; margin: 0; padding-left: 16px; line-height: 1.8;">
-            <li>Este enlace caduca en <strong style="color: #e2e8f0;">1 hora</strong>.</li>
-            <li>Si no has solicitado este cambio, ignora este email sin preocuparte.</li>
+      <div style="padding: 20px 32px 12px; text-align: center;">
+        <a href="${resetLink}" style="display: inline-block; padding: 14px 32px; background: #ffffff; color: #0b0911; border-radius: 999px; font-weight: 600; font-size: 14px; text-decoration: none; letter-spacing: -0.005em; box-shadow: 0 4px 18px rgba(255,255,255,0.18);">Restablecer contraseña</a>
+      </div>
+
+      <div style="padding: 24px 32px 8px;">
+        <div style="background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.18); border-left: 3px solid #fbbf24; border-radius: 18px; padding: 18px 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);">
+          <p style="color: rgba(251,191,36,0.85); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin: 0 0 10px;">Información de seguridad</p>
+          <ul style="color: rgba(255,255,255,0.85); font-size: 13px; line-height: 1.6; margin: 0; padding-left: 18px;">
+            <li style="margin-bottom: 6px;">Este enlace caduca en <strong style="color: #fbbf24;">1 hora</strong>.</li>
+            <li style="margin-bottom: 6px;">Si no has solicitado este cambio, ignora este email sin preocuparte.</li>
             <li>Tu contraseña actual seguirá funcionando hasta que la cambies.</li>
           </ul>
         </div>
-
-        <p style="font-size: 12px; color: #64748b; line-height: 1.6; margin-top: 24px;">
-          Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
-          <a href="${resetLink}" style="color: #a78bfa; word-break: break-all; font-size: 11px;">${resetLink}</a>
-        </p>
       </div>
-      <div style="padding: 20px 32px; text-align: center; border-top: 1px solid #1e293b;">
-        <p style="font-size: 11px; color: #64748b; margin: 0;">Moodless — Entiende tu mente. Transforma tu energía.</p>
+
+      <div style="padding: 16px 32px 12px; text-align: center;">
+        <p style="font-size: 11px; color: rgba(255,255,255,0.35); margin: 0; line-height: 1.5;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+        <p style="font-size: 10px; color: rgba(167,139,250,0.7); margin: 8px 0 0; word-break: break-all; line-height: 1.5;">${resetLink}</p>
+      </div>
+
+      <div style="padding: 16px 32px 24px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+        <p style="font-size: 10px; color: rgba(255,255,255,0.3); margin: 0; letter-spacing: 0.02em;">Moodless — Tu diario emocional visual con IA</p>
+      </div>
+    </div>`;
+}
       </div>
     </div>`;
 }
@@ -99,11 +136,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             auth: { user: GMAIL_USER, pass: GMAIL_PASS },
         });
 
+        const logoBuffer = getLogoBuffer();
+        const logoAttachment = logoBuffer
+          ? [{ filename: 'logo.jpg', content: logoBuffer, cid: 'logo@moodless', contentType: 'image/jpeg' }]
+          : [];
+
         await transporter.sendMail({
             from: `"Moodless" <${GMAIL_USER}>`,
             to: email,
             subject: '🔑 Restablece tu contraseña — Moodless',
             html: buildResetEmailHtml(userName, appResetLink),
+            attachments: logoAttachment,
             headers: {
               'Importance': 'High',
               'X-Priority': '1',

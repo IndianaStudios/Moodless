@@ -1,7 +1,22 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
+
+const LOGO_PATH = join(process.cwd(), 'public', 'logo.jpg');
+let _logoBuffer: Buffer | null = null;
+const getLogoBuffer = (): Buffer | null => {
+  if (_logoBuffer) return _logoBuffer;
+  try {
+    _logoBuffer = readFileSync(LOGO_PATH);
+    return _logoBuffer;
+  } catch (e) {
+    console.warn('[send-welcome] No se pudo cargar public/logo.jpg:', (e as Error).message);
+    return null;
+  }
+};
 
 function buildWelcomeHtml(userName: string) {
   return `
@@ -12,7 +27,7 @@ function buildWelcomeHtml(userName: string) {
             <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
                 <tr>
-                  <td width="26" height="26" bgcolor="#7c3aed" style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td width="26" height="26" valign="middle" style="width: 26px; height: 26px; border-radius: 8px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;"><img src="cid:logo@moodless" alt="Moodless" width="26" height="26" style="display: block; width: 26px; height: 26px;" /></td>
                   <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
                   <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless</td>
                 </tr>
@@ -120,11 +135,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   try {
+    const logoBuffer = getLogoBuffer();
+    const logoAttachment = logoBuffer
+      ? [{ filename: 'logo.jpg', content: logoBuffer, cid: 'logo@moodless', contentType: 'image/jpeg' }]
+      : [];
     await transporter.sendMail({
       from: `"Moodless" <${GMAIL_USER}>`,
       to: userEmail,
       subject: '🎉 ¡Bienvenid@ a Moodless!',
       html: buildWelcomeHtml(userName),
+      attachments: logoAttachment,
       headers: {
         'Importance': 'High',
         'X-Priority': '1',
