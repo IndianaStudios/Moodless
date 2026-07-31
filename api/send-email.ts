@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { verifyAuth } from './_utils/verifyAuth.js';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
@@ -23,6 +24,24 @@ const getLogoBuffer = (): Buffer | null => {
     return null;
   }
 };
+
+// Genera un PNG transparente con un icono SVG centrado. Lo usamos como CID
+// attachment porque Outlook (Word) no renderiza SVG inline. Cacheamos por color.
+const ICON_CACHE = new Map<string, Buffer>();
+async function getIconBuffer(color: string, svgBody: string): Promise<Buffer | null> {
+  const key = `${color}::${svgBody}`;
+  const cached = ICON_CACHE.get(key);
+  if (cached) return cached;
+  try {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${svgBody}</svg>`;
+    const buf = await sharp(Buffer.from(svg)).png().toBuffer();
+    ICON_CACHE.set(key, buf);
+    return buf;
+  } catch (e) {
+    console.warn('[send-email] No se pudo generar icono:', (e as Error).message);
+    return null;
+  }
+}
 
 const categoryLabels: Record<string, string> = {
   bug: '🐛 Bug / Error',
@@ -89,7 +108,7 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
     </div>`;
 }
 
-function buildUserConfirmationHtml(userName: string, category: string, ticketId: string, message: string) {
+function buildUserConfirmationHtml(userName: string, category: string, ticketId: string, message: string, tickBuffer: Buffer | null) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
       <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
@@ -114,10 +133,8 @@ function buildUserConfirmationHtml(userName: string, category: string, ticketId:
       <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(94,234,212,0.4) 50%, transparent 100%);"></div>
 
       <div style="padding: 40px 32px 8px; text-align: center;">
-        <div style="width: 72px; height: 72px; border-radius: 24px; background: linear-gradient(135deg, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0.06) 100%); border: 1px solid rgba(94,234,212,0.32); margin: 0 auto 18px; box-shadow: 0 10px 32px rgba(94,234,212,0.18), inset 0 1px 0 rgba(255,255,255,0.1); position: relative;">
-          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </div>
+        <div style="width: 72px; height: 72px; border-radius: 24px; background: linear-gradient(135deg, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0.06) 100%); border: 1px solid rgba(94,234,212,0.32); margin: 0 auto 18px; box-shadow: 0 10px 32px rgba(94,234,212,0.18), inset 0 1px 0 rgba(255,255,255,0.1); line-height: 0; overflow: hidden;">
+          ${tickBuffer ? `<img src="cid:tick@moodless" alt="" width="40" height="40" style="display: block; width: 40px; height: 40px; margin: 16px auto;" />` : ''}
         </div>
         <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2;">Recibimos tu mensaje</h1>
         <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin: 8px 0 0;">Hola ${escapeHtml(userName)}, gracias por escribirnos.</p>
@@ -212,6 +229,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? [{ filename: 'logo.jpg', content: logoBuffer, cid: 'logo@moodless', contentType: 'image/jpeg' }]
     : [];
 
+  // Generamos el icono del tick como PNG (vía SVG + sharp) para que se vea en
+  // Outlook (que no soporta SVG inline). Se cachea en memoria.
+  const tickBuffer = await getIconBuffer('#5eead4', '<polyline points="20 6 9 17 4 12"></polyline>');
+  const tickAttachment = tickBuffer
+    ? [{ filename: 'tick.png', content: tickBuffer, cid: 'tick@moodless', contentType: 'image/png' }]
+    : [];
+
   try {
     // 1. Email de notificación al admin
     console.log(`[send-email] Sending admin email to ${ADMIN_EMAIL} for ticket ${ticketId}...`);
@@ -232,7 +256,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'X-Priority': '1',
         'X-MSMail-Priority': 'High',
       },
-      attachments: logoAttachment,
     });
     console.log(`[send-email] Admin email sent: messageId=${adminInfo.messageId}`);
 
@@ -247,14 +270,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             escapeHtml(userName || 'usuario'),
             categoryLabels[category] || escapeHtml(category),
             escapeHtml(ticketId || 'N/A'),
-            escapeHtml(message)
+            escapeHtml(message),
+            tickBuffer
           ),
           headers: {
             'Importance': 'High',
             'X-Priority': '1',
             'X-MSMail-Priority': 'High',
           },
-          attachments: logoAttachment,
+          attachments: [...logoAttachment, ...tickAttachment],
         });
         console.log(`[send-email] Confirmation email sent to user ${userEmail}`);
       } catch (userEmailError: any) {
