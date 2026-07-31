@@ -177,6 +177,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         escapeHtml(ticketId || 'N/A'),
         escapeHtml(message)
       ),
+      headers: {
+        'Importance': 'High',
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+      },
     });
     console.log(`[send-email] Admin email sent: messageId=${adminInfo.messageId}`);
 
@@ -193,6 +198,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             escapeHtml(ticketId || 'N/A'),
             escapeHtml(message)
           ),
+          headers: {
+            'Importance': 'High',
+            'X-Priority': '1',
+            'X-MSMail-Priority': 'High',
+          },
         });
         console.log(`[send-email] Confirmation email sent to user ${userEmail}`);
       } catch (userEmailError: any) {

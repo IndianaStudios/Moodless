@@ -5,6 +5,7 @@ export type TaskType =
   | 'mood_prediction'
   | 'emotional_insights'
   | 'context_analysis'
+  | 'context_summarization'
   | 'mood_buddy_interaction'
   | 'vibe_recommendation'
   | 'music_recommendation'

@@ -101,6 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       to: userEmail,
       subject: '🎉 ¡Bienvenid@ a Moodless!',
       html: buildWelcomeHtml(userName),
+      headers: {
+        'Importance': 'High',
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+      },
     });
 
     return res.status(200).json({ success: true });

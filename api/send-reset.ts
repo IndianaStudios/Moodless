@@ -104,6 +104,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: email,
             subject: '🔑 Restablece tu contraseña — Moodless',
             html: buildResetEmailHtml(userName, appResetLink),
+            headers: {
+              'Importance': 'High',
+              'X-Priority': '1',
+              'X-MSMail-Priority': 'High',
+            },
         });
 
         return res.status(200).json({ success: true });
