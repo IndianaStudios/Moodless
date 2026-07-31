@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../services/authService';
 import { db, auth } from '../services/firebase';
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import {
   ChevronLeft,
   Send,
@@ -73,35 +73,39 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
     setError('');
 
 try {
-        // Generamos un ID legible tipo "B11", "S3", "O1", "A7" usando un
-        // counter transaccional por categoría. El doc del ticket y el counter
-        // se incrementan en la MISMA transacción para garantizar consistencia.
+        // El ID legible tipo "B11" lo genera el servidor (Admin SDK) en
+        // /api/create-ticket usando una transacción atómica con counter.
         let ticketId: string;
         try {
-          const counterRef = doc(db, 'support_ticket_counters', CATEGORY_PREFIX[category]);
-          const ticketRef = doc(db, 'support_tickets', '__pending__'); // placeholder
-          ticketId = await runTransaction(db, async (tx) => {
-            const counterSnap = await tx.get(counterRef);
-            const current = counterSnap.exists() ? Number((counterSnap.data() as any).n) || 0 : 0;
-            const next = current + 1;
-            const id = formatTicketId(category, next);
-            const realTicketRef = doc(db, 'support_tickets', id);
-            tx.set(counterRef, { n: next, updatedAt: serverTimestamp() }, { merge: true });
-            tx.set(realTicketRef, {
-              userId: user.id,
+          const token = await auth.currentUser?.getIdToken();
+          const res = await fetch('/api/create-ticket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              category: CATEGORY_PREFIX[category],
+              message: message.trim(),
               userName: user.name,
               userEmail: user.email,
-              category,
-              message: message.trim(),
-              createdAt: serverTimestamp(),
-              status: 'new',
-              ticketRef: false,
-            });
-            return id;
+            }),
           });
-        } catch (counterErr) {
-          console.warn('[SupportView] Counter transaction failed, using UUID:', counterErr);
-          const fallbackRef = await addDoc(collection(db, 'support_tickets'), {
+          if (!res.ok) {
+            throw new Error(`create-ticket ${res.status}`);
+          }
+          const data = await res.json();
+          ticketId = data.ticketId;
+        } catch (apiErr) {
+          // Fallback: si el endpoint falla, generamos un ID con timestamp+random
+          // y creamos el ticket directamente con setDoc. Esto es un best-effort,
+          // no garantiza atomicidad pero evita bloquear al usuario.
+          console.warn('[SupportView] create-ticket endpoint failed, fallback:', apiErr);
+          const ts = new Date().toISOString().split('T')[0].replace(/-/g, '');
+          const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+          ticketId = `${CATEGORY_PREFIX[category]}-${ts}-${rand}`;
+          const { setDoc } = await import('firebase/firestore');
+          await setDoc(doc(db, 'support_tickets', ticketId), {
             userId: user.id,
             userName: user.name,
             userEmail: user.email,
@@ -111,7 +115,6 @@ try {
             status: 'new',
             ticketRef: true,
           });
-          ticketId = fallbackRef.id;
         }
 
         const docRef = { id: ticketId } as any;
