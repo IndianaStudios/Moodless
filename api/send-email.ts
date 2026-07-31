@@ -16,12 +16,23 @@ const categoryLabels: Record<string, string> = {
 function buildAdminEmailHtml(category: string, userName: string, userEmail: string, ticketId: string, message: string) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
-      <div style="padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);"></div>
-          <span style="color: rgba(255,255,255,0.92); font-size: 13px; font-weight: 600; letter-spacing: -0.01em;">Moodless · Soporte</span>
-        </div>
-        <span style="color: rgba(255,255,255,0.45); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Nuevo ticket</span>
+      <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+          <tr>
+            <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td width="26" height="26" bgcolor="#7c3aed" style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless · Soporte</td>
+                </tr>
+              </table>
+            </td>
+            <td align="right" valign="middle" style="padding: 0 0 0 16px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(167,139,250,0.10); border: 1px solid rgba(167,139,250,0.25); color: #c4b5fd; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Nuevo ticket</span>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(167,139,250,0.4) 50%, transparent 100%);"></div>
@@ -63,19 +74,32 @@ function buildAdminEmailHtml(category: string, userName: string, userEmail: stri
 function buildUserConfirmationHtml(userName: string, category: string, ticketId: string, message: string) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #0b0911; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
-      <div style="padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);"></div>
-          <span style="color: rgba(255,255,255,0.92); font-size: 13px; font-weight: 600; letter-spacing: -0.01em;">Moodless</span>
-        </div>
-        <span style="color: rgba(255,255,255,0.45); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Tu mensaje</span>
+      <div style="padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+          <tr>
+            <td align="left" valign="middle" style="padding: 0 16px 0 0; white-space: nowrap;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                <tr>
+                  <td width="26" height="26" bgcolor="#7c3aed" style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); vertical-align: middle; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td width="10" style="width: 10px; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; vertical-align: middle;">Moodless</td>
+                </tr>
+              </table>
+            </td>
+            <td align="right" valign="middle" style="padding: 0 0 0 16px;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(94,234,212,0.10); border: 1px solid rgba(94,234,212,0.25); color: #5eead4; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;">Tu mensaje</span>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(94,234,212,0.4) 50%, transparent 100%);"></div>
 
-      <div style="padding: 36px 32px 8px; text-align: center;">
-        <div style="width: 64px; height: 64px; border-radius: 22px; background: linear-gradient(135deg, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0.08) 100%); border: 1px solid rgba(94,234,212,0.32); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 28px rgba(94,234,212,0.18), inset 0 1px 0 rgba(255,255,255,0.1);">
-          <span style="font-size: 28px;">✓</span>
+      <div style="padding: 40px 32px 8px; text-align: center;">
+        <div style="width: 72px; height: 72px; border-radius: 24px; background: linear-gradient(135deg, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0.06) 100%); border: 1px solid rgba(94,234,212,0.32); margin: 0 auto 18px; box-shadow: 0 10px 32px rgba(94,234,212,0.18), inset 0 1px 0 rgba(255,255,255,0.1); position: relative;">
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
         </div>
         <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.2;">Recibimos tu mensaje</h1>
         <p style="color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin: 8px 0 0;">Hola ${escapeHtml(userName)}, gracias por escribirnos.</p>
