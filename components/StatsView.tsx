@@ -233,7 +233,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId
       </header>
 
       {/* ── Aura registrada (editable) ─────────────────────────── */}
-      {lastEntry && onUpdateMood && (
+      {loggedToday && lastEntry && onUpdateMood && (
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}

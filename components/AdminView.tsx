@@ -529,7 +529,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                   <button
                     onClick={() => updateStatusAndReply(selectedTicket.id, 'resolved')}
                     disabled={sendingReply}
-                    className="p-4 app-surface border-emerald-500/25 text-emerald-300 font-semibold text-xs flex flex-col items-center gap-2 disabled:opacity-50"
+                    className="p-4 app-surface border-emerald-500/25 rounded-2xl text-emerald-300 font-semibold text-xs flex flex-col items-center gap-2 disabled:opacity-50"
                   >
                     {sendingReply ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} strokeWidth={1.8} />}
                     Marcar resuelto
@@ -539,7 +539,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                   <button
                     onClick={() => updateStatusAndReply(selectedTicket.id, 'in_progress')}
                     disabled={sendingReply}
-                    className="p-4 app-surface border-yellow-500/25 text-yellow-300 font-semibold text-xs flex flex-col items-center gap-2 disabled:opacity-50"
+                    className="p-4 app-surface border-yellow-500/25 rounded-2xl text-yellow-300 font-semibold text-xs flex flex-col items-center gap-2 disabled:opacity-50"
                   >
                     {sendingReply ? <Loader2 size={18} className="animate-spin" /> : <Clock size={18} strokeWidth={1.8} />}
                     En progreso
