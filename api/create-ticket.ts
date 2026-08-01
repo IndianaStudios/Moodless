@@ -12,8 +12,11 @@ const CATEGORY_PREFIX: Record<SupportCategory, string> = {
   other: 'O',
 };
 
-const formatTicketId = (category: SupportCategory, n: number): string =>
-  `${CATEGORY_PREFIX[category]}${n}`;
+const formatTicketId = (category: SupportCategory, n: number): string => {
+  // Padding a 2 dígitos mínimo (01, 02, ..., 99, 100, 101, ...).
+  const padded = n < 10 ? `0${n}` : `${n}`;
+  return `${CATEGORY_PREFIX[category]}${padded}`;
+};
 
 // Mapeo inverso por si el cliente envía el prefijo directamente.
 const PREFIX_TO_CATEGORY: Record<string, SupportCategory> = {
