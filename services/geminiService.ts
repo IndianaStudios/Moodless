@@ -621,7 +621,18 @@ INSTRUCCIONES DE ANÁLISIS:
 2. Identifica la emoción predominante (ejemplos válidos: 'estrés', 'tristeza', 'calma', 'felicidad', 'miedo', 'ira', 'frustración', 'entusiasmo', 'ansiedad', 'agotamiento', 'nostalgia', 'gratitud', 'soledad', 'euforia', 'apatía').
 3. Identifica el nivel de energía percibido: 'baja', 'media' o 'alta'.
 4. Identifica la intensidad emocional como número entero del 1 al 10.
-5. Si la nueva intervención es genuinamente ambigua (por ejemplo, habla de una persona sin especificar relación Y no se ha aclarado antes en el historial), necesitas_aclaracion=true y "respuesta" debe ser una pregunta empática de aclaración. Si NO es ambigua o ya fue aclarada antes, "necesita_aclaracion"=false y "respuesta" debe ser 1-2 frases cortas y empáticas que reconozcan el contexto del usuario.
+5. DECISIÓN SOBRE PREGUNTAR (campo "necesita_aclaracion"):
+   - Puedes hacer UNA pregunta de seguimiento empática si crees que te ayudaría a entender mejor al usuario. Pregunta cuando:
+     * Hay un detalle vago que nombrarías concretamente (ej: "esa persona" → ¿quién?).
+     * El usuario menciona algo nuevo que merece exploración (ej: "estoy bien... creo" → ¿qué quieres decir con "creo"?).
+     * Detectas carga emocional alta (intensidad >= 7) y quieres validar o profundizar.
+     * El usuario expresa una emoción contradictoria (ej: "estoy feliz pero cansado") y quieres entender.
+   - NO preguntes si:
+     * El contexto ya está claro en el historial.
+     * Ya hiciste una pregunta similar en turnos anteriores y el usuario no la respondió.
+     * El usuario solo está desahogándose sin esperar más preguntas.
+   - Si decides preguntar: "necesita_aclaracion"=true y "respuesta" debe ser UNA pregunta empática corta y específica.
+   - Si NO preguntas: "necesita_aclaracion"=false y "respuesta" debe ser 1-2 frases cortas y empáticas que reconozcan el contexto del usuario.
 
 FORMATO JSON ESTRICTO (sin texto adicional, sin markdown, sin comillas triples):
 {
