@@ -128,27 +128,36 @@ export const authService = {
   },
 
   onAuthChange: (callback: (user: User | null) => void) => {
-    return onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        let lastSeenChangelog = 0;
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            lastSeenChangelog = userDoc.data().lastSeenChangelog || 0;
-          }
-        } catch (error) {
-          console.error("Error fetching user data from Firestore on auth change:", error);
-        }
-
-        callback({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-          email: firebaseUser.email || '',
-          lastSeenChangelog
-        });
-      } else {
+    return onAuthStateChanged(auth, (firebaseUser) => {
+      if (!firebaseUser) {
         callback(null);
+        return;
       }
+
+      // La sesión de Firebase Auth es suficiente para renderizar la app. No debemos
+      // bloquear la interfaz esperando a Firestore, porque una conexión bloqueada o
+      // lenta dejaría la pantalla de carga visible indefinidamente.
+      const authenticatedUser: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+        email: firebaseUser.email || '',
+        lastSeenChangelog: 0,
+      };
+      callback(authenticatedUser);
+
+      // El dato auxiliar se actualiza cuando Firestore responda, sin impedir el inicio.
+      void getDoc(doc(db, 'users', firebaseUser.uid))
+        .then((userDoc) => {
+          if (userDoc.exists()) {
+            callback({
+              ...authenticatedUser,
+              lastSeenChangelog: userDoc.data().lastSeenChangelog || 0,
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user data from Firestore on auth change:", error);
+        });
     });
   },
 

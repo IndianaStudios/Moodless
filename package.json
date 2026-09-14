@@ -23,7 +23,7 @@
     "@google/genai": "^2.22.0",
     "@tailwindcss/vite": "^4.3.3",
     "@upstash/qstash": "^2.11.3",
-    "@vercel/node": "^12.0.3",
+    "@vercel/node": "^13.0.0",
     "date-fns": "^4.4.0",
     "firebase": "^12.19.0",
     "firebase-admin": "^13.10.0",
