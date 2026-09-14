@@ -6,11 +6,14 @@ import { EMOTIONAL_PALETTE, haptic } from '../constants';
 import { useToast } from './ToastProvider';
 import Reveal from './Reveal';
 import ModalShell from './ModalShell';
+import { soundEffects } from '../services/soundEffects';
 import {
   Zap,
   Mail,
   Bell,
   BellOff,
+  Volume2,
+  VolumeX,
   AlertTriangle,
   ShieldCheck,
   Loader2,
@@ -32,6 +35,7 @@ interface AccountViewProps {
   onAdmin?: () => void;
   onLegal?: (type: 'privacy' | 'terms') => void;
   appVersion: string;
+  onOpenChangelog?: () => void;
 }
 
 const getInitials = (name: string): string => {
@@ -39,11 +43,12 @@ const getInitials = (name: string): string => {
   return parts.map(p => p.charAt(0).toUpperCase()).join('');
 };
 
-const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, onLegal, appVersion }) => {
+const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEditProfile, onSupport, onAdmin, onLegal, appVersion, onOpenChangelog }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [notifsEnabled, setNotifsEnabled] = useState(false);
+  const [soundsEnabled, setSoundsEnabled] = useState(soundEffects.isEnabled());
   const toast = useToast();
 
   useEffect(() => {
@@ -218,6 +223,34 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                   data-disabled={isSyncing}
                 />
               </div>
+              <div className="app-list-row">
+                <div className="flex items-center gap-4">
+                  <div className={`app-list-icon ${soundsEnabled ? 'bg-indigo-500/10 text-indigo-300' : 'text-white/50'}`}>
+                    {soundsEnabled ? <Volume2 size={17} strokeWidth={1.8} /> : <VolumeX size={17} strokeWidth={1.8} />}
+                  </div>
+                  <div className="text-left">
+                    <span className="text-sm font-medium block">Sonidos de interfaz</span>
+                    <span className="app-text-eyebrow">
+                      {soundsEnabled ? 'Activados' : 'Silencio'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={soundsEnabled}
+                  aria-label="Activar sonidos de interfaz"
+                  onClick={() => {
+                    const next = !soundsEnabled;
+                    setSoundsEnabled(next);
+                    soundEffects.setEnabled(next);
+                    if (next) soundEffects.play('toggle');
+                    haptic('toggle');
+                  }}
+                  className="switch"
+                  data-on={soundsEnabled}
+                />
+              </div>
               <button onClick={() => { haptic('select'); onEditProfile?.(); }} className="app-list-row">
                 <div className="flex items-center gap-4">
                   <div className="app-list-icon bg-blue-500/10 text-blue-300">
@@ -273,15 +306,23 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                 </div>
                 <ChevronRight size={16} className="apple-chevron" strokeWidth={1.8} />
               </button>
-              <div className="app-list-row">
-                <div className="flex items-center gap-4 opacity-55">
-                  <div className="app-list-icon text-white/45">
+              <button
+                type="button"
+                onClick={onOpenChangelog}
+                disabled={!onOpenChangelog}
+                className={`app-list-row w-full text-left transition-colors ${onOpenChangelog ? 'hover:bg-white/[0.04] cursor-pointer' : 'cursor-default'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="app-list-icon bg-violet-500/10 text-violet-300">
                     <Zap size={17} strokeWidth={1.8} />
                   </div>
                   <span className="text-sm font-medium">Versión</span>
                 </div>
-                <span className="app-text-eyebrow">{appVersion}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  <span className="app-text-eyebrow">{appVersion}</span>
+                  {onOpenChangelog && <ChevronRight size={14} className="apple-chevron" strokeWidth={1.8} />}
+                </div>
+              </button>
             </div>
           </section>
         </Reveal>

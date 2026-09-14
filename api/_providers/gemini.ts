@@ -1,10 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
 import type { AIProvider, AIProviderName, AIRequest } from './types.js';
 
-const GEMMA_MODELS = {
-  gemma4_12b: 'gemma-4-12b-it',
-  gemma4_26b: 'gemma-4-26b-a4b-it',
-  gemma4_31b: 'gemma-4-31b-it',
+const GEMINI_MODELS = {
+  flash38: 'gemini-3.8-flash',
+  flash37: 'gemini-3.7-flash',
+  flash35: 'gemini-3.5-flash',
+  flashLatest: 'gemini-flash-latest',
+  flashLite: 'gemini-2.5-flash-lite',
 };
 
 export class GeminiProvider implements AIProvider {
@@ -22,7 +24,7 @@ export class GeminiProvider implements AIProvider {
   }
 
   listModels(): string[] {
-    return Object.values(GEMMA_MODELS);
+    return Object.values(GEMINI_MODELS);
   }
 
   async complete(req: AIRequest, model: string): Promise<string> {
@@ -30,8 +32,12 @@ export class GeminiProvider implements AIProvider {
       throw new Error('GEMINI_API_KEY no configurada (define GEMINI_API_KEY o GOOGLE_API_KEY).');
     }
 
-    const effectiveModel = this.listModels().includes(model) ? model : GEMMA_MODELS.gemma4_31b;
-    const maxTokens = req.maxTokens ?? (req.jsonMode ? 2500 : 1200);
+    // Usar gemini-3.8-flash como estándar o mapear alias de Gemma obsoletos
+    let effectiveModel = model;
+    if (!this.listModels().includes(model) || model.startsWith('gemma') || model === 'gemini-3.6-flash') {
+      effectiveModel = GEMINI_MODELS.flash38;
+    }
+    const maxTokens = req.maxTokens ?? (req.jsonMode ? 3000 : 3000);
     const temperature = req.temperature ?? 0.7;
 
     // Estructura correcta para Gemini/Gemma con system_instruction.
@@ -39,9 +45,6 @@ export class GeminiProvider implements AIProvider {
     const generationConfig: any = {
       temperature,
       maxOutputTokens: maxTokens,
-      // Stop sequences defensivas: algunos modelos Gemma tienden a generar
-      // bucles de sintaxis JSON. Cortamos cualquier marca obvia de loop.
-      stopSequences: ['}}', '}}}', '"""', '```'],
     };
     if (req.jsonMode) {
       generationConfig.responseMimeType = 'application/json';

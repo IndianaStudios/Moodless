@@ -2,7 +2,13 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  connectFirestoreEmulator
+} from "firebase/firestore";
 import { getMessaging } from "firebase/messaging";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
@@ -17,10 +23,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Inicialización de App Check si tenemos la clave reCAPTCHA configurada (esencial para la seguridad)
+// Inicialización de App Check si tenemos la clave reCAPTCHA configurada (esencial para la seguridad en producción)
 if (typeof window !== 'undefined') {
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-  if (recaptchaKey && recaptchaKey !== 'TU_CLAVE_DE_RECAPTCHA_AQUI') {
+
+  if (isDev) {
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  } else if (recaptchaKey && recaptchaKey !== 'TU_CLAVE_DE_RECAPTCHA_AQUI') {
     try {
       initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider(recaptchaKey),
@@ -29,13 +40,28 @@ if (typeof window !== 'undefined') {
     } catch (error) {
       console.warn("Error inicializando App Check:", error);
     }
-  } else {
-    console.warn("⚠️ App Check no inicializado. Falla VITE_RECAPTCHA_SITE_KEY.");
   }
 }
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Inicialización de Firestore con persistencia local IndexedDB multi-pestaña para carga instantánea (0ms)
+let firestoreDb;
+if (typeof window !== 'undefined') {
+  try {
+    firestoreDb = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+      })
+    });
+  } catch (e) {
+    firestoreDb = getFirestore(app);
+  }
+} else {
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
 
 // Inicialización segura de Messaging
 let messagingInstance = null;

@@ -1,19 +1,15 @@
 import type { AIProvider, AIProviderName, AIRequest } from './types.js';
 
 const GROQ_MODELS = {
-  llama70b: 'llama-3.3-70b-versatile',
-  llama8b: 'llama-3.1-8b-instant',
-  mixtral: 'mixtral-8x7b-32768',
-  gemma9b: 'gemma2-9b-it',
   gptOss120b: 'openai/gpt-oss-120b',
+  gptOss20b: 'openai/gpt-oss-20b',
+  qwen27b: 'qwen/qwen3.6-27b',
 };
 
-// Solo estos modelos soportan `response_format: { type: "json_object" }` en Groq.
-// El resto devolvería error 400 si se lo enviamos. Para esos, el JSON se obtiene
-// inline y se limpia en el frontend con `cleanJsonResponse`.
+// Modelos que soportan JSON mode en Groq o alias heredados
 const GROQ_JSON_OBJECT_MODELS = new Set<string>([
-  GROQ_MODELS.llama70b,
-  // agrega aquí otros modelos Groq compatibles si los incorporas en el futuro
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
 ]);
 
 export class GroqProvider implements AIProvider {
@@ -37,7 +33,11 @@ export class GroqProvider implements AIProvider {
       throw new Error('GROQ_API_KEY not configured');
     }
 
-    const effectiveModel = this.listModels().includes(model) ? model : GROQ_MODELS.llama70b;
+    // Mapear modelos llama heredados o inexistentes hacia gpt-oss-120b
+    let effectiveModel = model;
+    if (!this.listModels().includes(model) || model.includes('llama')) {
+      effectiveModel = GROQ_MODELS.gptOss120b;
+    }
     const maxTokens = req.maxTokens ?? (req.jsonMode ? 1500 : 1000);
     const temperature = req.temperature ?? 0.6;
 

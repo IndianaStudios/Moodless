@@ -27,8 +27,7 @@ Si marcas una variable `VITE_*` como sensible, **el frontend NO podrá acceder a
 | `GOOGLE_API_KEY` | `[REDACTED_GEMINI_KEY]` (https://aistudio.google.com/apikey) | ✅ **Sí** |
 | `GROQ_API_KEY` | `[REDACTED_GROQ_KEY]` (https://console.groq.com/keys) | ✅ **Sí** |
 | `YOUTUBE_API_KEY` | `[REDACTED_YOUTUBE_KEY]` | ✅ **Sí** |
-| `UPSTASH_REDIS_REST_URL` | `[REDACTED_UPSTASH_URL]` | ✅ **Sí** |
-| `UPSTASH_REDIS_REST_TOKEN` | `[REDACTED_UPSTASH_TOKEN]` | ✅ **Sí** |
+| `VALKEY_URL` | `[REDACTED_VALKEY_URL]` (Service URI de Aiven Valkey, formato `rediss://avnadmin:<pass>@<host>:<port>/0`) | ✅ **Sí** |
 | `QSTASH_CURRENT_SIGNING_KEY` | `[REDACTED_QSTASH_KEY1]` | ✅ **Sí** |
 | `QSTASH_NEXT_SIGNING_KEY` | `[REDACTED_QSTASH_KEY2]` | ✅ **Sí** |
 
@@ -131,14 +130,13 @@ Después de configurar todas las variables:
 
 ## Variables Resumen
 
-### Backend (sensibles) - 9 variables
+### Backend (sensibles) - 8 variables
 - FIREBASE_PROJECT_ID
 - FIREBASE_CLIENT_EMAIL  
 - FIREBASE_PRIVATE_KEY
 - MISTRAL_API_KEY
 - YOUTUBE_API_KEY
-- UPSTASH_REDIS_REST_URL
-- UPSTASH_REDIS_REST_TOKEN
+- VALKEY_URL
 - QSTASH_CURRENT_SIGNING_KEY
 - QSTASH_NEXT_SIGNING_KEY
 
@@ -151,4 +149,4 @@ Después de configurar todas las variables:
 - VITE_FIREBASE_APP_ID
 - VITE_RECAPTCHA_SITE_KEY
 
-**Total: 16 variables de entorno**
+**Total: 15 variables de entorno**

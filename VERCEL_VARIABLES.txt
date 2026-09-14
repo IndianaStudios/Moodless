@@ -57,21 +57,16 @@ Valor: [REDACTED]
 Sensible: ✅ SÍ
 
 --- VARIABLE 6 ---
-Nombre: UPSTASH_REDIS_REST_URL
-Valor: [REDACTED]
+Nombre: VALKEY_URL
+Valor: [REDACTED] (Service URI de Aiven Valkey, formato rediss://avnadmin:<pass>@<host>:<port>/0)
 Sensible: ✅ SÍ
 
 --- VARIABLE 7 ---
-Nombre: UPSTASH_REDIS_REST_TOKEN
-Valor: [REDACTED]
-Sensible: ✅ SÍ
-
---- VARIABLE 8 ---
 Nombre: QSTASH_CURRENT_SIGNING_KEY
 Valor: [REDACTED]
 Sensible: ✅ SÍ
 
---- VARIABLE 9 ---
+--- VARIABLE 8 ---
 Nombre: QSTASH_NEXT_SIGNING_KEY
 Valor: sig_5dhbQWmnhFq5FpRVusRFTYEk8YtP
 Sensible: ✅ SÍ
@@ -80,37 +75,37 @@ Sensible: ✅ SÍ
 VARIABLES NO SENSIBLES (NO MARCAR CHECKBOX "Sensitive") - 7 variables
 =============================================================================
 
---- VARIABLE 10 ---
+--- VARIABLE 9 ---
 Nombre: VITE_FIREBASE_API_KEY
 Valor: AIzaSyD8RrlU7DWcpqh4RBWrlyevEPR7HTTqINM
 Sensible: ❌ NO
 
---- VARIABLE 11 ---
+--- VARIABLE 10 ---
 Nombre: VITE_FIREBASE_AUTH_DOMAIN
 Valor: moodless-4you.firebaseapp.com
 Sensible: ❌ NO
 
---- VARIABLE 12 ---
+--- VARIABLE 11 ---
 Nombre: VITE_FIREBASE_PROJECT_ID
 Valor: moodless-4you
 Sensible: ❌ NO
 
---- VARIABLE 13 ---
+--- VARIABLE 12 ---
 Nombre: VITE_FIREBASE_STORAGE_BUCKET
 Valor: moodless-4you.firebasestorage.app
 Sensible: ❌ NO
 
---- VARIABLE 14 ---
+--- VARIABLE 13 ---
 Nombre: VITE_FIREBASE_MESSAGING_SENDER_ID
 Valor: 85765511157
 Sensible: ❌ NO
 
---- VARIABLE 15 ---
+--- VARIABLE 14 ---
 Nombre: VITE_FIREBASE_APP_ID
 Valor: 1:85765511157:web:ec7be81b029b0b892df2bc
 Sensible: ❌ NO
 
---- VARIABLE 16 ---
+--- VARIABLE 15 ---
 Nombre: VITE_RECAPTCHA_SITE_KEY
 Valor: 6LdkjKssAAAAAL2QM_jKOT5HmgDGxeWBULyGQpaz
 Sensible: ❌ NO

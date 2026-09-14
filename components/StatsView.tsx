@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoodEntry } from '../types';
 import { EMOTIONAL_PALETTE, triggerHaptic } from '../constants';
 import { getEmotionalInsights, getMoodPrediction, MoodPrediction } from '../services/geminiService';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
 import MoodCanvas from './MoodCanvas';
 import {
   Calendar,
@@ -56,11 +56,11 @@ const AURA_ICONS: Record<string, React.ReactNode> = {
 };
 
 const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId, loggedToday = true, onNavigateToLog, onUpdateMood }) => {
-  const stats = EMOTIONAL_PALETTE.map(p => ({
+  const stats = useMemo(() => EMOTIONAL_PALETTE.map(p => ({
     name: p.label,
     count: entries.filter(e => e.category === p.category).length,
     color: p.hex,
-  }));
+  })), [entries]);
 
   const [zoomedMoodBuddy, setZoomedMoodBuddy] = React.useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<MoodEntry | null>(null);
@@ -70,49 +70,49 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId
   const [insightsLoading, setInsightsLoading] = React.useState(false);
   const [insightsError, setInsightsError] = React.useState(false);
 
-  const lastEntry = [...entries].reverse().find(e => e);
+  const lastEntry = useMemo(() => [...entries].reverse().find(e => e), [entries]);
 
-  const calculateStreak = () => {
+  const streak = useMemo(() => {
     if (entries.length === 0) return 0;
     const loggedDates = new Set(entries.map(e => e.date));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const fmt = (d: Date) => d.toISOString().split('T')[0];
-    let streak = 0;
+    let s = 0;
     let checkDate = new Date(today);
 
     if (loggedDates.has(fmt(checkDate))) {
-      streak = 1;
+      s = 1;
       checkDate.setDate(checkDate.getDate() - 1);
     } else {
       checkDate.setDate(checkDate.getDate() - 1);
       if (!loggedDates.has(fmt(checkDate))) return 0;
-      streak = 1;
+      s = 1;
       checkDate.setDate(checkDate.getDate() - 1);
     }
 
     while (loggedDates.has(fmt(checkDate))) {
-      streak++;
+      s++;
       checkDate.setDate(checkDate.getDate() - 1);
     }
-    return streak;
-  };
+    return s;
+  }, [entries]);
 
-  const calculateTrend = (): { symbol: string; label: string; color: string } => {
+  const trend = useMemo((): { symbol: string; label: string; color: string } => {
     if (entries.length < 3) return { symbol: '—', label: 'Pocas vibes', color: 'text-white/40' };
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const recent = sorted.slice(-7);
     const previous = sorted.slice(-14, -7);
-    const avg = (arr: MoodEntry[]) => arr.reduce((s, e) => s + (e.valence || 3), 0) / (arr.length || 1);
+    const avg = (arr: MoodEntry[]) => arr.reduce((acc, e) => acc + (e.valence || 3), 0) / (arr.length || 1);
     const recentAvg = avg(recent);
     const previousAvg = previous.length > 0 ? avg(previous) : recentAvg;
     const diff = recentAvg - previousAvg;
     if (diff > 0.3) return { symbol: '↑', label: 'Subiendo', color: 'text-emerald-400' };
     if (diff < -0.3) return { symbol: '↓', label: 'Bajando', color: 'text-red-400' };
     return { symbol: '→', label: 'Estable', color: 'text-blue-400' };
-  };
+  }, [entries]);
 
-  const calculateAura = (): { label: string; color: string; category: string | null } => {
+  const aura = useMemo((): { label: string; color: string; category: string | null } => {
     if (entries.length === 0) return { label: 'Sin datos', color: '#94A3B8', category: null };
     const recent = [...entries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
     const counts: Record<string, number> = {};
@@ -124,10 +124,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId
       color: palette?.hex || '#94A3B8',
       category: dominant,
     };
-  };
-
-  const trend = calculateTrend();
-  const aura = calculateAura();
+  }, [entries]);
 
   const getReportData = (reportStr?: string) => {
     if (!reportStr) return null;
@@ -141,7 +138,6 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId
   const reportData = getReportData(lastEntry?.report);
 
   const maxCount = Math.max(...stats.map(s => s.count), 1);
-  const streak = calculateStreak();
 
   // Patterns/insights — light fetch on view
   const fetchInsights = React.useCallback(async () => {
@@ -163,7 +159,7 @@ const StatsView: React.FC<StatsViewProps> = ({ entries, contextLogs = [], userId
       }
 
       const contextRef = collection(db, 'users', userId, 'emotional_context_logs');
-      const q = query(contextRef, orderBy('timestamp', 'desc'));
+      const q = query(contextRef, orderBy('timestamp', 'desc'), limit(50));
       const snapshot = await getDocs(q);
       if (snapshot.empty) {
         setInsights(null);

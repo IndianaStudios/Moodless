@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, auth } from '../services/firebase';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import EmptyState from './EmptyState';
+import EdgeSwipeBack from './EdgeSwipeBack';
 import {
   ChevronLeft,
   CheckCircle2,
@@ -18,6 +19,8 @@ import {
   Send,
   Rocket,
   Calendar,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface Ticket {
@@ -55,9 +58,30 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   const [changelogVersion, setChangelogVersion] = useState('');
   const [changelogTitle, setChangelogTitle] = useState('');
   const [changelogContent, setChangelogContent] = useState('');
+  const [isSilentChangelog, setIsSilentChangelog] = useState(false);
+  const [currentLiveVersion, setCurrentLiveVersion] = useState('v3.0.0');
   const [sendingChangelog, setSendingChangelog] = useState(false);
   const [changelogSuccess, setChangelogSuccess] = useState(false);
+  const [changelogSuccessMessage, setChangelogSuccessMessage] = useState('');
   const [changelogError, setChangelogError] = useState('');
+
+  useEffect(() => {
+    try {
+      const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          const ver = String(data.version || '').trim();
+          if (ver) {
+            setCurrentLiveVersion(ver.startsWith('v') ? ver : `v${ver}`);
+          }
+        }
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Error subscribing to changelogs in AdminView:', e);
+    }
+  }, []);
 
   useEffect(() => {
     fetchTickets();
@@ -172,18 +196,28 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   };
 
   const handleSendChangelog = async () => {
-    if (!changelogVersion.trim() || !changelogTitle.trim() || !changelogContent.trim()) {
-      setChangelogError('Todos los campos son obligatorios.');
+    if (!changelogVersion.trim()) {
+      setChangelogError('La versión es obligatoria (ej: v3.0.1).');
       return;
     }
 
-    if (!window.confirm('¿Estás seguro de publicar esta actualización y enviar notificación Push a todos los usuarios?')) {
+    if (!isSilentChangelog && (!changelogTitle.trim() || !changelogContent.trim())) {
+      setChangelogError('El título y el contenido son obligatorios para anuncios públicos.');
+      return;
+    }
+
+    const confirmMsg = isSilentChangelog
+      ? `¿Estás seguro de actualizar la app a ${changelogVersion.trim()} en modo silencioso? (No se enviará notificación Push ni se abrirá modal a los usuarios).`
+      : `¿Estás seguro de publicar ${changelogVersion.trim()} y enviar notificación Push a todos los usuarios?`;
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
     setSendingChangelog(true);
     setChangelogError('');
     setChangelogSuccess(false);
+    setChangelogSuccessMessage('');
 
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -195,8 +229,9 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         },
         body: JSON.stringify({
           version: changelogVersion.trim(),
-          title: changelogTitle.trim(),
-          content: changelogContent.trim(),
+          title: changelogTitle.trim() || undefined,
+          content: changelogContent.trim() || undefined,
+          silent: isSilentChangelog,
         }),
       });
 
@@ -213,6 +248,11 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
       }
 
       setChangelogSuccess(true);
+      setChangelogSuccessMessage(
+        isSilentChangelog
+          ? `Versión ${changelogVersion.trim()} aplicada silenciosamente. Se ha actualizado en toda la app sin notificaciones Push.`
+          : `Changelog ${changelogVersion.trim()} publicado y notificaciones Push enviadas correctamente.`
+      );
       setChangelogVersion('');
       setChangelogTitle('');
       setChangelogContent('');
@@ -248,7 +288,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-[var(--app-bg)] absolute inset-0 z-50 overflow-hidden">
+    <EdgeSwipeBack onBack={onBack}>
+      <div className="flex flex-col h-full bg-[var(--app-bg)] absolute inset-0 z-50 overflow-hidden">
       <header className="px-6 pt-5 pb-4 bg-[var(--app-bg)]/80 apple-vibrancy border-b border-white/[0.06] flex items-center gap-4 sticky top-0 z-10">
         <button
           type="button"
@@ -372,43 +413,87 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                     <h3 className="text-sm font-semibold text-white tracking-[-0.01em]">Publicar Novedades</h3>
                     <p className="app-text-meta">Changelog y Push</p>
                   </div>
+                  <div className="ml-auto px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-mono font-semibold text-blue-200">Activa: {currentLiveVersion}</span>
+                  </div>
                 </div>
                 <p className="text-xs text-white/55 leading-relaxed mb-4">
-                  Publica un nuevo changelog. Se guardará en la base de datos para mostrarse a los usuarios en la app, y se enviará una notificación Push a todos los usuarios con la app instalada.
+                  Publica un nuevo changelog para actualizar la versión de la app en todos los dispositivos en tiempo real. Puedes elegir si quieres notificar con Push y ventana emergente, o hacerlo de manera silenciosa para parches internos/seguridad.
                 </p>
+              </div>
+
+              {/* Toggle de actualización silenciosa */}
+              <div className={`app-surface rounded-2xl p-4 flex items-center justify-between gap-4 border transition-all ${isSilentChangelog ? 'border-amber-500/30 bg-amber-500/[0.04]' : 'border-white/[0.06]'}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`p-2.5 rounded-xl transition-colors shrink-0 ${isSilentChangelog ? 'bg-amber-500/20 text-amber-300' : 'bg-white/[0.04] text-white/45'}`}>
+                    <ShieldCheck size={18} strokeWidth={1.8} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white flex items-center gap-2">
+                      Actualización silenciosa
+                      {isSilentChangelog && (
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-semibold uppercase tracking-wider">
+                          Sin Push
+                        </span>
+                      )}
+                    </p>
+                    <p className="app-text-meta">
+                      {isSilentChangelog
+                        ? 'Solo cambia la versión. NO enviará notificación Push ni abrirá modal a los usuarios (ideal para seguridad y parches).'
+                        : 'Enviar notificación Push a todos los usuarios y mostrar la ventana de novedades en la app.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isSilentChangelog}
+                  aria-label="Modo silencioso"
+                  onClick={() => {
+                    setIsSilentChangelog(!isSilentChangelog);
+                    setChangelogError('');
+                  }}
+                  className="switch shrink-0"
+                  data-on={isSilentChangelog}
+                />
               </div>
 
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <div className="space-y-2 w-1/3">
-                    <label className="app-text-eyebrow ml-1">Versión</label>
+                    <label className="app-text-eyebrow ml-1">Versión *</label>
                     <input
                       type="text"
                       value={changelogVersion}
                       onChange={(e) => setChangelogVersion(e.target.value)}
-                      placeholder="v1.2.0"
+                      placeholder="v3.0.1"
                       className="app-input px-4 py-3 text-sm font-mono"
                     />
                   </div>
                   <div className="space-y-2 w-2/3">
-                    <label className="app-text-eyebrow ml-1">Título corto</label>
+                    <label className="app-text-eyebrow ml-1">
+                      {isSilentChangelog ? 'Título (opcional)' : 'Título corto *'}
+                    </label>
                     <input
                       type="text"
                       value={changelogTitle}
                       onChange={(e) => setChangelogTitle(e.target.value)}
-                      placeholder="¡Nuevos minijuegos!"
+                      placeholder={isSilentChangelog ? 'Actualización de seguridad y parches' : '¡Nuevos minijuegos!'}
                       className="app-input px-4 py-3 text-sm"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="app-text-eyebrow ml-1">Novedades</label>
+                  <label className="app-text-eyebrow ml-1">
+                    {isSilentChangelog ? 'Notas internas (opcional)' : 'Novedades para usuarios *'}
+                  </label>
                   <textarea
                     value={changelogContent}
                     onChange={(e) => setChangelogContent(e.target.value)}
-                    placeholder="Escribe las novedades de esta versión..."
-                    className="app-input h-64 p-4 text-sm leading-relaxed resize-none"
+                    placeholder={isSilentChangelog ? 'Parche interno de seguridad y estabilidad...' : 'Escribe las novedades de esta versión...'}
+                    className="app-input h-48 p-4 text-sm leading-relaxed resize-none"
                   />
                 </div>
 
@@ -422,21 +507,29 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                 {changelogSuccess && (
                   <div className="app-surface border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3">
                     <CheckCircle2 size={17} className="text-emerald-400 shrink-0" strokeWidth={1.8} />
-                    <p className="text-emerald-400 text-xs font-medium">Changelog publicado y notificaciones enviadas correctamente.</p>
+                    <p className="text-emerald-400 text-xs font-medium">
+                      {changelogSuccessMessage || 'Changelog aplicado correctamente.'}
+                    </p>
                   </div>
                 )}
 
                 <button
                   onClick={handleSendChangelog}
                   disabled={sendingChangelog}
-                  className="app-button app-button-primary w-full py-4 text-sm disabled:opacity-50"
+                  className={`app-button w-full py-4 text-sm disabled:opacity-50 ${isSilentChangelog ? 'app-button-secondary border border-amber-500/30 text-amber-200' : 'app-button-primary'}`}
                 >
                   {sendingChangelog ? (
                     <Loader2 size={17} className="animate-spin" />
+                  ) : isSilentChangelog ? (
+                    <ShieldCheck size={17} strokeWidth={2} className="text-amber-300" />
                   ) : (
                     <Send size={17} strokeWidth={2} />
                   )}
-                  {sendingChangelog ? 'Publicando…' : 'Publicar y notificar'}
+                  {sendingChangelog
+                    ? 'Actualizando…'
+                    : isSilentChangelog
+                      ? 'Aplicar versión silenciosa'
+                      : 'Publicar y notificar (Push)'}
                 </button>
               </div>
             </div>
@@ -551,6 +644,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         </div>
       )}
     </div>
+    </EdgeSwipeBack>
   );
 };
 

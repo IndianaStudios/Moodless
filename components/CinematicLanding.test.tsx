@@ -24,10 +24,7 @@ describe('CinematicLanding', () => {
     ).toBeInTheDocument();
     const heroLogo = screen.getByTestId('app-logo').querySelector('img');
     expect(heroLogo).toHaveAttribute('src', '/logo.jpg');
-    expect(screen.getByRole('link', { name: /desliza para sentir/i })).toHaveAttribute(
-      'href',
-      '#experiencia',
-    );
+    expect(screen.getByRole('button', { name: /desliza para sentir/i })).toBeInTheDocument();
     // Header always visible with real app logo
     const header = screen.getByRole('banner');
     expect(header).not.toHaveAttribute('inert');

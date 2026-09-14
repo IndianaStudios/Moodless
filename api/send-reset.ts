@@ -80,9 +80,6 @@ function buildResetEmailHtml(userName: string, resetLink: string) {
       </div>
     </div>`;
 }
-      </div>
-    </div>`;
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {

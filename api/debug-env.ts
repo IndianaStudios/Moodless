@@ -18,8 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'FIREBASE_PRIVATE_KEY',
         'MISTRAL_API_KEY',
         'YOUTUBE_API_KEY',
-        'UPSTASH_REDIS_REST_URL',
-        'UPSTASH_REDIS_REST_TOKEN',
+        'VALKEY_URL',
         'QSTASH_CURRENT_SIGNING_KEY',
         'QSTASH_NEXT_SIGNING_KEY',
     ];

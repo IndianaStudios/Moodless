@@ -16,9 +16,11 @@ import {
   Droplets
 } from 'lucide-react';
 import { MoodCategory, ColorDefinition } from './types';
+import { soundEffects } from './services/soundEffects';
 
 export const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
   try {
+    soundEffects.play(style === ImpactStyle.Heavy ? 'pop' : 'tap');
     Haptics.impact({ style }).catch(() => {
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(style === ImpactStyle.Heavy ? 25 : 12);
@@ -43,18 +45,21 @@ const webPatterns: Record<HapticKind, number | number[]> = {
 export const haptic = (kind: HapticKind = 'tap') => {
   try {
     if (kind === 'success') {
+      soundEffects.play('success');
       Haptics.notification({ type: 'SUCCESS' as any }).catch(() => {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           navigator.vibrate(webPatterns.success);
         }
       });
     } else if (kind === 'error') {
+      soundEffects.play('delete');
       Haptics.notification({ type: 'ERROR' as any }).catch(() => {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           navigator.vibrate(webPatterns.error);
         }
       });
     } else {
+      soundEffects.play(kind === 'select' ? 'pop' : 'tap');
       Haptics.impact({ style: ImpactStyle.Light }).catch(() => {
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
           navigator.vibrate(webPatterns[kind]);

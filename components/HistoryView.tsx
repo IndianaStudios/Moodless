@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MoodEntry } from '../types';
 import { EMOTIONAL_PALETTE, triggerHaptic } from '../constants';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { PlusCircle, X, Sparkles, Calendar, PencilSparkles } from 'lucide-react';
+import { PlusCircle, X, Sparkles, Calendar, PencilSparkles, Share2, MoreHorizontal } from 'lucide-react';
 import Reveal from './Reveal';
 import PullToRefresh from './PullToRefresh';
 import { db } from '../services/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, limit, deleteDoc, doc } from 'firebase/firestore';
+import { ImpactStyle } from '@capacitor/haptics';
+import { haptic } from '../constants';
+import { soundEffects } from '../services/soundEffects';
+import { useToast } from './ToastProvider';
+import PeekPopContextMenu from './PeekPopContextMenu';
+import ShareStoryCardModal from './ShareStoryCardModal';
 
 interface HistoryViewProps {
   entries: MoodEntry[];
@@ -19,19 +25,73 @@ interface HistoryViewProps {
 }
 
 const HistoryView: React.FC<HistoryViewProps> = ({ entries, onEntriesRefresh, onNavigateToLog, onOpenContextChat, loggedToday = true }) => {
-  const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const { today, monthStart, days } = useMemo(() => {
+    const t = new Date();
+    const start = startOfMonth(t);
+    const end = endOfMonth(t);
+    return {
+      today: t,
+      monthStart: start,
+      days: eachDayOfInterval({ start, end })
+    };
+  }, []);
 
   const [zoomedMoodBuddy, setZoomedMoodBuddy] = React.useState<string | null>(null);
   const [zoomedColor, setZoomedColor] = React.useState('#fff');
+  const [contextMenuEntry, setContextMenuEntry] = React.useState<MoodEntry | null>(null);
+  const [shareModalEntry, setShareModalEntry] = React.useState<MoodEntry | null>(null);
+  const toast = useToast();
+
+  const longPressTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const touchStartPos = React.useRef<{ x: number; y: number } | null>(null);
+
+  const startLongPress = (entry: MoodEntry, clientX: number, clientY: number) => {
+    touchStartPos.current = { x: clientX, y: clientY };
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      soundEffects.play('pop');
+      triggerHaptic(ImpactStyle.Heavy);
+      setContextMenuEntry(entry);
+      longPressTimerRef.current = null;
+    }, 400);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPos.current = null;
+  };
+
+  const checkMoveCancel = (clientX: number, clientY: number) => {
+    if (!touchStartPos.current || !longPressTimerRef.current) return;
+    const dist = Math.hypot(clientX - touchStartPos.current.x, clientY - touchStartPos.current.y);
+    if (dist > 10) {
+      cancelLongPress();
+    }
+  };
+
+  const handleDeleteEntry = async (entryToDelete: MoodEntry) => {
+    try {
+      const userId = (await import('../services/firebase')).auth.currentUser?.uid;
+      if (!userId) return;
+      await deleteDoc(doc(db, 'users', userId, 'entries', entryToDelete.id));
+      onEntriesRefresh?.(entries.filter((e) => e.id !== entryToDelete.id));
+      toast.success('Entrada eliminada de tu diario');
+      haptic('success');
+    } catch (err) {
+      console.error('Error deleting entry:', err);
+      toast.error('No se pudo eliminar la entrada');
+      haptic('error');
+    }
+  };
 
   const handleRefresh = async () => {
     try {
       const userId = (await import('../services/firebase')).auth.currentUser?.uid;
       if (!userId) return;
-      const snapshot = await getDocs(query(collection(db, 'users', userId, 'entries'), orderBy('date', 'desc')));
+      const snapshot = await getDocs(query(collection(db, 'users', userId, 'entries'), orderBy('date', 'desc'), limit(100)));
       const fresh = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as MoodEntry));
       onEntriesRefresh?.(fresh);
     } catch (err) {
@@ -104,7 +164,15 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onEntriesRefresh, on
           <div key={`empty-${i}`} />
         ))}
         {days.map((day, idx) => {
-          const entry = entries.find(e => isSameDay(new Date(e.date + 'T12:00:00'), day));
+          const entry = Array.isArray(entries) ? entries.find(e => {
+            if (!e?.date) return false;
+            try {
+              const parsed = new Date(e.date.includes('T') ? e.date : `${e.date}T12:00:00`);
+              return isSameDay(parsed, day);
+            } catch {
+              return false;
+            }
+          }) : null;
           const paletteEntry = entry ? EMOTIONAL_PALETTE.find(p => p.category === entry.category) : null;
           const moodBuddy = paletteEntry?.moodBuddy || '/mascot_calm_nobg.png';
 
@@ -126,11 +194,24 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onEntriesRefresh, on
                     setZoomedMoodBuddy(moodBuddy);
                     setZoomedColor(entry.color);
                   }}
-                  className="absolute inset-0 flex items-center justify-center"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    soundEffects.play('pop');
+                    triggerHaptic(ImpactStyle.Heavy);
+                    setContextMenuEntry(entry);
+                  }}
+                  onTouchStart={(e) => startLongPress(entry, e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchMove={(e) => checkMoveCancel(e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchEnd={cancelLongPress}
+                  onMouseDown={(e) => startLongPress(entry, e.clientX, e.clientY)}
+                  onMouseMove={(e) => checkMoveCancel(e.clientX, e.clientY)}
+                  onMouseUp={cancelLongPress}
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                  title="Mantén pulsado para acciones rápidas"
                 >
-                  <img src={moodBuddy} alt="MoodBuddy" className="w-full h-full object-cover opacity-80" />
+                  <img src={moodBuddy} alt="MoodBuddy" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-80 pointer-events-none" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-                  <span className="absolute bottom-1 right-2 text-[10px] font-semibold text-white drop-shadow-lg">{format(day, 'd')}</span>
+                  <span className="absolute bottom-1 right-2 text-[10px] font-semibold text-white drop-shadow-lg pointer-events-none">{format(day, 'd')}</span>
                 </motion.button>
               )}
               {!entry && <span className="text-[10px] text-white/45 font-semibold">{format(day, 'd')}</span>}
@@ -181,30 +262,66 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onEntriesRefresh, on
                   initial={{ opacity: 0, y: 18, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ type: 'spring', stiffness: 350, damping: 28, delay: idx * 0.04, ease: [0.16, 1, 0.3, 1] }}
-                  className="app-surface-raised group relative overflow-hidden rounded-[1.75rem]"
+                  className="app-surface-raised group relative overflow-hidden rounded-[1.75rem] transition-transform active:scale-[0.99] select-none"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    soundEffects.play('pop');
+                    triggerHaptic(ImpactStyle.Heavy);
+                    setContextMenuEntry(entry);
+                  }}
+                  onTouchStart={(e) => startLongPress(entry, e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchMove={(e) => checkMoveCancel(e.touches[0].clientX, e.touches[0].clientY)}
+                  onTouchEnd={cancelLongPress}
+                  onMouseDown={(e) => startLongPress(entry, e.clientX, e.clientY)}
+                  onMouseMove={(e) => checkMoveCancel(e.clientX, e.clientY)}
+                  onMouseUp={cancelLongPress}
                 >
                   <div className="flex items-center justify-between gap-4 p-5">
                     <motion.button
                       whileTap={{ scale: 0.92 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                       type="button"
-                      className="relative flex h-16 w-16 cursor-zoom-in items-center justify-center overflow-hidden rounded-[1.4rem] shadow-inner"
+                      className="relative flex h-16 w-16 cursor-zoom-in items-center justify-center overflow-hidden rounded-[1.4rem] shadow-inner shrink-0"
                       style={{ backgroundColor: `${entry.color}22` }}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         triggerHaptic();
                         setZoomedMoodBuddy(moodBuddy);
                         setZoomedColor(entry.color);
                       }}
+                      title="Ampliar MoodBuddy"
                     >
                       <div className="absolute inset-0 opacity-25 blur-xl" style={{ backgroundColor: entry.color }} />
-                      <img src={moodBuddy} alt="" className="relative h-full w-full object-cover opacity-90" />
+                      <img src={moodBuddy} alt="" loading="lazy" decoding="async" className="relative h-full w-full object-cover opacity-90" />
                     </motion.button>
-                    <div className="flex-1">
+                    <div
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => {
+                        soundEffects.play('pop');
+                        triggerHaptic(ImpactStyle.Heavy);
+                        setContextMenuEntry(entry);
+                      }}
+                    >
                       <div className="text-sm font-semibold capitalize tracking-[-0.015em] text-white">
                         {format(new Date(entry.date + 'T12:00:00'), "EEEE, d 'de' MMMM", { locale: es })}
                       </div>
                       <div className="mt-0.5 text-xs font-medium text-white/45">{moodLabel}</div>
                     </div>
+                    {/* Botón táctil para compartir tarjeta visual directamente */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        soundEffects.play('pop');
+                        triggerHaptic();
+                        setShareModalEntry(entry);
+                      }}
+                      className="p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/10 active:scale-95 text-white/60 hover:text-white transition-all border border-white/[0.06] shrink-0"
+                      aria-label="Compartir historia de Instagram"
+                      title="Compartir tarjeta"
+                    >
+                      <Share2 size={16} strokeWidth={1.8} />
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -262,6 +379,26 @@ const HistoryView: React.FC<HistoryViewProps> = ({ entries, onEntriesRefresh, on
           </motion.div>
         )}
       </AnimatePresence>
+
+      <PeekPopContextMenu
+        isOpen={!!contextMenuEntry}
+        entry={contextMenuEntry}
+        onClose={() => setContextMenuEntry(null)}
+        onShare={(entry) => setShareModalEntry(entry)}
+        onOpenContextChat={() => onOpenContextChat()}
+        onZoom={(entry) => {
+          const pal = EMOTIONAL_PALETTE.find((p) => p.category === entry.category);
+          setZoomedMoodBuddy(pal?.moodBuddy || '/mascot_calm_nobg.png');
+          setZoomedColor(entry.color);
+        }}
+        onDelete={handleDeleteEntry}
+      />
+
+      <ShareStoryCardModal
+        isOpen={!!shareModalEntry}
+        entry={shareModalEntry}
+        onClose={() => setShareModalEntry(null)}
+      />
     </PullToRefresh>
   );
 };

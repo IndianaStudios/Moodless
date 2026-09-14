@@ -16,6 +16,7 @@ import {
 import { haptic } from '../constants';
 import { useToast } from './ToastProvider';
 import EmptyState from './EmptyState';
+import EdgeSwipeBack from './EdgeSwipeBack';
 
 interface SupportViewProps {
   user: User;
@@ -104,7 +105,7 @@ try {
           const ts = new Date().toISOString().split('T')[0].replace(/-/g, '');
           const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
           ticketId = `${CATEGORY_PREFIX[category]}-${ts}-${rand}`;
-          const { setDoc } = await import('firebase/firestore');
+          const { setDoc, doc } = await import('firebase/firestore');
           await setDoc(doc(db, 'support_tickets', ticketId), {
             userId: user.id,
             userName: user.name,
@@ -194,7 +195,8 @@ try {
   }
 
   return (
-    <div className="px-6 pt-16 pb-40 flex-1 flex flex-col">
+    <EdgeSwipeBack onBack={onBack}>
+      <div className="px-6 pt-16 pb-40 flex-1 flex flex-col">
       <header className="flex items-center gap-4 mb-7">
         <button
           type="button"
@@ -322,6 +324,7 @@ try {
         )}
       </footer>
     </div>
+    </EdgeSwipeBack>
   );
 };
 

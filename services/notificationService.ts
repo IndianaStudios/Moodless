@@ -34,8 +34,12 @@ export const notificationService = {
         return;
       }
 
-      // Esperar a que el SW esté listo
-      const registration = await navigator.serviceWorker.ready;
+      // Asegurar que el Service Worker esté registrado y listo para FCM
+      let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      if (!registration) {
+        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      }
+      await navigator.serviceWorker.ready;
       console.log("Service Worker listo para FCM:", registration.scope);
 
       const permission = await Notification.requestPermission();

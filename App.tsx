@@ -31,7 +31,7 @@ const DeepenPromptModal = lazy(() => import('./components/DeepenPromptModal'));
 const LegalView = lazy(() => import('./components/LegalView'));
 const ContactView = lazy(() => import('./components/ContactView'));
 const NotFoundView = lazy(() => import('./components/NotFoundView'));
-import MusicPlayer from './components/MusicPlayer';
+const MusicPlayer = lazy(() => import('./components/MusicPlayer'));
 const SoundtrackView = lazy(() => import('./components/SoundtrackView'));
 const OnboardingOverlay = lazy(() => import('./components/OnboardingOverlay'));
 
@@ -117,6 +117,7 @@ const App: React.FC = () => {
   const [isStandalone, setIsStandalone] = useState(false);
   const [resetOobCode, setResetOobCode] = useState<string | null>(null);
   const [latestChangelog, setLatestChangelog] = useState<any | null>(null);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showContextChat, setShowContextChat] = useState(false);
   const [showDeepenPrompt, setShowDeepenPrompt] = useState(false);
   const [contextLogs, setContextLogs] = useState<any[]>([]);
@@ -178,23 +179,30 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (user) {
-        setIsFetchingData(true);
-        try {
-          const entriesRef = collection(db, 'users', user.id, 'entries');
-          const q = query(entriesRef, orderBy('date', 'asc'));
-          const querySnapshot = await getDocs(q);
-          const loadedEntries: MoodEntry[] = [];
-          querySnapshot.forEach((doc) => { loadedEntries.push(doc.data() as MoodEntry); });
-          setEntries(loadedEntries);
-        } catch (e) {
-          console.error('Error fetching data', e);
-        }
-        finally { setIsFetchingData(false); }
+    if (!user) {
+      setEntries([]);
+      setIsFetchingData(false);
+      return;
+    }
+    setIsFetchingData(true);
+    const entriesRef = collection(db, 'users', user.id, 'entries');
+    const q = query(entriesRef, orderBy('date', 'asc'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const loadedEntries: MoodEntry[] = [];
+        snapshot.forEach((doc) => {
+          loadedEntries.push({ id: doc.id, ...doc.data() } as MoodEntry);
+        });
+        setEntries(loadedEntries);
+        setIsFetchingData(false);
+      },
+      (error) => {
+        console.error('Error listening to entries:', error);
+        setIsFetchingData(false);
       }
-    };
-    fetchUserData();
+    );
+    return () => unsubscribe();
   }, [user?.id]);
 
   useEffect(() => {
@@ -210,22 +218,30 @@ const App: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    const fetchLatestChangelog = async () => {
-      try {
-        const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
-        const snapshot = await getDocs(q);
+    try {
+      const q = query(collection(db, 'changelogs'), orderBy('createdAt', 'desc'), limit(1));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
-          const changelogData = snapshot.docs[0].data();
+          const changelogDoc = snapshot.docs[0];
+          const changelogData = { id: changelogDoc.id, ...changelogDoc.data() } as any;
+          const rawVersion = (changelogData.version || '').trim();
+          if (rawVersion) {
+            const formatted = rawVersion.startsWith('v') ? rawVersion : `v${rawVersion}`;
+            setAppVersion(formatted);
+          }
+          setLatestChangelog(changelogData);
           const lastSeen = localStorage.getItem('lastSeenVersion');
-          if (lastSeen !== changelogData.version) {
-            setLatestChangelog(changelogData);
+          if (!changelogData.silent && lastSeen !== changelogData.version && lastSeen !== `v${changelogData.version}`) {
+            setShowChangelogModal(true);
           }
         }
-      } catch (err) {
-        console.error('Error fetching changelog:', err);
-      }
-    };
-    fetchLatestChangelog();
+      }, (err) => {
+        console.warn('Could not subscribe to real-time changelogs:', err);
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error listening to changelog:', err);
+    }
   }, []);
 
   const handleSaveMood = async (newMood: Omit<MoodEntry, 'id' | 'date'>) => {
@@ -273,10 +289,10 @@ const App: React.FC = () => {
   };
 
   const handleCloseChangelog = () => {
-    if (latestChangelog) {
+    if (latestChangelog?.version) {
       localStorage.setItem('lastSeenVersion', latestChangelog.version);
     }
-    setLatestChangelog(null);
+    setShowChangelogModal(false);
   };
 
   const activeTab = useMemo(() => {
@@ -457,6 +473,7 @@ const App: React.FC = () => {
                         onAdmin={isAdmin ? () => navigate('/app/admin') : undefined}
                         onLegal={(type) => openLegal(type)}
                         appVersion={appVersion}
+                        onOpenChangelog={() => latestChangelog && setShowChangelogModal(true)}
                       />
                     } />
                     <Route path="/app/perfil/editar" element={
@@ -511,7 +528,7 @@ const App: React.FC = () => {
           {showContextChat && user && <ContextChat userId={user.id} onClose={() => setShowContextChat(false)} />}
           {showDeepenPrompt && <DeepenPromptModal onConfirm={() => { setShowDeepenPrompt(false); setShowContextChat(true); }} onSkip={() => { setShowDeepenPrompt(false); navigate('/app/estado'); }} />}
           <InstallPrompt />
-          {latestChangelog && <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />}
+          {showChangelogModal && latestChangelog && <ChangelogModal changelog={latestChangelog} onClose={handleCloseChangelog} />}
 
           {playerQueue.length > 0 && (
             <MusicPlayer

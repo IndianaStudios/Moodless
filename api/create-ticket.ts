@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tx.set(counterRef, { n: next, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.set(ticketRef, {
         userId: authUser.uid,
-        userName: userName || authUser.name || 'Anónimo',
+        userName: userName || 'Anónimo',
         userEmail: userEmail || authUser.email || '',
         category: cat,
         message: message.trim(),

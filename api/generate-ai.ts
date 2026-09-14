@@ -17,8 +17,8 @@ const VALID_TASKS: TaskType[] = [
   'game_config',
 ];
 
-const MAX_TOKENS_JSON = 1500;
-const MAX_TOKENS_TEXT = 2500;
+const MAX_TOKENS_JSON = 3000;
+const MAX_TOKENS_TEXT = 3000;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

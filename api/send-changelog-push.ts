@@ -20,25 +20,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
 
-  const { title, content, version } = req.body;
+  const { title, content, version, silent = false } = req.body;
 
-  if (!title || !content || !version) {
-    return res.status(400).json({ error: 'Missing required fields (title, content, version)' });
+  if (!version) {
+    return res.status(400).json({ error: 'Missing required field: version' });
+  }
+
+  const finalTitle = (title && String(title).trim()) || (silent ? 'Actualización de seguridad y mantenimiento' : '');
+  const finalContent = (content && String(content).trim()) || (silent ? 'Mejoras internas de rendimiento y parches de seguridad.' : '');
+
+  if (!silent && (!finalTitle || !finalContent)) {
+    return res.status(400).json({ error: 'Missing required fields (title, content) for public announcements' });
   }
 
   try {
     const adminApp = getFirebaseAdmin();
     const db = getFirestore(adminApp);
 
-    // Guardar el changelog en Firestore (esto también podría hacerse desde el cliente, pero aquí garantizamos coherencia)
+    // Guardar el changelog en Firestore
     const changelogRef = db.collection('changelogs').doc();
     const changelogData = {
-      version,
-      title,
-      content,
+      version: String(version).trim(),
+      title: finalTitle,
+      content: finalContent,
+      silent: Boolean(silent),
       createdAt: FieldValue.serverTimestamp()
     };
     await changelogRef.set(changelogData);
+
+    // Si es actualización silenciosa, no enviamos Push a nadie
+    if (silent) {
+      return res.status(200).json({
+        success: true,
+        silent: true,
+        notified: 0,
+        version: String(version).trim(),
+        changelogId: changelogRef.id,
+        message: 'Versión actualizada silenciosamente (sin notificaciones Push ni modal automático).'
+      });
+    }
 
     // Obtener todos los tokens FCM de los usuarios que tengan notificaciones activadas
     const usersSnapshot = await db.collection('users').get();
