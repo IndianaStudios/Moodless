@@ -1,4 +1,4 @@
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Transaction } from 'firebase-admin/firestore';
 import { getFirebaseAdmin } from './verifyAuth.js';
 
 /**
@@ -30,7 +30,7 @@ export async function checkRateLimit(
     const now = Date.now();
     const windowMs = windowSeconds * 1000;
 
-    const allowed = await db.runTransaction(async (transaction) => {
+    const allowed = await db.runTransaction(async (transaction: Transaction) => {
       const snap = await transaction.get(docRef);
 
       if (!snap.exists) {

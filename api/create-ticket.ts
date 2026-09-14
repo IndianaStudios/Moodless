@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Transaction } from 'firebase-admin/firestore';
 import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
 
@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Transacción atómica con Admin SDK: incrementa counter y crea ticket.
     const counterRef = db.collection('support_ticket_counters').doc(CATEGORY_PREFIX[cat]);
-    const newTicketId = await db.runTransaction(async (tx) => {
+    const newTicketId = await db.runTransaction(async (tx: Transaction) => {
       const snap = await tx.get(counterRef);
       const current = snap.exists ? Number((snap.data() as any)?.n) || 0 : 0;
       const next = current + 1;
