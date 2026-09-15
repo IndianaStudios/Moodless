@@ -6,7 +6,6 @@ import { MoodEntry } from './types';
 import { triggerHaptic } from './constants';
 import { authService, User } from './services/authService';
 import { generateMoodReport, purgeStaleAuraCaches } from './services/geminiService';
-import { notificationService } from './services/notificationService';
 import { db } from './services/firebase';
 import { collection, query, getDocs, setDoc, doc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { YouTubeTrack } from './services/youtubeMusicService';

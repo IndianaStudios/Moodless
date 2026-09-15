@@ -9,7 +9,12 @@ async function runReminderTask(res: VercelResponse) {
     const db = getFirestore(adminApp);
     const messaging = getMessaging(adminApp);
 
-    const usersSnapshot = await db.collection('users').get();
+    // Solo se leen perfiles que han consentido recibir recordatorios; así la
+    // tarea no escanea toda la colección de usuarios en cada ejecución.
+    const usersSnapshot = await db.collection('users')
+        .where('preferences.notificationsEnabled', '==', true)
+        .select('fcmTokens', 'timeZone')
+        .get();
     const today = new Date().toISOString().split('T')[0];
 
     let notificationsSent = 0;
@@ -19,11 +24,10 @@ async function runReminderTask(res: VercelResponse) {
         const userData = userDoc.data();
         const userId = userDoc.id;
 
-        const notificationsEnabled = userData.preferences?.notificationsEnabled;
         const fcmTokens = userData.fcmTokens as string[] | undefined;
         const timeZone = userData.timeZone || 'UTC';
 
-        if (notificationsEnabled !== true || !fcmTokens || fcmTokens.length === 0) {
+        if (!fcmTokens || fcmTokens.length === 0) {
             continue;
         }
 

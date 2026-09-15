@@ -28,14 +28,24 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('firebase')) {
+            const normalizedId = id.replace(/\\/g, '/');
+            if (normalizedId.includes('node_modules')) {
+              // Messaging y App Check solo se importan dinámicamente cuando el
+              // usuario activa esas funciones. Mantenerlos fuera del chunk base
+              // de Firebase evita descargarlos durante el arranque de la app.
+              if (normalizedId.includes('firebase/messaging') || normalizedId.includes('@firebase/messaging')) {
+                return 'firebase-messaging';
+              }
+              if (normalizedId.includes('firebase/app-check') || normalizedId.includes('@firebase/app-check')) {
+                return 'firebase-app-check';
+              }
+              if (normalizedId.includes('firebase')) {
                 return 'vendor-firebase';
               }
-              if (id.includes('framer-motion') || id.includes('gsap')) {
+              if (normalizedId.includes('framer-motion') || normalizedId.includes('gsap')) {
                 return 'vendor-motion';
               }
-              if (id.includes('recharts')) {
+              if (normalizedId.includes('recharts')) {
                 return 'vendor-charts';
               }
             }

@@ -3,9 +3,10 @@ import nodemailer from 'nodemailer';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { verifyAuth } from './_utils/verifyAuth.js';
+import { getFirebaseAdmin, verifyAuth } from './_utils/verifyAuth.js';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const ADMIN_EMAIL = 'indianasainzpalacios@gmail.com';
 
@@ -180,14 +181,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { category, message, userEmail, userName, ticketId } = req.body;
+  const { ticketId } = req.body || {};
 
-  if (!category || typeof category !== 'string' || !message || typeof message !== 'string') {
-    return res.status(400).json({ error: 'Missing or invalid required fields' });
+  if (typeof ticketId !== 'string' || !ticketId || ticketId.length > 100) {
+    return res.status(400).json({ error: 'A valid ticketId is required' });
   }
 
-  if (message.length > 5000) {
-    return res.status(400).json({ error: 'Message is too long (limit: 5000 characters)' });
+  // El navegador solo puede pedir la notificación de un ticket que ya le
+  // pertenece. El contenido y el destinatario se recuperan del registro
+  // creado por create-ticket, no de datos manipulables de la petición.
+  let ticket: Record<string, unknown>;
+  try {
+    const db = getFirestore(getFirebaseAdmin());
+    const snapshot = await db.collection('support_tickets').doc(ticketId).get();
+    if (!snapshot.exists || snapshot.data()?.userId !== authUser.uid) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+    ticket = snapshot.data() as Record<string, unknown>;
+  } catch (error) {
+    console.error('[send-email] Failed to load ticket:', error);
+    return res.status(500).json({ error: 'Unable to process support notification' });
+  }
+
+  const category = typeof ticket.category === 'string' ? ticket.category : 'other';
+  const message = typeof ticket.message === 'string' ? ticket.message : '';
+  const userName = typeof ticket.userName === 'string' ? ticket.userName : 'Usuario';
+  const userEmail = typeof ticket.userEmail === 'string' ? ticket.userEmail : authUser.email;
+  if (!message || !userEmail) {
+    return res.status(400).json({ error: 'Ticket contact data is incomplete' });
   }
 
   // Aplicar Rate Limit: 5 peticiones por hora (3600 segundos) por usuario
@@ -200,7 +221,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!GMAIL_USER || !GMAIL_PASS) {
     console.error('[send-email] GMAIL_USER or GMAIL_PASS not configured in env vars.');
-    return res.status(500).json({ error: 'Server configuration error: email service not configured.' });
+    return res.status(500).json({ error: 'Email service is temporarily unavailable' });
   }
 
   const transporter = nodemailer.createTransport({
@@ -217,7 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('[send-email] SMTP connection OK');
   } catch (verifyError: any) {
     console.error('[send-email] SMTP verify failed:', verifyError?.message || verifyError);
-    return res.status(500).json({ error: 'SMTP configuration error', detail: verifyError?.message });
+    return res.status(500).json({ error: 'Email service is temporarily unavailable' });
   }
 
   const FROM_EMAIL = `"Moodless" <${GMAIL_USER}>`;
@@ -290,6 +311,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, id: adminInfo.messageId });
   } catch (error: any) {
     console.error('[send-email] Nodemailer error:', error?.message || error);
-    return res.status(500).json({ error: 'Internal server error', detail: error?.message });
+    return res.status(500).json({ error: 'Unable to send support notification' });
   }
 }

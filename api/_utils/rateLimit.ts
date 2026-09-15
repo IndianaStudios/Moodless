@@ -17,9 +17,11 @@ export async function checkRateLimit(
     let adminApp;
     try {
       adminApp = getFirebaseAdmin();
-    } catch {
-      // Si estamos en entorno local o tests sin variables de entorno de Firebase Admin, dejamos pasar
-      return true;
+    } catch (error) {
+      console.error('Rate limiter unavailable: Firebase Admin could not initialize.', error);
+      // Fail closed: los endpoints que usan este limitador pueden generar coste
+      // o enviar correos; nunca deben quedar abiertos ante un fallo de infraestructura.
+      return false;
     }
 
     const db = getFirestore(adminApp);
@@ -72,7 +74,7 @@ export async function checkRateLimit(
     return allowed;
   } catch (error) {
     console.error('Error in Firestore rateLimiter:', error);
-    // En caso de fallo con Firestore, permitimos la petición (Fail-open)
-    return true;
+    // Fail closed: impedir abuso mientras no se pueda comprobar la cuota.
+    return false;
   }
 }

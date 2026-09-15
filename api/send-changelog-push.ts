@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { title, content, version, silent = false } = req.body;
 
-  if (!version) {
+  if (!version || String(version).trim().length > 50) {
     return res.status(400).json({ error: 'Missing required field: version' });
   }
 
@@ -31,6 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!silent && (!finalTitle || !finalContent)) {
     return res.status(400).json({ error: 'Missing required fields (title, content) for public announcements' });
+  }
+  if (finalTitle.length > 120 || finalContent.length > 1_000) {
+    return res.status(400).json({ error: 'Changelog content is too long' });
   }
 
   try {
@@ -61,16 +64,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Obtener todos los tokens FCM de los usuarios que tengan notificaciones activadas
-    const usersSnapshot = await db.collection('users').get();
+    const usersSnapshot = await db.collection('users')
+      .where('preferences.notificationsEnabled', '==', true)
+      .select('fcmTokens')
+      .get();
 
     const tokens: string[] = [];
     usersSnapshot.forEach((doc: QueryDocumentSnapshot) => {
       const data = doc.data();
-      // Si el usuario tiene tokens y (no tiene preferencias o notificationsEnabled es true)
+      // La consulta ya filtra por consentimiento de notificaciones.
       if (data.fcmTokens && Array.isArray(data.fcmTokens) && data.fcmTokens.length > 0) {
-        if (!data.preferences || data.preferences.notificationsEnabled !== false) {
-          tokens.push(...data.fcmTokens);
-        }
+        tokens.push(...data.fcmTokens.filter((token: unknown): token is string => typeof token === 'string' && token.length > 0));
       }
     });
 
@@ -92,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const message = {
         notification: {
           title: `¡Nueva versión ${version}!`,
-          body: title,
+          body: finalContent,
         },
         tokens: chunk,
         webpush: {
@@ -110,7 +114,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       successCount += response.successCount;
       failureCount += response.failureCount;
 
-      // Opcional: limpiar tokens inválidos si response.failureCount > 0
+      const invalidTokens = chunk.filter((_, index) => {
+        const code = response.responses[index]?.error?.code;
+        return code === 'messaging/invalid-registration-token'
+          || code === 'messaging/registration-token-not-registered';
+      });
+      if (invalidTokens.length > 0) {
+        for (const token of invalidTokens) {
+          const owners = await db.collection('users')
+            .where('fcmTokens', 'array-contains', token)
+            .get();
+          await Promise.all(owners.docs.map((doc: QueryDocumentSnapshot) =>
+            doc.ref.update({ fcmTokens: FieldValue.arrayRemove(token) })
+          ));
+        }
+      }
     }
 
     return res.status(200).json({
@@ -122,6 +140,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error: any) {
     console.error('Error in send-changelog-push:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Unable to publish changelog' });
   }
 }

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { escapeHtml } from './_utils/escapeHtml.js';
 import { checkRateLimit } from './_utils/rateLimit.js';
+import { verifyAuth } from './_utils/verifyAuth.js';
 
 const LOGO_PATH = join(process.cwd(), 'public', 'logo.jpg');
 let _logoBuffer: Buffer | null = null;
@@ -106,15 +107,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userName, userEmail } = req.body;
-
-  if (!userName || !userEmail || typeof userName !== 'string' || typeof userEmail !== 'string') {
-    return res.status(400).json({ error: 'Missing userName or userEmail' });
+  const authUser = await verifyAuth(req);
+  if (!authUser || 'error' in authUser) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Rate limit por IP para evitar spam de emails de bienvenida
-  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  const isAllowed = await checkRateLimit(`welcome:${clientIp}`, 3, 3600);
+  const { userName, userEmail } = req.body;
+
+  if (!userName || !userEmail || typeof userName !== 'string' || typeof userEmail !== 'string'
+    || userName.length > 100 || userEmail.length > 254) {
+    return res.status(400).json({ error: 'Missing userName or userEmail' });
+  }
+  if (!authUser.email || authUser.email.toLowerCase() !== userEmail.trim().toLowerCase()) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  // Límite por cuenta autenticada: evita que el endpoint se use como relé de spam.
+  const isAllowed = await checkRateLimit(`welcome:${authUser.uid}`, 1, 24 * 3600);
   if (!isAllowed) {
     return res.status(429).json({ error: 'Too many requests' });
   }

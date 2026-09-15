@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import ScrollToTop from './components/ScrollToTop';
+import AppErrorBoundary from './components/AppErrorBoundary';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,9 +15,11 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <ScrollToTop />
-      <App />
-    </BrowserRouter>
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <ScrollToTop />
+        <App />
+      </BrowserRouter>
+    </AppErrorBoundary>
   </React.StrictMode>
 );

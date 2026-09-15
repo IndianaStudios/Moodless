@@ -19,10 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Forbidden: Admin access required' });
   }
 
-  const { ticketId, status, adminReply } = req.body;
+  const { ticketId, status, adminReply } = req.body || {};
 
-  if (!ticketId || !status) {
+  if (typeof ticketId !== 'string' || !ticketId || !['new', 'in_progress', 'resolved'].includes(status)) {
     return res.status(400).json({ error: 'Missing ticketId or status' });
+  }
+  if (adminReply !== undefined && (typeof adminReply !== 'string' || adminReply.length > 5000)) {
+    return res.status(400).json({ error: 'Invalid admin reply' });
   }
 
   try {
@@ -31,6 +34,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 3. Actualizar el ticket en Firestore
     const ticketRef = db.collection('support_tickets').doc(ticketId);
+    if (!(await ticketRef.get()).exists) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
     
     const updateData: any = {
       status,
@@ -46,6 +52,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true });
   } catch (error: any) {
     console.error('Error updating ticket status in API:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Unable to update ticket status' });
   }
 }

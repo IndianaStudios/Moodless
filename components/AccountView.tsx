@@ -99,7 +99,9 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
       onLogout();
     } catch (error: any) {
       haptic('error');
-      toast.error('Error al borrar cuenta. Es posible que necesites re-autenticarte.');
+      toast.error(error?.message === 'REAUTH_NEEDED'
+        ? 'Por seguridad, cierra sesión, vuelve a entrar y confirma el borrado de nuevo.'
+        : 'No se pudo borrar la cuenta. Inténtalo de nuevo.');
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -245,7 +247,7 @@ const AccountView: React.FC<AccountViewProps> = ({ user, entries, onLogout, onEd
                     setSoundsEnabled(next);
                     soundEffects.setEnabled(next);
                     if (next) soundEffects.play('toggle');
-                    haptic('toggle');
+                    haptic('select');
                   }}
                   className="switch"
                   data-on={soundsEnabled}

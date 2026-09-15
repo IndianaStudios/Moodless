@@ -46,6 +46,8 @@ const getInitials = (name: string): string => {
 const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextTicketCursor, setNextTicketCursor] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'new' | 'resolved'>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
@@ -93,11 +95,14 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     setReplyError('');
   }, [selectedTicket?.id]);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (cursor?: string | null) => {
+    if (cursor) setLoadingMore(true);
+    else setLoading(true);
     try {
       const token = await auth.currentUser?.getIdToken();
-      const response = await fetch('/api/get-support-tickets', {
+      const params = new URLSearchParams({ limit: '50' });
+      if (cursor) params.set('after', cursor);
+      const response = await fetch(`/api/get-support-tickets?${params}`, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
@@ -115,12 +120,15 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         throw new Error(errorMsg);
       }
 
-      const fetchedTickets = await response.json();
-      setTickets(fetchedTickets);
+      const data = await response.json();
+      if (!Array.isArray(data.tickets)) throw new Error('Respuesta de tickets no válida');
+      setTickets((previous) => cursor ? [...previous, ...data.tickets] : data.tickets);
+      setNextTicketCursor(typeof data.nextCursor === 'string' ? data.nextCursor : null);
     } catch (error: any) {
       console.error('Error fetching tickets:', error);
     } finally {
-      setLoading(false);
+      if (cursor) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
@@ -288,7 +296,7 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   });
 
   return (
-    <EdgeSwipeBack onBack={onBack}>
+    <EdgeSwipeBack onBack={onBack} className="flex-1">
       <div className="flex flex-col h-full bg-[var(--app-bg)] absolute inset-0 z-50 overflow-hidden">
       <header className="px-6 pt-5 pb-4 bg-[var(--app-bg)]/80 apple-vibrancy border-b border-white/[0.06] flex items-center gap-4 sticky top-0 z-10">
         <button
@@ -358,7 +366,8 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                     size="sm"
                   />
                 ) : (
-                  filteredTickets.map(ticket => (
+                  <>
+                  {filteredTickets.map(ticket => (
                     <motion.button
                       key={ticket.id}
                       type="button"
@@ -398,7 +407,19 @@ const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                         </div>
                       </div>
                     </motion.button>
-                  ))
+                  ))}
+                  {nextTicketCursor && (
+                    <button
+                      type="button"
+                      onClick={() => fetchTickets(nextTicketCursor)}
+                      disabled={loadingMore}
+                      className="app-button app-button-secondary mx-auto mb-6 w-full max-w-xs"
+                    >
+                      {loadingMore ? <Loader2 size={16} className="animate-spin" /> : null}
+                      {loadingMore ? 'Cargando…' : 'Cargar más tickets'}
+                    </button>
+                  )}
+                  </>
                 )}
               </div>
             </>

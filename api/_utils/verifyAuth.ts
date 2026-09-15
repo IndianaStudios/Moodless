@@ -35,7 +35,7 @@ function getFirebaseAdmin() {
 
 export { getFirebaseAdmin };
 
-export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; email?: string } | { error: string }> {
+export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; email?: string; authTime?: number } | { error: string }> {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -58,6 +58,7 @@ export async function verifyAuth(req: VercelRequest): Promise<{ uid: string; ema
         return {
             uid: decoded.uid,
             email: decoded.email,
+            authTime: decoded.auth_time,
         };
     } catch (error: any) {
         console.error('Auth verification failed:', error);

@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { category, message, userName, userEmail } = req.body || {};
+  const { category, message, userName } = req.body || {};
 
   if (!category || typeof category !== 'string' || !PREFIX_TO_CATEGORY[category]) {
     return res.status(400).json({ error: 'Invalid category' });
@@ -48,6 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (message.length > 5000) {
     return res.status(400).json({ error: 'Message too long' });
   }
+  const safeUserName = typeof userName === 'string'
+    ? userName.trim().slice(0, 100) || 'Anónimo'
+    : 'Anónimo';
 
   const isAllowed = await checkRateLimit(`ticket:${authUser.uid}`, 5, 3600);
   if (!isAllowed) {
@@ -69,8 +72,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tx.set(counterRef, { n: next, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       tx.set(ticketRef, {
         userId: authUser.uid,
-        userName: userName || 'Anónimo',
-        userEmail: userEmail || authUser.email || '',
+        // La identidad de contacto procede siempre del token verificado, nunca
+        // del cuerpo manipulable de la petición.
+        userName: safeUserName,
+        userEmail: authUser.email || '',
         category: cat,
         message: message.trim(),
         createdAt: FieldValue.serverTimestamp(),
@@ -83,6 +88,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, ticketId: newTicketId, category: cat });
   } catch (err: any) {
     console.error('[create-ticket] Error:', err?.message || err);
-    return res.status(500).json({ error: 'Failed to create ticket', detail: err?.message });
+    return res.status(500).json({ error: 'Failed to create ticket' });
   }
 }

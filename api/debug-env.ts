@@ -7,6 +7,12 @@ import { isAdmin } from './_utils/isAdmin.js';
  * GET /api/debug-env → indica qué variables están presentes (sin exponer valores).
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // El endpoint solo es útil durante desarrollo. En producción, incluso una
+    // enumeración de presencia de secretos aporta información innecesaria.
+    if (process.env.VERCEL_ENV === 'production') {
+        return res.status(404).end();
+    }
+
     const user = await verifyAuth(req);
     if (!user || 'error' in user || !isAdmin(user.email)) {
         return res.status(401).json({ error: 'Unauthorized' });

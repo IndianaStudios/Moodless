@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../services/authService';
 import { db, auth } from '../services/firebase';
-import { collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import {
   ChevronLeft,
   Send,
@@ -32,10 +32,6 @@ const CATEGORY_PREFIX: Record<SupportCategory, string> = {
   other: 'O',
 };
 
-const formatTicketId = (category: SupportCategory, n: number): string => {
-  return `${CATEGORY_PREFIX[category]}${n}`;
-};
-
 const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
   const [category, setCategory] = useState<SupportCategory>('bug');
   const [message, setMessage] = useState('');
@@ -48,14 +44,16 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
 
   useEffect(() => {
     if (viewMode === 'list') {
-      const q = query(collection(db, 'support_tickets'), where('userId', '==', user.id));
+      // El historial puede crecer indefinidamente. Pedimos una ventana reciente
+      // ordenada al servidor en lugar de descargar y ordenar toda la colección.
+      const q = query(
+        collection(db, 'support_tickets'),
+        where('userId', '==', user.id),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedTickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedTickets.sort((a: any, b: any) => {
-          const dateA = a.createdAt?.seconds || 0;
-          const dateB = b.createdAt?.seconds || 0;
-          return dateB - dateA;
-        });
         setTickets(fetchedTickets);
       });
       return () => unsubscribe();
@@ -73,50 +71,32 @@ const SupportView: React.FC<SupportViewProps> = ({ user, onBack }) => {
     setLoading(true);
     setError('');
 
-try {
-        // El ID legible tipo "B11" lo genera el servidor (Admin SDK) en
-        // /api/create-ticket usando una transacción atómica con counter.
-        let ticketId: string;
-        try {
-          const token = await auth.currentUser?.getIdToken();
-          const res = await fetch('/api/create-ticket', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              category: CATEGORY_PREFIX[category],
-              message: message.trim(),
-              userName: user.name,
-              userEmail: user.email,
-            }),
-          });
-          if (!res.ok) {
-            throw new Error(`create-ticket ${res.status}`);
-          }
-          const data = await res.json();
-          ticketId = data.ticketId;
-        } catch (apiErr) {
-          // Fallback: si el endpoint falla, generamos un ID con timestamp+random
-          // y creamos el ticket directamente con setDoc. Esto es un best-effort,
-          // no garantiza atomicidad pero evita bloquear al usuario.
-          console.warn('[SupportView] create-ticket endpoint failed, fallback:', apiErr);
-          const ts = new Date().toISOString().split('T')[0].replace(/-/g, '');
-          const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-          ticketId = `${CATEGORY_PREFIX[category]}-${ts}-${rand}`;
-          const { setDoc, doc } = await import('firebase/firestore');
-          await setDoc(doc(db, 'support_tickets', ticketId), {
-            userId: user.id,
+    try {
+        // Los tickets se crean exclusivamente en el servidor: así no se pueden
+        // saltar los límites ni manipular los contadores desde el cliente.
+        const token = await auth.currentUser?.getIdToken();
+        const res = await fetch('/api/create-ticket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            category: CATEGORY_PREFIX[category],
+            message: message.trim(),
             userName: user.name,
             userEmail: user.email,
-            category,
-            message: message.trim(),
-            createdAt: serverTimestamp(),
-            status: 'new',
-            ticketRef: true,
-          });
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `create-ticket ${res.status}`);
         }
+        const data = await res.json();
+        if (!data.ticketId || typeof data.ticketId !== 'string') {
+          throw new Error('El servidor no devolvió un identificador de ticket válido.');
+        }
+        const ticketId = data.ticketId;
 
         const docRef = { id: ticketId } as any;
 

@@ -1,10 +1,47 @@
 
-import { db, messaging } from './firebase';
+import { app, db } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { getToken, onMessage, isSupported } from 'firebase/messaging';
+import type { Messaging } from 'firebase/messaging';
 
 // Sustituye esto con tu "Key Pair" de la pestaña Cloud Messaging en Firebase
 const VAPID_KEY = "BJe98i81m5q5VZy5HxfRg_tnooZOCxJt7Nl0B5QjO1UW0J8714v-dIKD6tA_7cW4ocj9f7GPvMJe9hu0CBPHTlg";
+
+type FcmRuntime = {
+  messaging: Messaging;
+  sdk: typeof import('firebase/messaging');
+};
+
+let fcmRuntimePromise: Promise<FcmRuntime | null> | null = null;
+
+const getFcmRuntime = (): Promise<FcmRuntime | null> => {
+  if (fcmRuntimePromise) return fcmRuntimePromise;
+  fcmRuntimePromise = (async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+    const sdk = await import('firebase/messaging');
+    if (!(await sdk.isSupported())) return null;
+    return { messaging: sdk.getMessaging(app), sdk };
+  })().catch((error) => {
+    console.warn('Firebase Messaging no disponible en este entorno:', error);
+    return null;
+  });
+  return fcmRuntimePromise;
+};
+
+const getMessagingWorkerUrl = () => {
+  const params = new URLSearchParams();
+  const config = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  };
+  Object.entries(config).forEach(([key, value]) => {
+    if (value) params.set(key, value);
+  });
+  return `/firebase-messaging-sw.js?${params.toString()}`;
+};
 
 export const notificationService = {
   requestPermission: async (): Promise<NotificationPermission> => {
@@ -19,11 +56,8 @@ export const notificationService = {
 
   // Obtener Token de FCM para notificaciones Push desde la nube
   initFCM: async (userId: string) => {
-    if (!messaging) return;
-
-    // Verificación asíncrona de soporte para evitar errores críticos
-    const supported = await isSupported();
-    if (!supported) {
+    const fcm = await getFcmRuntime();
+    if (!fcm) {
       console.warn("Este navegador no soporta FCM.");
       return;
     }
@@ -34,29 +68,20 @@ export const notificationService = {
         return;
       }
 
-      // Asegurar que el Service Worker esté registrado y listo para FCM
-      let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-      if (!registration) {
-        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      }
+      // El worker recibe únicamente configuración pública de Firebase. Registrarlo
+      // aquí evita descargar Messaging hasta que el usuario active notificaciones.
+      const registration = await navigator.serviceWorker.register(getMessagingWorkerUrl());
       await navigator.serviceWorker.ready;
-      console.log("Service Worker listo para FCM:", registration.scope);
 
-      const permission = await Notification.requestPermission();
-      console.log("Estado de permiso de notificación:", permission);
-
-      if (permission === 'granted') {
-        const token = await getToken(messaging, {
+      if (Notification.permission === 'granted') {
+        const token = await fcm.sdk.getToken(fcm.messaging, {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration: registration
         });
 
         if (token) {
-          console.log("FCM Token obtenido:", token.substring(0, 10) + "...");
-          
           // Capturar la zona horaria del dispositivo
           const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-          console.log("Zona horaria detectada:", userTimeZone);
 
           const userRef = doc(db, 'users', userId);
           await updateDoc(userRef, {
@@ -70,7 +95,6 @@ export const notificationService = {
               preferences: { notificationsEnabled: true }
             }, { merge: true });
           });
-          console.log("FCM Token y TimeZone sincronizados en Firestore");
         }
       } else {
         console.warn("Permiso de notificación denegado por el usuario.");
@@ -130,12 +154,10 @@ export const notificationService = {
 
   // Escuchar mensajes cuando la app está abierta (Foreground)
   listenForForegroundMessages: async () => {
-    if (!messaging) return;
-    const supported = await isSupported();
-    if (!supported) return;
+    const fcm = await getFcmRuntime();
+    if (!fcm) return;
 
-    onMessage(messaging, (payload) => {
-      console.log('Mensaje FCM recibido:', payload);
+    fcm.sdk.onMessage(fcm.messaging, (payload) => {
       notificationService.sendImmediate(
         payload.notification?.title || "Aviso de Moodless",
         payload.notification?.body || "Tienes una nueva actualización."

@@ -23,8 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { q } = req.query;
-    if (!q || typeof q !== 'string') {
+    if (!q || typeof q !== 'string' || !q.trim()) {
       return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+    if (q.length > 200) {
+      return res.status(400).json({ error: 'Query parameter is too long' });
     }
 
     // 2. Rate limiting (200 búsquedas por hora por usuario para proteger cuota)
@@ -95,10 +98,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(data);
     } catch (error: any) {
       console.error('Search Proxy Error:', error.message);
-      return res.status(500).json({ error: `Internal Server Error: ${error.message}` });
+      return res.status(502).json({ error: 'Music search service is temporarily unavailable' });
     }
   } catch (fatalError: any) {
     console.error('FATAL unhandled error in search-youtube:', fatalError);
-    return res.status(500).json({ error: `Fatal Error: ${fatalError?.message || 'Unknown'}` });
+    return res.status(500).json({ error: 'Unable to process music search' });
   }
 }

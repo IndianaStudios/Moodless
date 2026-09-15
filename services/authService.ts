@@ -3,7 +3,6 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  deleteUser,
   updateProfile,
   updateEmail,
   updatePassword,
@@ -38,11 +37,16 @@ export const authService = {
       }, { merge: true });
 
       // Fire-and-forget: enviar email de bienvenida sin bloquear al usuario
-      fetch('/api/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName: name, userEmail: email }),
-      }).catch(err => console.warn('Welcome email failed:', err));
+      void userCredential.user.getIdToken()
+        .then((token) => fetch('/api/send-welcome', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userName: name, userEmail: email }),
+        }))
+        .catch(err => console.warn('Welcome email failed:', err));
 
       return {
         id: userCredential.user.uid,
@@ -177,16 +181,30 @@ export const authService = {
 
   deleteAccount: async () => {
     const user = auth.currentUser;
-    if (user) {
-      try {
-        await deleteUser(user);
-      } catch (error: any) {
-        if (error.code === 'auth/requires-recent-login') {
-          throw new Error("REAUTH_NEEDED");
-        }
-        throw error;
-      }
+    if (!user) return;
+
+    // El servidor exige también que este inicio de sesión sea reciente. Hacer
+    // la comprobación aquí evita borrar datos si el usuario debe reautenticarse.
+    const tokenResult = await user.getIdTokenResult();
+    const authTime = new Date(tokenResult.authTime).getTime();
+    if (!Number.isFinite(authTime) || Date.now() - authTime > 5 * 60 * 1000) {
+      throw new Error('REAUTH_NEEDED');
     }
+
+    const token = await user.getIdToken();
+    const response = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+      throw new Error('REAUTH_NEEDED');
+    }
+    if (!response.ok) {
+      throw new Error('DELETE_ACCOUNT_FAILED');
+    }
+
+    await signOut(auth);
   },
 
   resetPassword: async (email: string) => {
