@@ -13,3 +13,6 @@ minimumReleaseAgeExclude:
   - '@capacitor/status-bar@8.0.3'
   - autoprefixer@10.5.3
   - '@google/genai@2.20.0'
+  - '@vitest/mocker@5.0.1'
+  - '@vitest/spy@5.0.1'
+  - vitest@5.0.1
